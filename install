@@ -216,9 +216,6 @@ fi
 
 step "Packages"
 mapfile -t need < <(missing_pkgs "${required[@]}")
-# Spicetify only matters with Spotify, and its AUR build is the most fragile
-# of the lot, so it's only offered when Spotify is installed
-if have spotify || have spotify-launcher; then optional+=(spicetify:spicetify-cli); fi
 mapfile -t want < <(missing_pkgs "${optional[@]}"; missing_themes)
 if [ ${#need[@]} -eq 0 ] && [ ${#want[@]} -eq 0 ]; then
     ok "everything is installed"
@@ -253,6 +250,42 @@ have stow || die "stow is required to link the dotfiles"
 have python3 || die "python3 is required for rice-render"
 python3 -c 'import sys; sys.exit(sys.version_info < (3, 11))' \
     || die "rice-render needs Python 3.11 or newer"
+
+# ── Spicetify ───────────────────────────────────────────────────────────
+# Themes Spotify. Taken from Spicetify's own release rather than the AUR,
+# whose build (pnpm + esbuild) breaks on some systems.
+install_spicetify() {
+    local arch tag dir=$HOME/.spicetify
+    case $(uname -m) in
+        x86_64) arch=amd64 ;;
+        aarch64) arch=arm64 ;;
+        *) warn "no Spicetify release for $(uname -m)"; return 0 ;;
+    esac
+    tag=$(curl -fsSL -H 'Accept: application/json' https://github.com/spicetify/cli/releases/latest \
+        | sed -n 's/.*"tag_name": *"v\{0,1\}\([^"]*\)".*/\1/p' | head -n1) || true
+    [ -n "$tag" ] || { warn "couldn't look up Spicetify's latest release"; return 0; }
+    local url="https://github.com/spicetify/cli/releases/download/v$tag/spicetify-$tag-linux-$arch.tar.gz"
+    run mkdir -p "$dir" "$HOME/.local/bin"
+    if [ "$dry" = 1 ]; then run curl -fsSL "$url" '|' tar -xz -C "$dir"
+    elif ! curl -fsSL "$url" | tar -xz -C "$dir"; then warn "Spicetify didn't download"; return 0; fi
+    run ln -sf "$dir/spicetify" "$HOME/.local/bin/spicetify"
+    ok "Spicetify $tag"
+}
+
+if have spotify || have spotify-launcher; then
+    step "Spicetify"
+    if have spicetify || [ -x "$HOME/.spicetify/spicetify" ]; then
+        ok "installed"
+    elif ask "Install Spicetify to theme Spotify?"; then
+        install_spicetify
+    fi
+    # the AUR spotify package lives in /opt, which Spicetify has to patch
+    if [ -d /opt/spotify ] && [ ! -w /opt/spotify/Apps ] \
+        && ask "Spicetify needs write access to /opt/spotify; allow it?"; then
+        run sudo chmod a+wr /opt/spotify
+        run sudo chmod -R a+wr /opt/spotify/Apps
+    fi
+fi
 
 # ── fonts ───────────────────────────────────────────────────────────────
 # family|style|file: each style is checked on its own, so a weight added later

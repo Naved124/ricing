@@ -100,7 +100,7 @@ How each app follows the rice:
 | GTK apps | `gsettings` theme, icons, cursor and fonts, plus a linked `gtk.css` | at once (open GTK 3 apps on restart) |
 | Qt apps | qt6ct with the rice palette, drawn by Qt's Fusion style (`QT_QPA_PLATFORMTHEME=qt6ct` is set in `base.lua`) | on restart |
 | Firefox, Zen, LibreWolf | `userChrome.css` / `userContent.css` linked into every profile, with the pref turned on in `user.js` | on restart; websites keep their own colours |
-| Spotify | Spicetify's Rice theme (installed and applied for you when Spotify is installed) | next time Spotify starts |
+| Spotify | Spicetify's Rice theme (Spicetify comes from its official release, set up and applied for you when Spotify is installed) | next time Spotify starts |
 | mpv | `include="~~/rice.conf"` in `mpv.conf` for the on-screen text, `osc.conf` for the built-in controls, `uosc.conf` if you use uosc | next file opened |
 | Telegram Desktop | `~/.config/rices/current/build/telegram/rice.tdesktop-theme`: open it in Telegram | only when you open it again; Telegram can't follow by itself |
 | kitty, nvim | include line / colorscheme; reloaded live | at once |

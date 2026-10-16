@@ -720,9 +720,11 @@ def configure_apps() -> None:
 
 def spicetify() -> None:
     """Point Spicetify at the Rice theme and apply it to Spotify (restarts it)."""
-    if not shutil.which("spicetify"):
+    # on PATH, or where its own release unpacks (~/.spicetify)
+    exe = shutil.which("spicetify") or str(Path.home() / ".spicetify/spicetify")
+    if not os.access(exe, os.X_OK):
         return
-    run = lambda *a: subprocess.run(["spicetify", *a], capture_output=True, text=True)
+    run = lambda *a: subprocess.run([exe, *a], capture_output=True, text=True)
     theme = run("config", "current_theme").stdout.strip()
     if theme == "Rice":
         return
