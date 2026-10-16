@@ -136,8 +136,36 @@ fresh_pkgs=(
     git base-devel networkmanager bluez bluez-utils power-profiles-daemon
     pipewire pipewire-pulse pipewire-alsa wireplumber
     xdg-desktop-portal-hyprland xdg-desktop-portal-gtk hyprpolkitagent
-    firefox nautilus noto-fonts noto-fonts-emoji
+    firefox nautilus noto-fonts noto-fonts-emoji wpa_supplicant
 )
+
+# the first AUR helper that actually runs: a prebuilt paru-bin/yay-bin stops
+# loading when pacman moves to a new libalpm, so being on PATH isn't enough
+aur_helper() {
+    local h
+    for h in paru yay; do
+        have "$h" && "$h" --version >/dev/null 2>&1 && { echo "$h"; return 0; }
+    done
+    return 1
+}
+
+# build paru from source, so it links against the libalpm that's installed
+build_paru() {
+    local h pkg build
+    for h in paru yay; do
+        have "$h" && warn "$h is installed but doesn't run (built for an older pacman)"
+    done
+    ask "Build paru from source (a few minutes) for the AUR-only themes?" || return 0
+    for pkg in paru-bin yay-bin; do
+        pacman -Qq "$pkg" >/dev/null 2>&1 && run sudo pacman -Rns --noconfirm "$pkg"
+    done
+    build=$(mktemp -d)
+    run git clone --depth 1 https://aur.archlinux.org/paru.git "$build/paru"
+    if [ "$dry" = 1 ]; then run makepkg -si --noconfirm
+    else (cd "$build/paru" && makepkg -si --noconfirm) || warn "paru didn't build; AUR themes will be skipped"; fi
+    rm -rf "$build"
+}
+
 if [ "$fresh" = 1 ]; then
     step "Fresh system"
     echo "  base: ${fresh_pkgs[*]}"
@@ -145,18 +173,15 @@ if [ "$fresh" = 1 ]; then
         run sudo pacman -Syu --needed --noconfirm "${fresh_pkgs[@]}"
     fi
 
-    if have paru || have yay; then
-        ok "AUR helper: $(command -v paru || command -v yay)"
-    elif ask "Build paru (AUR helper) for the AUR-only themes?"; then
-        build=$(mktemp -d)
-        run git clone --depth 1 https://aur.archlinux.org/paru-bin.git "$build/paru-bin"
-        if [ "$dry" = 1 ]; then run makepkg -si --noconfirm
-        else (cd "$build/paru-bin" && makepkg -si --noconfirm) || warn "paru didn't build; AUR themes will be skipped"; fi
-        rm -rf "$build"
+    if helper=$(aur_helper); then
+        ok "AUR helper: $helper"
+    else
+        build_paru
     fi
 
     # NetworkManager next to another network daemon would fight over the
-    # interfaces mid-install, so only start it now if nothing else is running
+    # interfaces mid-install, so the old one is only disabled: it keeps the
+    # network up until the reboot, and NetworkManager starts from then on
     others=()
     for svc in systemd-networkd iwd dhcpcd netctl; do
         systemctl is-active --quiet "$svc" 2>/dev/null && others+=("$svc")
@@ -164,8 +189,9 @@ if [ "$fresh" = 1 ]; then
     if [ ${#others[@]} -eq 0 ]; then
         run sudo systemctl enable --now NetworkManager.service
     else
+        run sudo systemctl disable "${others[@]/%/.service}"
         run sudo systemctl enable NetworkManager.service
-        warn "${others[*]} is running; NetworkManager takes over after: sudo systemctl disable ${others[*]} && reboot"
+        warn "NetworkManager takes over from ${others[*]} after a reboot"
     fi
     run sudo systemctl enable --now bluetooth.service power-profiles-daemon.service
     ok "NetworkManager, Bluetooth and power profiles enabled"
@@ -191,8 +217,7 @@ else
         done
         [ ${#repo_pkgs[@]} -gt 0 ] && run sudo pacman -S --needed --noconfirm "${repo_pkgs[@]}"
         if [ ${#aur_pkgs[@]} -gt 0 ]; then
-            helper=""
-            for h in paru yay; do have "$h" && { helper=$h; break; }; done
+            helper=$(aur_helper) || { build_paru; helper=$(aur_helper) || helper=""; }
             if [ -n "$helper" ]; then
                 run "$helper" -S --needed --noconfirm "${aur_pkgs[@]}"
             else

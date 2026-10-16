@@ -85,8 +85,10 @@ reboot
 
 `--fresh` adds what a minimal system lacks: NetworkManager (the bar's network widget
 uses it), PipeWire, Bluetooth, the Hyprland and GTK portals, a polkit agent, Firefox,
-Nautilus and Noto fonts. It builds `paru` for the AUR-only themes, enables the
-NetworkManager, Bluetooth and power-profiles services, and does everything `--system`
+Nautilus and Noto fonts. It builds `paru` from source for the AUR-only themes (a few
+minutes; a prebuilt `paru-bin` breaks whenever pacman updates its library), hands the
+network from iwd to NetworkManager at the next boot, enables the Bluetooth and
+power-profiles services, and does everything `--system`
 does. After the reboot you get the themed Limine menu, the splash, ReGreet, and then
 the desktop.
 
