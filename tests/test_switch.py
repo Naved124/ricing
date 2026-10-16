@@ -173,6 +173,15 @@ class Switch(unittest.TestCase):
         self.rice("grain", "on")
         self.assertIn("grain.frag", self.shader_calls()[0])
 
+    def test_reapply_restarts_a_running_shell(self):
+        self.rice("paper")
+        Path(self.env["RICE_TEST_RUNNING"]).touch()
+        self.log.unlink()
+        r = self.rice("reapply")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        calls = self.calls()
+        self.assertLess(self.index(calls, "qs kill -c paper"), self.index(calls, "qs -n -c paper -d"))
+
     def test_already_active_is_a_no_op(self):
         r = self.rice("urushi")
         self.assertEqual(r.returncode, 0)

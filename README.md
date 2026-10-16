@@ -176,7 +176,7 @@ rice choose          toggle the chooser (Super+Shift+T)
 rice list            list rices, * marks the active one
 rice get roles.bg    read a value from the active palette
 rice auto on|off     time-of-day switching (see auto.conf)
-rice reapply         run every apply step again
+rice reapply         run every apply step again, restarting the rice's shell
 rice session         bring the active rice up at login (Hyprland runs this)
 rice lock            lock with the rice's own lock screen, or hyprlock
 rice grain off|on    the rice's screen shader (Paper's paper grain); remembered

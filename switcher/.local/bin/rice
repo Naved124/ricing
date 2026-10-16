@@ -10,7 +10,7 @@
 #   rice auto status     print whether auto mode is on
 #   rice auto apply      switch to the rice scheduled for now (used by the timer)
 #   rice choose          toggle the chooser (Super+Shift+T)
-#   rice reapply         run every apply step again for the active rice
+#   rice reapply         run every apply step again for the active rice (restarts its shell)
 #   rice session         start the active rice at login (no freeze, no transition)
 #   rice lock            lock the screen with the rice's lock (its shell, or hyprlock)
 #   rice grain on|off|toggle|status
@@ -175,7 +175,10 @@ apply_shell() {
     fi
     [[ -n "$new" ]] || return 0
     if [[ "$old" == "$new" ]] && qs list -c "$new" 2>/dev/null | grep -q .; then
-        return 0                               # already running (it reloads itself)
+        # already running (it reloads itself), but `rice reapply` restarts it: a
+        # shell whose config failed to load stays alive, drawing nothing
+        [[ "${RICE_FORCE:-0}" == 1 ]] || return 0
+        qs kill -c "$new" >/dev/null 2>&1 || true
     fi
     qs -n -c "$new" -d >/dev/null 2>&1
 }
