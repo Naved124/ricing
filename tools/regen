@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# Regenerate files that are committed to the repo from palettes (Theme.qml),
+# rendering straight from the repo instead of ~/.config. Run after editing a
+# palette.toml or a Theme.qml template; tests fail if you forget.
+set -euo pipefail
+repo="$(cd "$(dirname "$0")/.." && pwd)"
+RICE_DIR="$repo/rices/.config/rices" \
+RICE_TEMPLATES="$repo/render/.local/share/rice/templates" \
+RICE_INSTALL_ROOT="$repo/quickshell" \
+    "$repo/render/.local/bin/rice-render" --all -q

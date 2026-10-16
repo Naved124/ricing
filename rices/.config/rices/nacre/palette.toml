@@ -1,42 +1,126 @@
-# Nacre — mother-of-pearl. Soft iridescent glass over deep violet.
-# Single source of truth: every app theme is rendered from this file.
+# Nacre — a light desktop, like the inside of a shell.
+# Colour only at the edges and in motion, never as flat fills.
+#   · no pure white surfaces: everything is frosted glass
+#   · no black shadows: every shadow is lilac-tinted
+#   · iridescence is reserved for focus and active state
+#
+# Single source of truth. `rice-render nacre` turns this file into Theme.qml
+# and every app theme; never hand-edit the generated files.
 
 [meta]
-name = "nacre"
-title = "Nacre"
-tagline = "iridescent glass, evening light"
-transition = "ripple"
+name          = "nacre"
+title         = "Nacre"
+tagline       = "pearl glass, colour at the edges"
+transition    = "ripple"      # dissolve shader used when switching into Nacre
+shell         = "nacre"       # Quickshell config: qs -c nacre
+notifications = "shell"       # the shell is the notification daemon (no swaync)
+wallpaper     = "shell"       # the shell draws the wallpaper (no mpvpaper/swww)
+lock          = "shell"       # the shell is the lock screen (no hyprlock)
 
 [colors]
-bg      = "#1c1b22"
-surface = "#2a2833"
-overlay = "#3a3746"
-fg      = "#ece8f2"
-muted   = "#9a94a8"
-accent  = "#b8a6ff"
-accent2 = "#8fd3e0"
-accent3 = "#f2b8c6"
-red     = "#f08a9b"
-green   = "#a6e3b8"
-yellow  = "#f3d9a4"
-blue    = "#9db8ff"
+pearl    = "#f4f1f6"   # base surfaces
+shell    = "#e7e2ec"   # secondary surfaces, inactive chips
+lilac    = "#c9bfd8"   # inactive borders, dividers
+ink      = "#3b3548"   # main text
+ink_soft = "#7a7189"   # labels, secondary text
+rose     = "#f2c3d6"   # gradient stop, urgent
+sky      = "#c3dff3"   # gradient stop, selection, links
+mint     = "#cdeedb"   # gradient stop, success
+sun      = "#f3e2b0"   # gradient stop, warning
+orchid   = "#dcc6f2"   # gradient stop, cursor
+mist     = "#f7f4f9"   # terminal background (used at 88%)
+plum     = "#7d6a9a"   # shadow tint, never shown as a fill
+
+# Roles name a colour above; templates shared by every rice only use roles.
+[roles]
+bg        = "pearl"
+surface   = "shell"
+overlay   = "lilac"
+border    = "lilac"
+fg        = "ink"
+muted     = "ink_soft"
+accent    = "orchid"
+urgent    = "rose"
+selection = "sky"
+success   = "mint"
+warning   = "sun"
+cursor    = "orchid"
+link      = "sky"
+shadow    = "plum"
+term_bg   = "mist"
+
+[gradient]
+# rose → sky → mint → sun → orchid → rose, rotating conically
+stops = ["rose", "sky", "mint", "sun", "orchid"]
+angle = 45
+
+[ansi]
+color0  = "#3b3548"
+color1  = "#d9789c"
+color2  = "#6aa483"
+color3  = "#c9a45c"
+color4  = "#6f9fc2"
+color5  = "#a77fb8"
+color6  = "#5fa9a8"
+color7  = "#e7e2ec"
+color8  = "#7a7189"
+color9  = "#e891b0"
+color10 = "#86bf9c"
+color11 = "#dcbb73"
+color12 = "#8bb7d8"
+color13 = "#bf97d0"
+color14 = "#7cc2c0"
+color15 = "#f4f1f6"
 
 [fonts]
-ui   = "Inter"
-mono = "JetBrains Mono"
-size = 11
+display   = "Italiana"        # clock, lock screen, greetings, big numbers
+ui        = "Manrope"
+mono      = "IBM Plex Mono"
+ui_size   = 11
+mono_size = 12.5
 
 [shape]
-radius = 18
-border = 2
-gaps   = 10
+window         = 16
+rounding_power = 2.0
+panel          = 18
+popup          = 12
+chip           = 8
+border         = 2
+gaps_in        = 6
+gaps_out       = 16
+
+[opacity]
+terminal = 0.88
+inactive = 0.94
+glass    = 0.72    # Quickshell panel fill over Hyprland blur
+
+[motion]
+# cubic-bezier control points
+bloom  = [0.2, 0.9, 0.2, 1.0]
+settle = [0.34, 1.3, 0.64, 1.0]
+sink   = [0.4, 0.0, 0.6, 1.0]
+# milliseconds
+open        = 450
+close       = 300
+move        = 400
+workspace   = 500
+scratchpad  = 400
+focus       = 400
+border_loop = 60000
+panel_in    = 350
+panel_out   = 250
+stagger     = 30
 
 [gtk]
-theme        = "adw-gtk3-dark"
-icons        = "Papirus-Dark"
+theme        = "adw-gtk3"
+icons        = "Colloid-Light"
 cursor       = "Bibata-Modern-Ice"
 cursor_size  = 24
-color_scheme = "prefer-dark"
+color_scheme = "prefer-light"
 
 [nvim]
-colorscheme = "rice-nacre"
+colorscheme = "rice"   # build/nvim/rice.lua, linked into ~/.config/nvim/colors
+
+# Generated files that live outside build/ (path relative to $HOME).
+[install]
+"quickshell/Theme.qml" = ".config/quickshell/nacre/Theme.qml"

@@ -1,34 +1,103 @@
 # Paper — warm off-white stock, ink blue and a red seal. Daylight rice.
 
 [meta]
-name = "paper"
-title = "Paper"
-tagline = "ink on warm stock, daylight"
-transition = "peel"
+name          = "paper"
+title         = "Paper"
+tagline       = "ink on warm stock, daylight"
+transition    = "peel"
+shell         = ""            # no Quickshell config yet
+notifications = "swaync"
+wallpaper     = "files"
+lock          = "hyprlock"
 
 [colors]
-bg      = "#f4efe4"
-surface = "#ebe4d4"
-overlay = "#ded5c1"
-fg      = "#2b2620"
-muted   = "#7c7365"
-accent  = "#2f5d8a"
-accent2 = "#b24a3a"
-accent3 = "#c9b994"
-red     = "#b24a3a"
-green   = "#5e7d4a"
-yellow  = "#a8842f"
-blue    = "#2f5d8a"
+stock    = "#f4efe4"
+stock2   = "#ebe4d4"
+stock3   = "#ded5c1"
+ink      = "#2b2620"
+graphite = "#7c7365"
+ink_blue = "#2f5d8a"
+seal     = "#b24a3a"
+fern     = "#5e7d4a"
+ochre    = "#a8842f"
+kraft    = "#c9b994"
+umber    = "#2b2620"
+
+[roles]
+bg        = "stock"
+surface   = "stock2"
+overlay   = "stock3"
+border    = "stock3"
+fg        = "ink"
+muted     = "graphite"
+accent    = "ink_blue"
+urgent    = "seal"
+selection = "kraft"
+success   = "fern"
+warning   = "ochre"
+cursor    = "ink"
+link      = "ink_blue"
+shadow    = "umber"
+term_bg   = "stock"
+
+[gradient]
+stops = ["ink_blue", "seal"]
+angle = 0
+
+[ansi]
+color0  = "#2b2620"
+color1  = "#b24a3a"
+color2  = "#5e7d4a"
+color3  = "#a8842f"
+color4  = "#2f5d8a"
+color5  = "#8a4f7d"
+color6  = "#3f7f7a"
+color7  = "#ebe4d4"
+color8  = "#7c7365"
+color9  = "#c9604f"
+color10 = "#73945d"
+color11 = "#c19c44"
+color12 = "#4a77a4"
+color13 = "#a36894"
+color14 = "#569791"
+color15 = "#f4efe4"
 
 [fonts]
-ui   = "IBM Plex Serif"
-mono = "IBM Plex Mono"
-size = 11
+display   = "IBM Plex Serif"
+ui        = "IBM Plex Sans"
+mono      = "IBM Plex Mono"
+ui_size   = 11
+mono_size = 12
 
 [shape]
-radius = 4
-border = 1
-gaps   = 8
+window         = 4
+rounding_power = 2.0
+panel          = 4
+popup          = 4
+chip           = 4
+border         = 1
+gaps_in        = 4
+gaps_out       = 8
+
+[opacity]
+terminal = 1.0
+inactive = 1.0
+glass    = 0.96
+
+[motion]
+bloom  = [0.5, 0.0, 0.2, 1.0]
+settle = [0.5, 0.0, 0.2, 1.0]
+sink   = [0.5, 0.0, 0.2, 1.0]
+open        = 400
+close       = 300
+move        = 400
+workspace   = 500
+scratchpad  = 400
+focus       = 300
+border_loop = 0
+panel_in    = 300
+panel_out   = 250
+stagger     = 30
 
 [gtk]
 theme        = "adw-gtk3"
@@ -38,4 +107,4 @@ cursor_size  = 24
 color_scheme = "prefer-light"
 
 [nvim]
-colorscheme = "rice-paper"
+colorscheme = "rice"   # build/nvim/rice.lua, linked into ~/.config/nvim/colors

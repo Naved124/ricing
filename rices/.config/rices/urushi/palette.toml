@@ -1,34 +1,103 @@
 # Urushi — black lacquer, vermilion and gold leaf. Sharp edges, slow motion.
 
 [meta]
-name = "urushi"
-title = "Urushi"
-tagline = "black lacquer, vermilion, gold"
-transition = "lacquer"
+name          = "urushi"
+title         = "Urushi"
+tagline       = "black lacquer, vermilion, gold"
+transition    = "lacquer"
+shell         = ""            # no Quickshell config yet
+notifications = "swaync"
+wallpaper     = "files"       # wallpaper/ folder: mpvpaper or swww
+lock          = "hyprlock"
 
 [colors]
-bg      = "#0b0a09"
-surface = "#17130f"
-overlay = "#241d17"
-fg      = "#e9dfcc"
-muted   = "#8a7d6a"
-accent  = "#c8372d"
-accent2 = "#c9a24a"
-accent3 = "#6e1f1a"
-red     = "#c8372d"
-green   = "#7f9a5a"
-yellow  = "#c9a24a"
-blue    = "#5b7a8c"
+lacquer   = "#0b0a09"
+lacquer2  = "#17130f"
+lacquer3  = "#241d17"
+washi     = "#e9dfcc"
+ash       = "#8a7d6a"
+vermilion = "#c8372d"
+gold      = "#c9a24a"
+oxblood   = "#6e1f1a"
+moss      = "#7f9a5a"
+indigo    = "#5b7a8c"
+soot      = "#000000"
+
+[roles]
+bg        = "lacquer"
+surface   = "lacquer2"
+overlay   = "lacquer3"
+border    = "lacquer3"
+fg        = "washi"
+muted     = "ash"
+accent    = "vermilion"
+urgent    = "vermilion"
+selection = "oxblood"
+success   = "moss"
+warning   = "gold"
+cursor    = "gold"
+link      = "indigo"
+shadow    = "soot"
+term_bg   = "lacquer"
+
+[gradient]
+stops = ["oxblood", "vermilion", "gold"]
+angle = 90
+
+[ansi]
+color0  = "#17130f"
+color1  = "#c8372d"
+color2  = "#7f9a5a"
+color3  = "#c9a24a"
+color4  = "#5b7a8c"
+color5  = "#9a4a6a"
+color6  = "#5a8a80"
+color7  = "#e9dfcc"
+color8  = "#4a3f33"
+color9  = "#e0574b"
+color10 = "#98b46f"
+color11 = "#e0bb63"
+color12 = "#7896a8"
+color13 = "#b46684"
+color14 = "#74a69b"
+color15 = "#f6efe2"
 
 [fonts]
-ui   = "Noto Serif JP"
-mono = "Iosevka"
-size = 11
+display   = "Shippori Mincho"
+ui        = "Noto Serif JP"
+mono      = "Iosevka"
+ui_size   = 11
+mono_size = 12
 
 [shape]
-radius = 2
-border = 1
-gaps   = 6
+window         = 2
+rounding_power = 2.0
+panel          = 2
+popup          = 2
+chip           = 2
+border         = 1
+gaps_in        = 3
+gaps_out       = 6
+
+[opacity]
+terminal = 0.96
+inactive = 0.94
+glass    = 0.92
+
+[motion]
+bloom  = [0.7, 0.0, 0.2, 1.0]
+settle = [0.7, 0.0, 0.2, 1.0]
+sink   = [0.7, 0.0, 0.2, 1.0]
+open        = 700
+close       = 500
+move        = 600
+workspace   = 800
+scratchpad  = 600
+focus       = 600
+border_loop = 0
+panel_in    = 500
+panel_out   = 400
+stagger     = 50
 
 [gtk]
 theme        = "adw-gtk3-dark"
@@ -38,4 +107,4 @@ cursor_size  = 24
 color_scheme = "prefer-dark"
 
 [nvim]
-colorscheme = "rice-urushi"
+colorscheme = "rice"   # build/nvim/rice.lua, linked into ~/.config/nvim/colors

@@ -1,0 +1,650 @@
+#!/usr/bin/env python3
+"""rice-render — turn a rice's palette.toml into every app theme.
+
+    rice-render                 render the active rice (~/.config/rices/current)
+    rice-render nacre paper     render the named rices
+    rice-render --all           render every rice
+    rice-render --link          also create the one-time symlinks apps need
+    rice-render --check         exit 1 if any output would change (for tests/CI)
+
+Templates live in ~/.local/share/rice/templates (shared by every rice) and
+<rice>/templates (a rice's own overrides or extra files). Output goes to
+<rice>/build/, plus the paths listed in the palette's [install] table.
+
+Template syntax:
+    {{ roles.accent }}                    a value from the palette
+    {{ roles.bg | rgba(0.88) }}           filters, chained with |
+    {{ gradient.stops | hypr(ee) | join(", ") }}
+    {{ colors.pearl | mix(colors.ink, 0.1) }}
+Filters map over lists element by element, except list filters (join, json,
+first, last, len, closed, curve). Paths and filters that don't exist are
+errors, reported with file and line.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import re
+import sys
+import tomllib
+from pathlib import Path
+
+HOME = Path.home()
+CONFIG = Path(os.environ.get("XDG_CONFIG_HOME", HOME / ".config"))
+RICE_DIR = Path(os.environ.get("RICE_DIR", CONFIG / "rices"))
+SHARED = Path(
+    os.environ.get(
+        "RICE_TEMPLATES",
+        Path(os.environ.get("XDG_DATA_HOME", HOME / ".local/share")) / "rice/templates",
+    )
+)
+INSTALL_ROOT = Path(os.environ.get("RICE_INSTALL_ROOT", HOME))
+
+HEX = re.compile(r"^#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$")
+TAG = re.compile(r"\{\{\s*([A-Za-z_][\w.]*)\s*((?:\|\s*[A-Za-z_]\w*(?:\([^()]*\))?\s*)*)\}\}")
+FILTER = re.compile(r"\|\s*([A-Za-z_]\w*)(?:\(([^()]*)\))?")
+
+ROLES = (
+    "bg surface overlay border fg muted accent urgent selection success "
+    "warning cursor link shadow term_bg"
+).split()
+REQUIRED = {
+    "meta": ["name", "title", "transition"],
+    "fonts": ["display", "ui", "mono", "ui_size", "mono_size"],
+    "shape": ["window", "panel", "popup", "chip", "border", "gaps_in", "gaps_out"],
+    "ansi": [f"color{i}" for i in range(16)],
+    "gradient": ["stops"],
+}
+
+
+class RenderError(Exception):
+    pass
+
+
+# ── colours ──────────────────────────────────────────────────────────────────
+
+class Color(str):
+    """A #rrggbb string that filters know is a colour."""
+
+
+def rgb(c: str) -> tuple[int, int, int]:
+    c = c.lstrip("#")
+    return int(c[0:2], 16), int(c[2:4], 16), int(c[4:6], 16)
+
+
+def to_hex(r: float, g: float, b: float) -> Color:
+    clamp = lambda v: max(0, min(255, round(v)))
+    return Color("#{:02x}{:02x}{:02x}".format(clamp(r), clamp(g), clamp(b)))
+
+
+def alpha_hex(a: str) -> str:
+    """'ee' stays 'ee'; '0.88' becomes 'e0'."""
+    a = a.strip()
+    if re.fullmatch(r"[0-9a-fA-F]{2}", a):
+        return a.lower()
+    return "{:02x}".format(round(float(a) * 255))
+
+
+def mix(a: str, b: str, t: float) -> Color:
+    ra, ga, ba = rgb(a)
+    rb, gb, bb = rgb(b)
+    return to_hex(ra + (rb - ra) * t, ga + (gb - ga) * t, ba + (bb - ba) * t)
+
+
+def luminance(c: str) -> float:
+    def ch(v: int) -> float:
+        v /= 255
+        return v / 12.92 if v <= 0.03928 else ((v + 0.055) / 1.055) ** 2.4
+
+    r, g, b = rgb(c)
+    return 0.2126 * ch(r) + 0.7152 * ch(g) + 0.0722 * ch(b)
+
+
+# ── palette loading ──────────────────────────────────────────────────────────
+
+def load_palette(rice: Path) -> dict:
+    path = rice / "palette.toml"
+    try:
+        data = tomllib.loads(path.read_text())
+    except FileNotFoundError:
+        raise RenderError(f"{path}: not found")
+    except tomllib.TOMLDecodeError as e:
+        raise RenderError(f"{path}: {e}")
+
+    colors = data.get("colors", {})
+    for k, v in colors.items():
+        if not isinstance(v, str) or not HEX.match(v):
+            raise RenderError(f"{path}: colors.{k} = {v!r} is not #rrggbb")
+    colors = {k: Color(v.lower()) for k, v in colors.items()}
+    data["colors"] = colors
+
+    def resolve(ref: str, where: str) -> Color:
+        if ref in colors:
+            return colors[ref]
+        if HEX.match(ref):
+            return Color(ref.lower())
+        raise RenderError(f"{path}: {where} = {ref!r} names no colour in [colors]")
+
+    roles = data.get("roles", {})
+    missing = [r for r in ROLES if r not in roles]
+    if missing:
+        raise RenderError(f"{path}: [roles] is missing {', '.join(missing)}")
+    data["roles"] = {k: resolve(v, f"roles.{k}") for k, v in roles.items()}
+    data["role_names"] = dict(roles)
+
+    for section, keys in REQUIRED.items():
+        have = data.get(section, {})
+        missing = [k for k in keys if k not in have]
+        if missing:
+            raise RenderError(f"{path}: [{section}] is missing {', '.join(missing)}")
+
+    data["ansi"] = {k: resolve(v, f"ansi.{k}") for k, v in data["ansi"].items()}
+    grad = data["gradient"]
+    grad["names"] = list(grad["stops"])
+    grad["stops"] = [resolve(s, "gradient.stops") for s in grad["stops"]]
+
+    # a few derived values templates commonly want
+    data["derived"] = {
+        "is_light": luminance(data["roles"]["bg"]) > 0.5,
+        "variant": "light" if luminance(data["roles"]["bg"]) > 0.5 else "dark",
+        "rice_dir": str(rice),
+        "build_dir": str(rice / "build"),
+        "home": str(HOME),
+    }
+    return data
+
+
+# ── template engine ──────────────────────────────────────────────────────────
+
+def parse_args(raw: str | None) -> list[str]:
+    """`a, "b, c", 0.5` → ["a", "b, c", "0.5"]; quoted text is kept verbatim."""
+    if raw is None or not raw.strip():
+        return []
+    out: list[str] = []
+    cur, quoted, quote = "", False, None
+    for ch in raw:
+        if quote:
+            if ch == quote:
+                quote = None
+            else:
+                cur += ch
+        elif ch in "\"'":
+            quote, quoted = ch, True
+        elif ch == ",":
+            out.append(cur if quoted else cur.strip())
+            cur, quoted = "", False
+        elif quoted and ch.isspace():
+            continue
+        else:
+            cur += ch
+    out.append(cur if quoted else cur.strip())
+    return out
+
+
+def fmt_num(v: float) -> str:
+    if isinstance(v, bool):
+        return "true" if v else "false"
+    if isinstance(v, int) or float(v).is_integer():
+        return str(int(v))
+    return f"{v:.6g}"
+
+
+def lookup(ctx: dict, path: str):
+    cur = ctx
+    for part in path.split("."):
+        if isinstance(cur, dict) and part in cur:
+            cur = cur[part]
+        elif isinstance(cur, list) and part.isdigit() and int(part) < len(cur):
+            cur = cur[int(part)]
+        else:
+            raise KeyError(path)
+    return cur
+
+
+class Filters:
+    """Element-wise filters take one value; list filters take the whole list."""
+
+    LIST = {"join", "json", "first", "last", "len", "closed", "curve", "reverse"}
+
+    def __init__(self, ctx: dict):
+        self.ctx = ctx
+
+    def arg_color(self, a: str) -> str:
+        a = a.strip()
+        if HEX.match(a):
+            return a
+        try:
+            v = lookup(self.ctx, a)
+        except KeyError:
+            raise RenderError(f"unknown colour {a!r}")
+        if not (isinstance(v, str) and HEX.match(v)):
+            raise RenderError(f"{a!r} is not a colour")
+        return v
+
+    @staticmethod
+    def need_color(v) -> str:
+        if not (isinstance(v, str) and HEX.match(v)):
+            raise RenderError(f"expected a colour, got {v!r}")
+        return v[:7]
+
+    # element-wise ----------------------------------------------------------
+    def hex(self, v):
+        return Color(self.need_color(v))
+
+    def nohash(self, v):
+        return self.need_color(v)[1:]
+
+    def rgb(self, v):
+        return "{}, {}, {}".format(*rgb(self.need_color(v)))
+
+    def rgba(self, v, a="1"):
+        return "rgba({}, {}, {}, {})".format(*rgb(self.need_color(v)), fmt_num(float(a)))
+
+    def hypr(self, v, a="ff"):
+        return f"rgba({self.need_color(v)[1:]}{alpha_hex(a)})"
+
+    def alpha(self, v, a):
+        """#rrggbbaa (CSS, kitty and most apps)."""
+        return f"{self.need_color(v)}{alpha_hex(a)}"
+
+    def argb(self, v, a):
+        """#aarrggbb (Qt, QML, Kvantum)."""
+        return f"#{alpha_hex(a)}{self.need_color(v)[1:]}"
+
+    def mix(self, v, other, t):
+        return mix(self.need_color(v), self.arg_color(other), float(t))
+
+    def lighten(self, v, t):
+        return mix(self.need_color(v), "#ffffff", float(t))
+
+    def darken(self, v, t):
+        return mix(self.need_color(v), "#000000", float(t))
+
+    def upper(self, v):
+        return str(v).upper()
+
+    def lower(self, v):
+        return str(v).lower()
+
+    def quote(self, v):
+        return json.dumps(v if isinstance(v, str) else fmt_num(v))
+
+    def mul(self, v, k):
+        return float(v) * float(k)
+
+    def div(self, v, k):
+        return float(v) / float(k)
+
+    def add(self, v, k):
+        return float(v) + float(k)
+
+    def round(self, v, digits="0"):
+        r = round(float(v), int(digits))
+        return int(r) if int(digits) == 0 else r
+
+    def fmt(self, v, spec):
+        return format(v, spec)
+
+    def default(self, v, d):
+        return d if v in (None, "") else v
+
+    def bool(self, v):
+        return "true" if v else "false"
+
+    # whole-list ------------------------------------------------------------
+    def join(self, v, sep=", "):
+        return sep.join(self.str(x) for x in v)
+
+    def json(self, v):
+        return json.dumps(v)
+
+    def first(self, v):
+        return v[0]
+
+    def last(self, v):
+        return v[-1]
+
+    def len(self, v):
+        return len(v)
+
+    def reverse(self, v):
+        return list(reversed(v))
+
+    def closed(self, v):
+        """[a, b, c] → [a, b, c, a]: a gradient that loops back on itself."""
+        return list(v) + [v[0]]
+
+    def curve(self, v):
+        """bezier points → QML Easing.BezierSpline list."""
+        if len(v) != 4:
+            raise RenderError(f"curve needs 4 numbers, got {v!r}")
+        return "[{}, 1, 1]".format(", ".join(fmt_num(x) for x in v))
+
+    @staticmethod
+    def str(v) -> str:
+        if isinstance(v, (int, float)):
+            return fmt_num(v)
+        if isinstance(v, list):
+            return ", ".join(Filters.str(x) for x in v)
+        if isinstance(v, dict):
+            return json.dumps(v)
+        return str(v)
+
+    def resolve_arg(self, a: str) -> str:
+        """An argument may name a palette value: argb(opacity.glass)."""
+        if re.fullmatch(r"[A-Za-z_]\w*(\.\w+)+", a):
+            try:
+                v = lookup(self.ctx, a)
+            except KeyError:
+                raise RenderError(f"no value {a!r}")
+            return self.str(v) if not isinstance(v, str) else v
+        return a
+
+    def apply(self, value, name: str, args: list[str]):
+        fn = getattr(self, name, None)
+        if fn is None or name.startswith("_") or name in {
+            "apply", "arg_color", "need_color", "str", "resolve_arg",
+        }:
+            raise RenderError(f"unknown filter {name!r}")
+        args = [self.resolve_arg(a) for a in args]
+        try:
+            if isinstance(value, list) and name not in self.LIST:
+                return [fn(x, *args) for x in value]
+            return fn(value, *args)
+        except TypeError as e:
+            raise RenderError(f"filter {name}: {e}")
+        except ValueError as e:
+            raise RenderError(f"filter {name}: {e}")
+
+
+def render_text(text: str, ctx: dict, where: str) -> str:
+    filters = Filters(ctx)
+
+    def sub(m: re.Match) -> str:
+        line = text.count("\n", 0, m.start()) + 1
+        path, chain = m.group(1), m.group(2) or ""
+        try:
+            try:
+                value = lookup(ctx, path)
+            except KeyError:
+                raise RenderError(f"no value {path!r}")
+            for fm in FILTER.finditer(chain):
+                value = filters.apply(value, fm.group(1), parse_args(fm.group(2)))
+            return Filters.str(value)
+        except RenderError as e:
+            raise RenderError(f"{where}:{line}: {e}") from None
+
+    return TAG.sub(sub, text)
+
+
+# ── generated images ─────────────────────────────────────────────────────────
+
+def png(width: int, height: int, rows: list[bytes]) -> bytes:
+    """Minimal RGBA PNG encoder (no Pillow needed)."""
+    import struct
+    import zlib
+
+    def chunk(kind: bytes, data: bytes) -> bytes:
+        body = kind + data
+        return struct.pack(">I", len(data)) + body + struct.pack(">I", zlib.crc32(body))
+
+    raw = b"".join(b"\x00" + r for r in rows)
+    return (
+        b"\x89PNG\r\n\x1a\n"
+        + chunk(b"IHDR", struct.pack(">IIBBBBB", width, height, 8, 6, 0, 0, 0))
+        + chunk(b"IDAT", zlib.compress(raw, 9))
+        + chunk(b"IEND", b"")
+    )
+
+
+def pearl(ctx: dict, size: int = 192) -> bytes:
+    """An iridescent pearl: palette body, the gradient sweeping round its rim,
+    and a soft highlight. Used as the fastfetch logo."""
+    import math
+
+    stops = [rgb(c) for c in ctx["gradient"]["stops"]]
+    stops.append(stops[0])
+    body = rgb(ctx["roles"]["bg"])
+    shade = rgb(ctx["roles"]["border"])
+    r0 = size / 2 - 2
+    cx = cy = size / 2
+
+    def conic(angle: float) -> tuple[float, float, float]:
+        t = (angle / (2 * math.pi)) % 1.0 * (len(stops) - 1)
+        i = int(t)
+        f = t - i
+        a, b = stops[i], stops[min(i + 1, len(stops) - 1)]
+        return tuple(a[k] + (b[k] - a[k]) * f for k in range(3))
+
+    rows = []
+    for y in range(size):
+        row = bytearray()
+        for x in range(size):
+            dx, dy = x + 0.5 - cx, y + 0.5 - cy
+            d = math.hypot(dx, dy) / r0
+            if d > 1.0 + 1.5 / r0:
+                row += b"\x00\x00\x00\x00"
+                continue
+            # body: lit from the top-left, shading toward the lilac edge
+            lx, ly = (dx / r0 + 0.35), (dy / r0 + 0.4)
+            lit = max(0.0, 1.0 - math.hypot(lx, ly) / 1.4)
+            base = [body[k] + (shade[k] - body[k]) * (1 - lit) * 0.6 for k in range(3)]
+            # iridescent rim, rotated a little so the sheen isn't axis-aligned
+            rim = min(1.0, max(0.0, (d - 0.35) / 0.65)) ** 1.6
+            iri = conic(math.atan2(dy, dx) + 0.9 + d * 1.2)
+            col = [base[k] + (iri[k] - base[k]) * rim * 0.85 for k in range(3)]
+            # specular highlight
+            hx, hy = dx / r0 + 0.38, dy / r0 + 0.42
+            spec = max(0.0, 1.0 - math.hypot(hx, hy) / 0.32) ** 2
+            col = [c + (255 - c) * spec * 0.8 for c in col]
+            alpha = max(0.0, min(1.0, (1.0 - d) * r0 + 0.5))
+            row += bytes([*(max(0, min(255, round(c))) for c in col), round(alpha * 255)])
+        rows.append(bytes(row))
+    return png(size, size, rows)
+
+
+# ── rendering a rice ─────────────────────────────────────────────────────────
+
+def template_files(rice: Path) -> dict[str, Path]:
+    """relative path → template file; a rice's own templates win."""
+    found: dict[str, Path] = {}
+    for root in (SHARED, rice / "templates"):
+        if not root.is_dir():
+            continue
+        for f in sorted(root.rglob("*")):
+            if f.is_file() and not f.name.startswith(".") and not f.name.endswith("~"):
+                found[f.relative_to(root).as_posix()] = f
+    return found
+
+
+def outputs_for(rice: Path, ctx: dict) -> dict[Path, bytes]:
+    out: dict[Path, bytes] = {}
+    build = rice / "build"
+    for rel, src in template_files(rice).items():
+        name = render_text(rel, ctx, f"{src} (file name)")
+        if src.suffix in {".png", ".jpg", ".ttf", ".otf", ".qsb"}:
+            out[build / name] = src.read_bytes()
+        else:
+            out[build / name] = render_text(src.read_text(), ctx, str(src)).encode()
+
+    meta = {
+        "name": ctx["meta"]["name"],
+        "title": ctx["meta"]["title"],
+        "tagline": ctx["meta"].get("tagline", ""),
+        "transition": ctx["meta"]["transition"],
+        "shell": ctx["meta"].get("shell", ""),
+        "roles": ctx["roles"],
+        "colors": ctx["colors"],
+        "gradient": ctx["gradient"]["stops"],
+        "fonts": ctx["fonts"],
+        "shape": ctx["shape"],
+        "motion": ctx.get("motion", {}),
+        "variant": ctx["derived"]["variant"],
+    }
+    out[build / "meta.json"] = (json.dumps(meta, indent=2) + "\n").encode()
+    if not (rice / "templates/fastfetch/logo.png").exists():
+        out[build / "fastfetch/logo.png"] = pearl(ctx)
+
+    for rel, dest in ctx.get("install", {}).items():
+        src = build / rel
+        if src not in out:
+            raise RenderError(f"{rice}/palette.toml: [install] {rel!r} is not a rendered file")
+        out[INSTALL_ROOT / os.path.expanduser(dest)] = out[src]
+    return out
+
+
+def write(path: Path, data: bytes) -> bool:
+    try:
+        if path.read_bytes() == data:
+            return False
+    except FileNotFoundError:
+        pass
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_name(f".{path.name}.tmp")
+    tmp.write_bytes(data)
+    # write through a symlink (stowed files) instead of replacing it
+    target = path.resolve() if path.is_symlink() else path
+    os.replace(tmp, target)
+    return True
+
+
+def render(rice: Path, check: bool = False, quiet: bool = False) -> int:
+    ctx = load_palette(rice)
+    changed = 0
+    for path, data in outputs_for(rice, ctx).items():
+        if check:
+            try:
+                same = path.read_bytes() == data
+            except FileNotFoundError:
+                same = False
+            if not same:
+                print(f"out of date: {path}", file=sys.stderr)
+                changed += 1
+        elif write(path, data):
+            changed += 1
+            if not quiet:
+                print(f"  {path}")
+    return changed
+
+
+# ── one-time links for apps that read fixed paths ────────────────────────────
+
+CURRENT = RICE_DIR / "current" / "build"
+
+LINKS = [
+    # (link, target inside current/build)
+    (".config/gtk-3.0/gtk.css", "gtk/gtk.css"),
+    (".config/gtk-4.0/gtk.css", "gtk/gtk.css"),
+    (".config/qt6ct/colors/rice.conf", "qt/qt6ct.conf"),
+    (".config/Kvantum/Rice", "qt/kvantum"),
+    (".config/starship.toml", "starship.toml"),
+    (".config/fastfetch/config.jsonc", "fastfetch/config.jsonc"),
+    (".config/btop/themes/rice.theme", "btop.theme"),
+    (".config/yazi/theme.toml", "yazi/theme.toml"),
+    (".config/zathura/rice", "zathurarc"),
+    (".config/mpv/script-opts/uosc.conf", "mpv/uosc.conf"),
+    (".config/imv/config", "imv.conf"),
+    (".config/vesktop/themes/rice.theme.css", "vesktop/rice.theme.css"),
+    (".config/spicetify/Themes/Rice", "spicetify"),
+    (".config/nvim/colors/rice.lua", "nvim/rice.lua"),
+    (".config/nvim/lua/lualine/themes/rice.lua", "nvim/lualine.lua"),
+]
+
+HINTS = """
+Add these once (they include the active rice instead of being replaced):
+  kitty.conf        include ~/.config/rices/current/build/kitty.conf
+  btop.conf         color_theme = "rice"
+  zathurarc         include rice
+  nvim init.lua     vim.cmd.colorscheme("rice")
+  Kvantum           kvantummanager --set Rice
+  qt6ct             Appearance → Palette → custom → rice
+  spicetify         spicetify config current_theme Rice && spicetify apply
+  Firefox           rice-render --link --firefox  (links userChrome into your profile)
+"""
+
+
+def firefox_profiles() -> list[Path]:
+    ini = HOME / ".mozilla/firefox/profiles.ini"
+    if not ini.exists():
+        return []
+    profiles, cur = [], {}
+    for line in ini.read_text().splitlines() + ["["]:
+        line = line.strip()
+        if line.startswith("["):
+            if "Path" in cur:
+                p = Path(cur["Path"])
+                if cur.get("IsRelative", "1") == "1":
+                    p = ini.parent / p
+                profiles.append(p)
+            cur = {}
+        elif "=" in line:
+            k, v = line.split("=", 1)
+            cur[k] = v
+    return profiles
+
+
+def link(firefox: bool) -> None:
+    pairs = [(INSTALL_ROOT / l, CURRENT / t) for l, t in LINKS]
+    if firefox:
+        for prof in firefox_profiles():
+            pairs += [
+                (prof / "chrome/userChrome.css", CURRENT / "firefox/userChrome.css"),
+                (prof / "chrome/userContent.css", CURRENT / "firefox/userContent.css"),
+            ]
+    for path, target in pairs:
+        if path.is_symlink():
+            if Path(os.readlink(path)) == target:
+                continue
+            path.unlink()
+        elif path.exists():
+            print(f"  skip  {path} (a real file is there; move it aside to link it)")
+            continue
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.symlink_to(target)
+        print(f"  link  {path} → {target}")
+    print(HINTS)
+
+
+def main(argv: list[str] | None = None) -> int:
+    ap = argparse.ArgumentParser(prog="rice-render", description=__doc__.split("\n")[0])
+    ap.add_argument("rices", nargs="*")
+    ap.add_argument("--all", action="store_true")
+    ap.add_argument("--link", action="store_true")
+    ap.add_argument("--firefox", action="store_true", help="with --link: also link Firefox chrome/")
+    ap.add_argument("--check", action="store_true")
+    ap.add_argument("-q", "--quiet", action="store_true")
+    a = ap.parse_args(argv)
+
+    if a.all:
+        names = sorted(
+            p.name for p in RICE_DIR.iterdir()
+            if p.is_dir() and not p.is_symlink() and (p / "palette.toml").exists()
+        )
+    elif a.rices:
+        names = a.rices
+    else:
+        cur = RICE_DIR / "current"
+        if not cur.is_symlink():
+            print("rice-render: no active rice; name one or use --all", file=sys.stderr)
+            return 2
+        names = [os.readlink(cur).rstrip("/").split("/")[-1]]
+
+    stale = 0
+    try:
+        for name in names:
+            rice = RICE_DIR / name
+            if not a.quiet and not a.check:
+                print(f"{name}:")
+            stale += render(rice, check=a.check, quiet=a.quiet)
+    except RenderError as e:
+        print(f"rice-render: {e}", file=sys.stderr)
+        return 1
+    if a.link:
+        link(a.firefox)
+    return 1 if (a.check and stale) else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

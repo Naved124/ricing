@@ -2,3 +2,5 @@ rices/.config/rices/current
 rices/.config/rices/.current.tmp
 node_modules/
 @girs/
+rices/.config/rices/*/build/
+__pycache__/
