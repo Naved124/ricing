@@ -11,6 +11,7 @@ import shutil
 import stat
 import subprocess
 import tempfile
+import threading
 import time
 import unittest
 from pathlib import Path
@@ -23,7 +24,14 @@ echo "$(basename "$0") $*" >> "$RICE_TEST_LOG"
 case "$(basename "$0") $*" in
     "qs -c rice ipc call rice ping") echo pong ;;
     "hyprctl monitors -j") echo '[{"name":"DP-1"},{"name":"HDMI-A-1"}]' ;;
-    "qs list -c "*) [ -f "$RICE_TEST_RUNNING" ] && echo running ;;
+    # a running shell: a real process whose pid is in $RICE_TEST_RUNNING; like
+    # qs, the "none" note goes to stdout
+    "qs list -c "*" -j")
+        if [ -s "$RICE_TEST_RUNNING" ] && kill -0 "$(cat "$RICE_TEST_RUNNING")" 2>/dev/null; then
+            echo "[{\"pid\": $(cat "$RICE_TEST_RUNNING")}]"
+        else
+            echo "No running instances for shell.qml"
+        fi ;;
     # a daemon outlives the switch, keeping whatever files it inherited
     "qs -n -c "*" -d") if [ -n "$RICE_TEST_DAEMON" ]; then sleep 4 >/dev/null 2>&1 & fi ;;
     gsettings*) [ -n "$RICE_TEST_FAIL_GSETTINGS" ] && exit 1 ;;
@@ -118,23 +126,40 @@ class Switch(unittest.TestCase):
         self.assertIn("pkill -x mpvpaper", calls)
         self.assertIn("swww kill", calls)
 
+    def running_shell(self):
+        """A stand-in for a running Quickshell instance; `qs list -j` reports it."""
+        proc = subprocess.Popen(["sleep", "30"])
+        threading.Thread(target=proc.wait, daemon=True).start()   # reap it once killed
+        self.addCleanup(proc.kill)
+        Path(self.env["RICE_TEST_RUNNING"]).write_text(str(proc.pid))
+        return proc
+
+    def assertStopped(self, proc):
+        for _ in range(50):
+            if proc.poll() is not None:
+                return
+            time.sleep(0.02)
+        self.fail("the old shell is still running")
+
     def test_leaving_a_shell_kills_it(self):
         self.rice("nacre")
+        shell = self.running_shell()
         self.log.unlink()
         r = self.rice("urushi")
         self.assertEqual(r.returncode, 0, r.stderr)
         calls = self.calls()
-        self.assertIn("qs kill -c nacre", calls)
+        self.assertStopped(shell)
         self.assertFalse(any(c.startswith("qs -n -c urushi") for c in calls))
         self.index(calls, "qs -c rice ipc call rice dissolve urushi")
 
     def test_shell_to_shell(self):
         self.rice("nacre")
+        shell = self.running_shell()
         self.log.unlink()
         r = self.rice("paper")
         self.assertEqual(r.returncode, 0, r.stderr)
-        calls = self.calls()
-        self.assertLess(self.index(calls, "qs kill -c nacre"), self.index(calls, "qs -n -c paper -d"))
+        self.assertStopped(shell)
+        self.index(self.calls(), "qs -n -c paper -d")
 
     def test_failing_step_still_dissolves(self):
         render = Path(self.env["PATH"].split(":")[0]) / "rice-render"
@@ -178,12 +203,20 @@ class Switch(unittest.TestCase):
 
     def test_reapply_restarts_a_running_shell(self):
         self.rice("paper")
-        Path(self.env["RICE_TEST_RUNNING"]).touch()
+        shell = self.running_shell()
         self.log.unlink()
         r = self.rice("reapply")
         self.assertEqual(r.returncode, 0, r.stderr)
-        calls = self.calls()
-        self.assertLess(self.index(calls, "qs kill -c paper"), self.index(calls, "qs -n -c paper -d"))
+        self.assertStopped(shell)
+        self.index(self.calls(), "qs -n -c paper -d")
+
+    def test_reapply_starts_a_shell_that_isnt_running(self):
+        # `qs list` says "No running instances" on stdout: that isn't a shell
+        self.rice("paper")
+        self.log.unlink()
+        r = self.rice("reapply")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.index(self.calls(), "qs -n -c paper -d")
 
     def test_a_started_shell_doesnt_keep_the_lock(self):
         # the shell `rice` starts runs on after the switch; if it held the

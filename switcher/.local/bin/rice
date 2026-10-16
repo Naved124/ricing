@@ -164,6 +164,28 @@ render() {
     rice-render -q "$1"
 }
 
+# pids of the running instances of a Quickshell config. `qs list` prints its
+# "No running instances" note on stdout too, so only its JSON form says.
+shell_pids() {
+    qs list -c "$1" -j 2>/dev/null | jq -r '.[]?.pid // empty' 2>/dev/null || true
+}
+
+# stop every instance of a config (`qs kill` refuses when there are several)
+# and wait until they're gone, so a fresh `qs -n` isn't turned away by one
+# still exiting
+stop_shell() {
+    local pids i
+    mapfile -t pids < <(shell_pids "$1")
+    (( ${#pids[@]} )) || return 0
+    kill "${pids[@]}" 2>/dev/null || true
+    for (( i = 0; i < 30; i++ )); do
+        [[ -z "$(shell_pids "$1")" ]] && return 0
+        sleep 0.1
+    done
+    kill -KILL "${pids[@]}" 2>/dev/null || true
+    sleep 0.2
+}
+
 # swap the per-rice Quickshell config: stop the old one, start the new one
 apply_shell() {
     local to="$1" from="${2:-}" new old
@@ -171,14 +193,14 @@ apply_shell() {
     new="$(palette "$to" meta shell)"
     old="$([[ -n "$from" ]] && palette "$from" meta shell || true)"
     if [[ -n "$old" && "$old" != "$new" ]]; then
-        qs kill -c "$old" >/dev/null 2>&1 || true
+        stop_shell "$old"
     fi
     [[ -n "$new" ]] || return 0
-    if [[ "$old" == "$new" ]] && qs list -c "$new" 2>/dev/null | grep -q .; then
+    if [[ "$old" == "$new" && -n "$(shell_pids "$new")" ]]; then
         # already running (it reloads itself), but `rice reapply` restarts it: a
         # shell whose config failed to load stays alive, drawing nothing
         [[ "${RICE_FORCE:-0}" == 1 ]] || return 0
-        qs kill -c "$new" >/dev/null 2>&1 || true
+        stop_shell "$new"
     fi
     qs -n -c "$new" -d >/dev/null 2>&1 9>&-
 }
