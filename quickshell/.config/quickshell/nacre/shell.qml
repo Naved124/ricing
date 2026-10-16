@@ -8,6 +8,7 @@ import Quickshell
 import Quickshell.Io
 import Quickshell.Hyprland
 import qs.bar
+import qs.center
 import qs.launcher
 import qs.notifs
 import qs.osd
@@ -30,12 +31,18 @@ ShellRoot {
     Osd {}
     Toast {}
     Launcher {}
+    Center {}
 
     // Hyprland binds: hl.dsp.global("quickshell:<name>")
     GlobalShortcut {
         name: "launcher"
         description: "Open the launcher"
         onPressed: { Shell.orbScreen = null; Shell.toggleLauncher(""); }
+    }
+    GlobalShortcut {
+        name: "center"
+        description: "Open the control centre"
+        onPressed: Shell.toggleCenter()
     }
     GlobalShortcut {
         name: "clipboard"
@@ -51,6 +58,8 @@ ShellRoot {
         function recording(on: bool): void { Shell.recording = on; }
         function toast(icon: string, text: string): void { Shell.toast(icon, text); }
         function launcher(mode: string): void { Shell.orbScreen = null; Shell.toggleLauncher(mode); }
+        function center(focus: string): void { Shell.toggleCenter(focus); }
+        function nightLight(on: bool): void { Shell.setNightLight(on); }
         // open the launcher with text already typed, e.g. "=2^10" or ":heart"
         function search(text: string): void {
             Shell.orbScreen = null;

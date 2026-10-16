@@ -19,6 +19,8 @@ Singleton {
     property bool powerOpen: false
     property bool recording: false
     property bool dnd: saved.dnd
+    property bool nightLight: saved.nightLight
+    readonly property int nightTemp: 4300  // kelvin, through hyprsunset's IPC
 
     // where the launcher blooms from (the orb), in screen coordinates
     property point orbCenter: Qt.point(0, 0)
@@ -61,6 +63,24 @@ Singleton {
         saved.dnd = on;
     }
 
+    function setNightLight(on) {
+        saved.nightLight = on;
+        applyNightLight();
+    }
+
+    function applyNightLight() {
+        Quickshell.execDetached(saved.nightLight
+            ? ["hyprctl", "hyprsunset", "temperature", String(nightTemp)]
+            : ["hyprctl", "hyprsunset", "identity"]);
+    }
+
+    // hyprsunset starts alongside the shell; give it a moment, then restore
+    Timer {
+        interval: 3000
+        running: true
+        onTriggered: if (root.nightLight) root.applyNightLight()
+    }
+
     FileView {
         path: Quickshell.statePath("shell.json")
         watchChanges: true
@@ -72,6 +92,7 @@ Singleton {
         JsonAdapter {
             id: saved
             property bool dnd: false
+            property bool nightLight: false
         }
     }
 }

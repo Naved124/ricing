@@ -17,6 +17,8 @@ PanelWindow {
     readonly property int hidden: Math.max(0, Notifs.popups.length - Notifs.maxVisible)
 
     screen: Hypr.focusedScreen
+    // the control centre shows the same notifications; don't double up
+    visible: !Shell.centerOpen
 
     anchors { top: true; right: true }
     margins { top: 12 + 38 + 6; right: Theme.gapsOut - win.pad + 4 }
