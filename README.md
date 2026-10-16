@@ -85,7 +85,8 @@ reboot
 
 `--fresh` adds what a minimal system lacks: NetworkManager (the bar's network widget
 uses it), PipeWire, Bluetooth, the Hyprland and GTK portals, a polkit agent, Firefox,
-Nautilus and Noto fonts. It builds `paru` from source for the AUR-only themes (a few
+Nautilus, Noto fonts, GNOME Keyring and the Mesa/Vulkan/video drivers for an Intel
+or AMD GPU. It builds `paru` from source for the AUR-only themes (a few
 minutes; a prebuilt `paru-bin` breaks whenever pacman updates its library), hands the
 network from iwd to NetworkManager at the next boot, enables the Bluetooth and
 power-profiles services, and does everything `--system`
@@ -230,6 +231,8 @@ sudo system/install --undo         # put back everything the last run changed
 - **greetd**: copies ReGreet's settings and the wallpaper into `/etc/greetd`, then
   switches the display manager (SDDM, GDM, …) to greetd from the next boot. Your
   running session isn't touched.
+- **Keyring**: adds GNOME Keyring to greetd's PAM file, so the password you type at
+  ReGreet also unlocks it and apps can keep their sign-ins.
 
 Every changed file is backed up to `/var/backups/rice/<time>/` first. After switching rice,
 `rice system` re-themes whichever of the three you set up (it asks for sudo).

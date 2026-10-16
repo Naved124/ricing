@@ -137,7 +137,22 @@ fresh_pkgs=(
     pipewire pipewire-pulse pipewire-alsa wireplumber
     xdg-desktop-portal-hyprland xdg-desktop-portal-gtk hyprpolkitagent
     firefox nautilus noto-fonts noto-fonts-emoji wpa_supplicant
+    gnome-keyring libsecret seahorse
 )
+
+# graphics drivers for the GPUs in this machine, read from sysfs (lspci may not
+# be installed yet): Mesa's OpenGL plus Vulkan and video decoding
+gpu_pkgs() {
+    local v
+    for v in /sys/class/drm/card*/device/vendor; do
+        [ -r "$v" ] || continue
+        case $(cat "$v") in
+            0x8086) echo mesa vulkan-intel intel-media-driver ;;
+            0x1002) echo mesa vulkan-radeon ;;
+            0x10de) warn "NVIDIA GPU: install nvidia-open-dkms and nvidia-utils yourself (see the Arch wiki's NVIDIA page)" ;;
+        esac
+    done
+}
 
 # the first AUR helper that actually runs: a prebuilt paru-bin/yay-bin stops
 # loading when pacman moves to a new libalpm, so being on PATH isn't enough
@@ -168,6 +183,8 @@ build_paru() {
 
 if [ "$fresh" = 1 ]; then
     step "Fresh system"
+    read -ra gpu <<< "$(gpu_pkgs | tr '\n' ' ')"
+    [ ${#gpu[@]} -gt 0 ] && fresh_pkgs+=("${gpu[@]}")
     echo "  base: ${fresh_pkgs[*]}"
     if ask "Install them?"; then
         run sudo pacman -Syu --needed --noconfirm "${fresh_pkgs[@]}"

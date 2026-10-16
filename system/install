@@ -198,6 +198,22 @@ setup_greetd() {
     put /etc/greetd/regreet.css < "$build/regreet/regreet.css"
     [ -n "$still" ] && put /etc/greetd/background.png < "$still"
 
+    # unlock the login keyring with the password typed into ReGreet, so apps
+    # (browsers, Claude, VS Code) can keep sign-ins and secrets without asking
+    local pam=/etc/pam.d/greetd
+    if [ -f "$R$pam" ] && ! grep -q pam_gnome_keyring "$R$pam"; then
+        need gnome-keyring-daemon:gnome-keyring secret-tool:libsecret || warn "apps can't save secrets without gnome-keyring"
+        awk '
+            { print }
+            /^auth[[:space:]]+include/ && !a    { print "auth       optional     pam_gnome_keyring.so"; a = 1 }
+            /^session[[:space:]]+include/ && !s { print "session    optional     pam_gnome_keyring.so auto_start"; s = 1 }
+            END {
+                if (!a) print "auth       optional     pam_gnome_keyring.so"
+                if (!s) print "session    optional     pam_gnome_keyring.so auto_start"
+            }' "$R$pam" | put "$pam"
+        say "  the keyring unlocks when you log in"
+    fi
+
     # switch display managers for the next boot; the current session stays up
     local link current
     link="$R/etc/systemd/system/display-manager.service"

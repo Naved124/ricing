@@ -119,6 +119,23 @@ class SystemInstall(unittest.TestCase):
         self.assertIn("systemctl disable sddm.service", calls)
         self.assertIn("systemctl enable greetd.service", calls)
 
+    def test_greetd_unlocks_keyring_once(self):
+        pam = self.root / "etc/pam.d/greetd"
+        pam.parent.mkdir(parents=True)
+        original = ("#%PAM-1.0\nauth       include      system-local-login\n"
+                    "account    include      system-local-login\nsession    include      system-local-login\n")
+        pam.write_text(original)
+        self.run_install("--greetd")
+        lines = pam.read_text().splitlines()
+        self.assertEqual(lines[2], "auth       optional     pam_gnome_keyring.so")
+        self.assertEqual(lines[-1], "session    optional     pam_gnome_keyring.so auto_start")
+        self.run_install("--undo")
+        self.assertEqual(pam.read_text(), original)
+        # a second run doesn't add the lines again
+        for _ in range(2):
+            self.run_install("--greetd")
+        self.assertEqual(pam.read_text().count("pam_gnome_keyring"), 2)
+
     def test_plymouth_hook_cmdline_and_rebuild(self):
         for _ in range(2):
             self.run_install("--plymouth")
