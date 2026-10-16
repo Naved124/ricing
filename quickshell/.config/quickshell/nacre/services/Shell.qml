@@ -22,6 +22,9 @@ Singleton {
     // Deliberately forgotten on restart, so it can't drain a battery overnight.
     property bool caffeine: false
     property bool recording: false
+    property real recordingSince: 0       // ms since the epoch, 0 when idle
+    property int recordingSecs: 0
+    readonly property string recordingTime: `${Math.floor(recordingSecs / 60)}:${String(recordingSecs % 60).padStart(2, "0")}`
     property bool dnd: saved.dnd
     property bool nightLight: saved.nightLight
     readonly property int nightTemp: 4300  // kelvin, through hyprsunset's IPC
@@ -90,6 +93,35 @@ Singleton {
         interval: 3000
         running: true
         onTriggered: if (root.nightLight) root.applyNightLight()
+    }
+
+    // ── screen recording (rice-rec does the work; it tells us through ipc) ──
+    function toggleRecording(mode) {
+        Quickshell.execDetached(["rice-rec", "toggle", mode ?? "screen"]);
+    }
+    onRecordingChanged: {
+        recordingSince = recording ? (recordingSince || Date.now()) : 0;
+        recordingSecs = 0;
+    }
+    Timer {
+        interval: 1000
+        repeat: true
+        running: root.recording
+        triggeredOnStart: true
+        onTriggered: root.recordingSecs = Math.max(0, Math.floor((Date.now() - root.recordingSince) / 1000))
+    }
+    // a restarted shell picks up a recording that's still going
+    Process {
+        running: true
+        command: ["rice-rec", "status"]
+        stdout: SplitParser {
+            onRead: line => {
+                const f = line.split(" ");
+                if (f[0] !== "recording") return;
+                root.recordingSince = Number(f[1]) * 1000;
+                root.recording = true;
+            }
+        }
     }
 
     FileView {

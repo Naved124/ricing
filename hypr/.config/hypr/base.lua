@@ -150,6 +150,8 @@ bind("SHIFT + Print",  hl.dsp.exec_cmd("rice-shot screen"), "Capture · Screensh
 bind(key("Print"),     hl.dsp.exec_cmd("rice-shot window"), "Capture · Screenshot the window")
 bind("CTRL + Print",   hl.dsp.exec_cmd("rice-shot edit"),   "Capture · Screenshot and edit")
 bind(key("SHIFT + C"), hl.dsp.exec_cmd("hyprpicker -a"),    "Capture · Pick a colour")
+bind(key("SHIFT + R"), hl.dsp.exec_cmd("rice-rec toggle screen"), "Capture · Record the screen (again to stop)")
+bind(key("ALT + R"),   hl.dsp.exec_cmd("rice-rec toggle region"), "Capture · Record a region (again to stop)")
 
 -- rices
 bind(key("SHIFT + T"), hl.dsp.exec_cmd("rice choose"), "Rice · Rice chooser")

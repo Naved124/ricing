@@ -103,6 +103,7 @@ ShellRoot {
         target: "shell"
         function dnd(on: bool): void { Shell.setDnd(on); }
         function toggleDnd(): void { Shell.setDnd(!Shell.dnd); }
+        function recording(on: bool): void { Shell.recording = on; }
         function launcher(mode: string): void { Shell.toggleLauncher(mode); }
         function center(): void { Shell.toggleCenter(); }
         function power(): void { Shell.togglePower(); }

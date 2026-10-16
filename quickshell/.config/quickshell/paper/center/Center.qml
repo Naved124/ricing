@@ -214,6 +214,26 @@ PanelWindow {
                         on: Shell.grain
                         onToggled: Shell.setGrain(!Shell.grain)
                     }
+                    // screen recording to ~/Videos (Super+Shift+R does the same)
+                    Check {
+                        width: parent.width
+                        label: "screen recording"
+                        detail: on ? `${Shell.recordingTime} · tick to stop` : "right-click: an area"
+                        on: Shell.recording
+                        onToggled: {
+                            if (Shell.recording) { Shell.toggleRecording(); return; }
+                            Shell.centerOpen = false;
+                            recScreen.restart();
+                        }
+                        onSecondary: {
+                            if (Shell.recording) return;
+                            Shell.centerOpen = false;
+                            recRegion.restart();
+                        }
+                        // start once the sheet is put away, so it isn't in the video
+                        Timer { id: recScreen; interval: 350; onTriggered: Shell.toggleRecording("screen") }
+                        Timer { id: recRegion; interval: 350; onTriggered: Shell.toggleRecording("region") }
+                    }
                 }
 
                 // levels

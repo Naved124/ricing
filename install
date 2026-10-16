@@ -107,6 +107,7 @@ optional=(
     qt6ct:qt6ct
     hyprshutdown:hyprshutdown
     zsh:zsh starship:starship eza:eza
+    wf-recorder:wf-recorder pactl:libpulse
 )
 # Python modules, checked by import: Pillow regenerates Paper's paper textures
 # and wallpaper (rices/paper/assets/gen.py)
@@ -170,6 +171,7 @@ fresh_pkgs=(
     xdg-desktop-portal-hyprland xdg-desktop-portal-gtk hyprpolkitagent
     firefox nautilus noto-fonts noto-fonts-cjk noto-fonts-emoji wpa_supplicant
     gnome-keyring libsecret seahorse
+    wf-recorder
     zsh starship eza zsh-autosuggestions zsh-syntax-highlighting
     zsh-history-substring-search zsh-completions ttf-nerd-fonts-symbols-mono
 )

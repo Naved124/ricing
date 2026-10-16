@@ -89,6 +89,10 @@ PanelWindow {
                 color: Theme.ink
             }
 
+            Rec {
+                Layout.alignment: Qt.AlignVCenter
+            }
+
             Cell {
                 Layout.alignment: Qt.AlignVCenter
                 visible: Battery.present

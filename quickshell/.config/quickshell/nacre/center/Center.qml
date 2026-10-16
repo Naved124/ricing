@@ -228,12 +228,27 @@ PanelWindow {
                             Timer { id: shot; interval: 350; onTriggered: Quickshell.execDetached(["rice-shot", "region"]) }
                             Timer { id: shotScreen; interval: 350; onTriggered: Quickshell.execDetached(["rice-shot", "screen"]) }
                         }
+                        // screen recording to ~/Videos (Super+Shift+R does the same);
+                        // the key sheet that sat here is still on Super+/
                         Toggle {
                             width: parent.tile
-                            icon: "keyboard"
-                            name: "Keys"
-                            detail: "Super + /"
-                            onToggled: Shell.toggleKeys()
+                            icon: "record"
+                            name: on ? "Recording" : "Record"
+                            detail: on ? `${Shell.recordingTime} · tap to stop` : "Screen · right: area"
+                            on: Shell.recording
+                            onToggled: {
+                                if (Shell.recording) { Shell.toggleRecording(); return; }
+                                Shell.centerOpen = false;
+                                recScreen.restart();
+                            }
+                            onSecondary: {
+                                if (Shell.recording) return;
+                                Shell.centerOpen = false;
+                                recRegion.restart();
+                            }
+                            // start once the panel has slid away, so it isn't in the video
+                            Timer { id: recScreen; interval: 350; onTriggered: Shell.toggleRecording("screen") }
+                            Timer { id: recRegion; interval: 350; onTriggered: Shell.toggleRecording("region") }
                         }
                     }
 

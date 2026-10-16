@@ -1,0 +1,111 @@
+#!/usr/bin/env bash
+# rice-rec — screen recording, shared by every rice.
+#
+#   rice-rec toggle [screen|region]   start, or stop if already recording (default)
+#   rice-rec start  [screen|region]   screen: the focused monitor; region: drag one (slurp)
+#   rice-rec stop
+#   rice-rec status                   "recording <start epoch> <file>" (exit 0) or "idle" (exit 1)
+#
+# Records with wf-recorder, with the desktop's sound when pactl is there, to
+# $RICE_REC_DIR (default ~/Videos). Tells the active rice's shell, so its
+# control centre and bar show the recording, and posts a notification when
+# the file is saved: "Open" plays it, "Folder" opens ~/Videos.
+set -uo pipefail
+
+dir=${RICE_REC_DIR:-${XDG_VIDEOS_DIR:-$HOME/Videos}}
+state="${XDG_RUNTIME_DIR:-/tmp}/rice/rec"
+
+die() { notify-send -a rice-rec -i dialog-error "Recording failed" "$1" 2>/dev/null; echo "rice-rec: $1" >&2; exit 1; }
+need() { command -v "$1" >/dev/null || die "$1 is not installed"; }
+
+# the active rice's Quickshell config, if its shell is Quickshell
+shell_name() {
+    local p="$HOME/.config/rices/current/palette.toml"
+    [ -f "$p" ] && awk -F'"' '/^\[meta\]/{m=1;next} /^\[/{m=0} m && $1 ~ /^shell *= */{print $2; exit}' "$p"
+}
+tell_shell() {
+    local shell; shell=$(shell_name)
+    [ -n "$shell" ] && command -v qs >/dev/null &&
+        qs -c "$shell" ipc call shell recording "$1" >/dev/null 2>&1
+    return 0
+}
+
+focused_monitor() {
+    hyprctl -j monitors 2>/dev/null | jq -r '.[] | select(.focused) | .name' | head -n1
+}
+
+# pid start file, from the state file, when that pid is still wf-recorder
+read_state() {
+    [ -f "$state" ] || return 1
+    read -r pid start file < "$state" || return 1
+    if [ -n "${pid:-}" ] && kill -0 "$pid" 2>/dev/null; then return 0; fi
+    rm -f "$state"          # left over from a crash or a reboot
+    return 1
+}
+
+status() {
+    if read_state; then echo "recording $start $file"; else echo idle; return 1; fi
+}
+
+start() {
+    local mode=${1:-screen} geom="" mon file sink
+    need wf-recorder
+    read_state && { echo "rice-rec: already recording" >&2; return 0; }
+    mkdir -p "$dir" "${state%/*}"
+    file="$dir/Recording_$(date +%Y-%m-%d_%H-%M-%S).mp4"
+    local args=(-f "$file")
+    case $mode in
+        region)
+            need slurp
+            geom=$(slurp -d -b '#00000022' -w 2) || exit 0     # Esc cancels quietly
+            args+=(-g "$geom") ;;
+        screen)
+            mon=$(focused_monitor)
+            [ -n "$mon" ] && args+=(-o "$mon") ;;
+        *) echo "rice-rec: unknown mode '$mode' (screen, region)" >&2; exit 2 ;;
+    esac
+    # the desktop's sound, not the microphone
+    if command -v pactl >/dev/null && sink=$(pactl get-default-sink 2>/dev/null) && [ -n "$sink" ]; then
+        args+=("--audio=$sink.monitor")
+    fi
+    setsid -f wf-recorder "${args[@]}" >/dev/null 2>&1 < /dev/null
+    # setsid -f doesn't report the pid: find the recorder writing our file
+    local pid=""
+    for _ in $(seq 20); do
+        pid=$(pgrep -nf -- "wf-recorder.*$file") && break
+        sleep 0.1
+    done
+    [ -n "$pid" ] || die "wf-recorder didn't start"
+    echo "$pid $(date +%s) $file" > "$state"
+    tell_shell true
+    notify-send -a rice-rec -i media-record "Recording" "Super+Shift+R or the control centre stops it" 2>/dev/null || true
+}
+
+stop() {
+    read_state || { echo "rice-rec: not recording" >&2; tell_shell false; return 1; }
+    kill -INT "$pid" 2>/dev/null
+    # wf-recorder finishes the file on SIGINT; give it up to 10 s
+    for _ in $(seq 100); do kill -0 "$pid" 2>/dev/null || break; sleep 0.1; done
+    kill -0 "$pid" 2>/dev/null && kill -TERM "$pid" 2>/dev/null
+    rm -f "$state"
+    tell_shell false
+    [ -s "$file" ] || die "the recording came out empty"
+    (
+        action=$(notify-send -a rice-rec -i video-x-generic -A open=Open -A folder=Folder \
+            "Recording saved" "${file/#$HOME/\~}" 2>/dev/null)
+        case $action in
+            open) xdg-open "$file" ;;
+            folder) xdg-open "$dir" ;;
+        esac
+    ) >/dev/null 2>&1 &
+    disown
+}
+
+case ${1:-toggle} in
+    toggle) if read_state; then stop; else start "${2:-screen}"; fi ;;
+    start) start "${2:-screen}" ;;
+    stop) stop ;;
+    status) status ;;
+    -h|--help|help) sed -n '2,12s/^# \{0,1\}//p' "$0" ;;
+    *) echo "rice-rec: unknown command '$1' (toggle, start, stop, status)" >&2; exit 2 ;;
+esac

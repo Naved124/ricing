@@ -58,6 +58,7 @@ reads them from `hyprctl binds -j`):
 | Super+S / Super+Shift+S | scratchpad / send to it |
 | Print, Shift+Print, Super+Print, Ctrl+Print | `rice-shot region/screen/window/edit` |
 | Super+Shift+C | hyprpicker |
+| Super+Shift+R / Super+Alt+R | `rice-rec toggle screen` / `region`: record to `~/Videos`, again to stop |
 | Super+Shift+T / Super+Ctrl+T | rice chooser / next rice |
 | Super+Shift+G | `rice grain toggle`: the rice's screen shader (Paper's grain) on/off |
 | Media keys | `wpctl` (volume up to **150%**: `-l 1.5`), `brightnessctl`, `playerctl`; work while locked |
@@ -142,6 +143,10 @@ under 3:1 on that fill and `bg` reads better.
    - a volume OSD/slider that allows up to `1.5`
    - a network speed widget that samples continuously (one long-lived process)
    - a key sheet built from `hyprctl binds -j`
+   - screen recording: `shell.recording(on)` on the `shell` IpcHandler, a `rice-rec status`
+     check at startup, a record control in the control centre (click: screen, right-click:
+     region, both through `rice-rec toggle`, started 350 ms after the panel closes) and
+     something visible while recording (Nacre: the orb's dot; Paper: "rec m:ss" in the bar)
    - `Theme.qml` generated from the palette through `templates/quickshell/Theme.qml`
      plus an `[install]` entry.
 

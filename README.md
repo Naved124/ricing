@@ -64,7 +64,7 @@ Install with [GNU Stow](https://www.gnu.org/software/stow/). Each folder is a pa
 
 | Package | Installs | What it is |
 | --- | --- | --- |
-| `switcher` | `~/.local/bin/rice`, `rice-shot` | the switch script and the screenshot tool |
+| `switcher` | `~/.local/bin/rice`, `rice-shot`, `rice-rec` | the switch script, the screenshot tool and the screen recorder |
 | `render` | `~/.local/bin/rice-render`, `~/.local/share/rice/templates/` | palette → theme files for every app |
 | `rices` | `~/.config/rices/` | the rices and `auto.conf` |
 | `hypr` | `~/.config/hypr/` | `hyprland.lua` (entry), `base.lua`, `hypridle.conf` |
@@ -148,7 +148,7 @@ line to add for each (btop, zathura, nvim).
 `hyprsunset`, `playerctl`, `wireplumber`, `kitty`, and the three fonts above.
 
 **Optional, used if present:** `satty` (screenshot editing), `fd` (launcher file search),
-`cava` (control-centre visualiser), `hyprpicker`, `imagemagick` (blurred lock
+`cava` (control-centre visualiser), `wf-recorder` (screen recording), `hyprpicker`, `imagemagick` (blurred lock
 backdrop), `swaync`, `swww`/`mpvpaper` and `hyprlock` (for rices without their own shell),
 `nvim`, `gsettings`, `power-profiles-daemon`, `bluez`.
 
@@ -183,6 +183,7 @@ rice grain off|on    the rice's screen shader (Paper's paper grain); remembered
 rice logout          end the session and go back to the login screen
 rice system          re-theme the boot menu, splash and login screen (sudo)
 rice-shot region     screenshot (also: screen, window, edit)
+rice-rec toggle      record the screen to ~/Videos, again to stop (also: region)
 ```
 
 ### Keys
@@ -200,6 +201,7 @@ rice-shot region     screenshot (also: screen, window, edit)
 | Super+Shift+G | Paper's grain on or off (it stops games and video skipping the compositor) |
 | Print, Shift+Print, Super+Print, Ctrl+Print | screenshot a region, the screen, the window, or into satty |
 | Super+Shift+C | colour picker |
+| Super+Shift+R / Super+Alt+R | record the screen / an area to `~/Videos` (again to stop); also in the control centre |
 | Super+Q, F, Shift+F, P, G, Tab | close, fullscreen, float, pseudo, group, next in group |
 | Super+M | dwindle ⇄ master |
 | Super+H/J/K/arrows (+Shift, also L) | focus (move) |
