@@ -24,11 +24,14 @@ case "$(basename "$0") $*" in
     "hyprctl monitors -j") echo '[{"name":"DP-1"},{"name":"HDMI-A-1"}]' ;;
     "qs list -c "*) [ -f "$RICE_TEST_RUNNING" ] && echo running ;;
     gsettings*) [ -n "$RICE_TEST_FAIL_GSETTINGS" ] && exit 1 ;;
+    "uwsm check is-active") [ -n "$RICE_TEST_UWSM" ] || exit 1 ;;
+    "pgrep -x Hyprland") [ -n "$RICE_TEST_HYPR_ALIVE" ] || exit 1 ;;
 esac
 exit 0
 """
 FAKES = ["qs", "hyprctl", "grim", "gsettings", "swaync", "swaync-client",
-         "pkill", "pgrep", "swww", "mpvpaper", "nvim", "systemctl", "hyprlock", "pidof"]
+         "pkill", "pgrep", "swww", "mpvpaper", "nvim", "systemctl", "hyprlock", "pidof",
+         "uwsm", "loginctl", "setsid"]
 
 
 @unittest.skipUnless(shutil.which("jq"), "jq not installed")
@@ -164,6 +167,32 @@ class Switch(unittest.TestCase):
     def test_lock_falls_back_to_hyprlock(self):
         self.rice("lock")
         self.assertIn("hyprlock", " ".join(self.calls()))
+
+    def logout(self, **env):
+        r = self.rice("logout", RICE_LOGOUT_WAIT="0", XDG_SESSION_ID="7", **env)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        return self.calls()
+
+    def test_logout_under_uwsm_stops_uwsm(self):
+        calls = self.logout(RICE_TEST_UWSM="1")
+        self.assertEqual(calls, ["uwsm check is-active", "uwsm stop"])
+
+    def test_logout_prefers_hyprshutdown(self):
+        shutdown = Path(self.env["PATH"].split(":")[0]) / "hyprshutdown"
+        shutdown.write_text(FAKE)
+        shutdown.chmod(0o755)
+        calls = self.logout()
+        self.assertIn("setsid -f hyprshutdown -t Logging out…", calls)
+        self.assertFalse(any(c.startswith("hyprctl dispatch") for c in calls))
+        self.assertNotIn("loginctl terminate-session 7", calls)
+
+    def test_logout_falls_back_to_exit_then_loginctl(self):
+        calls = self.logout()
+        self.assertIn("hyprctl dispatch hl.dsp.exit()", calls)
+        self.assertNotIn("loginctl terminate-session 7", calls)       # Hyprland went away
+        self.log.unlink()
+        calls = self.logout(RICE_TEST_HYPR_ALIVE="1")
+        self.assertEqual(calls[-1], "loginctl terminate-session 7")
 
     def test_session_starts_the_shell_without_freezing(self):
         (self.rices / "current").unlink()

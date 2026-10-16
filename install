@@ -12,7 +12,8 @@
 #   --no-fonts      don't download Italiana, Manrope and IBM Plex Mono
 #   --no-firefox    don't touch Firefox profiles
 #   --auto          enable the time-of-day timer (see ~/.config/rices/auto.conf)
-#   --greetd        also install the ReGreet login screen (asks for sudo)
+#   --system        also theme Limine, the Plymouth splash and the greetd/ReGreet
+#                   login screen (runs sudo system/install --all; asks for sudo)
 #   -y, --yes       don't ask before installing packages
 #   -n, --dry-run   print the steps instead of running them
 #
@@ -26,7 +27,7 @@ backup="${XDG_STATE_HOME:-$HOME/.local/state}/rice/backup/$(date +%Y%m%d-%H%M%S)
 fontdir="${XDG_DATA_HOME:-$HOME/.local/share}/fonts/rice"
 fonts_url="https://raw.githubusercontent.com/google/fonts/main/ofl"
 
-rice="" deps=1 fonts=1 firefox=1 auto=0 greetd=0 yes=0 dry=0 uninstall=0
+rice="" deps=1 fonts=1 firefox=1 auto=0 system=0 yes=0 dry=0 uninstall=0
 
 # ── output ──────────────────────────────────────────────────────────────
 if [ -t 1 ]; then b=$'\e[1m' dim=$'\e[2m' red=$'\e[31m' grn=$'\e[32m' ylw=$'\e[33m' off=$'\e[0m'
@@ -57,7 +58,7 @@ while [ $# -gt 0 ]; do
         --no-fonts) fonts=0 ;;
         --no-firefox) firefox=0 ;;
         --auto) auto=1 ;;
-        --greetd) greetd=1 ;;
+        --system|--greetd) system=1 ;;
         -y|--yes) yes=1 ;;
         -n|--dry-run) dry=1 ;;
         --uninstall) uninstall=1 ;;
@@ -94,6 +95,7 @@ optional=(
     powerprofilesctl:power-profiles-daemon bluetoothctl:bluez-utils
     hyprlock:hyprlock swaync:swaync swww:swww nvim:neovim
     qt6ct:qt6ct kvantummanager:kvantum spicetify:spicetify-cli
+    hyprshutdown:hyprshutdown
 )
 # themes the palettes name (checked by folder, since they aren't commands)
 themes=(
@@ -288,11 +290,14 @@ else
     warn "no systemd user session; skipping the auto-mode timer"
 fi
 
-if [ "$greetd" = 1 ]; then
-    step "Login screen"
-    run sudo "$repo/system/greetd/install"
-    echo "  then switch display managers yourself, e.g.:"
-    echo "    sudo systemctl disable sddm gdm lightdm 2>/dev/null; sudo systemctl enable greetd"
+step "Boot and login"
+if [ "$system" = 1 ]; then
+    sys_args=(--all)
+    [ "$yes" = 1 ] && sys_args+=(--yes)
+    [ "$dry" = 1 ] && sys_args+=(--dry-run)
+    sudo "$repo/system/install" "${sys_args[@]}"
+else
+    ok "to theme the boot menu, splash and login screen too: sudo $repo/system/install --all"
 fi
 
 # ── start it ────────────────────────────────────────────────────────────

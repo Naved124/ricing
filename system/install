@@ -1,0 +1,390 @@
+#!/usr/bin/env bash
+# Theme the way into the desktop: the Limine boot menu, a Plymouth splash and
+# the greetd/ReGreet login screen, all in the active rice's colours.
+#
+#   sudo system/install --all          everything below
+#   sudo system/install --greetd       ReGreet under greetd, replacing SDDM/GDM/…
+#   sudo system/install --limine       colours, font and wallpaper in limine.conf
+#   sudo system/install --plymouth     the splash, its initramfs hook, `splash` on
+#                                      the kernel command line
+#   sudo system/install --refresh      re-theme whichever of these is set up
+#                                      (what `rice system` runs after a switch)
+#   sudo system/install --undo         put back everything the last run changed
+#
+#   -n, --dry-run   show what would change, change nothing
+#   -y, --yes       install missing packages without asking
+#   -q, --quiet     only report problems
+#
+# Every file it changes is copied to /var/backups/rice/<time>/ first. Boot
+# entries in limine.conf are never touched; the display manager switch takes
+# effect at the next boot, so the running session is left alone.
+set -euo pipefail
+
+# RICE_SYSTEM_ROOT prefixes every system path (the tests install into a
+# scratch tree); RICE_SYSTEM_HOME stands in for the invoking user's home.
+R=${RICE_SYSTEM_ROOT:-}
+here=$(cd "$(dirname "$0")" && pwd)
+stamp=$(date +%Y%m%d-%H%M%S)
+backups="$R/var/backups/rice"
+backup="$backups/$stamp"
+
+greetd=0 limine=0 plymouth=0 refresh=0 undo=0 dry=0 yes=0 quiet=0
+
+say()  { [ "$quiet" = 1 ] || printf '%s\n' "$*"; }
+warn() { printf 'warning: %s\n' "$*" >&2; }
+die()  { printf 'error: %s\n' "$*" >&2; exit 1; }
+have() { command -v "$1" >/dev/null 2>&1; }
+run() {
+    if [ "$dry" = 1 ]; then printf '  $ %s\n' "$*"; else "$@"; fi
+}
+
+usage() { sed -n '2,/^set -euo/{/^set -euo/d;s/^# \{0,1\}//;p}' "$0"; }
+
+[ $# -gt 0 ] || { usage; exit 2; }
+while [ $# -gt 0 ]; do
+    case $1 in
+        --all) greetd=1 limine=1 plymouth=1 ;;
+        --greetd) greetd=1 ;;
+        --limine) limine=1 ;;
+        --plymouth) plymouth=1 ;;
+        --refresh) refresh=1 ;;
+        --undo) undo=1 ;;
+        -n|--dry-run) dry=1 ;;
+        -y|--yes) yes=1 ;;
+        -q|--quiet) quiet=1 ;;
+        -h|--help) usage; exit 0 ;;
+        *) die "unknown option $1 (see --help)" ;;
+    esac
+    shift
+done
+
+if [ -z "$R" ] && [ "$(id -u)" -ne 0 ]; then
+    die "this changes /etc and /boot; run it with sudo: sudo $0 $*"
+fi
+
+# ── backups ─────────────────────────────────────────────────────────────
+# manifest lines:  file <path>  |  absent <path>  |  dm <unit>  |  plymouth <theme>
+#                  |  initramfs
+record() {
+    [ "$dry" = 1 ] && return 0
+    mkdir -p "$backup"
+    printf '%s\n' "$*" >> "$backup/manifest"
+}
+
+# save a file (or that it didn't exist) once per run, before changing it
+save() {
+    local path=$1
+    [ "$dry" = 1 ] && return 0
+    grep -qxF "file $path" "$backup/manifest" 2>/dev/null && return 0
+    grep -qxF "absent $path" "$backup/manifest" 2>/dev/null && return 0
+    if [ -e "$R$path" ]; then
+        mkdir -p "$(dirname "$backup/files$path")"
+        cp -a "$R$path" "$backup/files$path"
+        record "file $path"
+    else
+        record "absent $path"
+    fi
+}
+
+# write stdin to a system path, backing it up first
+put() {
+    local path=$1 mode=${2:-644} tmp
+    tmp=$(mktemp)
+    cat > "$tmp"
+    if [ -e "$R$path" ] && cmp -s "$tmp" "$R$path"; then rm -f "$tmp"; return 0; fi
+    save "$path"
+    if [ "$dry" = 1 ]; then say "  would write $path"; rm -f "$tmp"; return 0; fi
+    install -Dm"$mode" "$tmp" "$R$path"
+    rm -f "$tmp"
+}
+
+undo_last() {
+    local last line kind path
+    last=$(find "$backups" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | sort | tail -n1)
+    [ -n "$last" ] && [ -f "$last/manifest" ] || die "nothing to undo (no backups in $backups)"
+    say "restoring the changes from $(basename "$last")"
+    local rebuild=0
+    # newest change first
+    tac "$last/manifest" | while IFS= read -r line; do
+        kind=${line%% *} path=${line#* }
+        case $kind in
+            file)
+                run mkdir -p "$(dirname "$R$path")"
+                run cp -a "$last/files$path" "$R$path"
+                say "  restored $path" ;;
+            absent)
+                run rm -rf "${R}${path:?}"
+                say "  removed $path" ;;
+            dm)
+                run systemctl disable greetd.service >/dev/null 2>&1 || true
+                run systemctl enable "$path"
+                say "  display manager back to $path (from the next boot)" ;;
+            plymouth)
+                have plymouth-set-default-theme && run plymouth-set-default-theme "$path"
+                say "  splash theme back to $path" ;;
+            initramfs)
+                : ;;
+        esac
+    done
+    if grep -qx 'initramfs' "$last/manifest"; then
+        rebuild=1
+    fi
+    if [ "$rebuild" = 1 ] && have mkinitcpio; then
+        say "rebuilding the initramfs"
+        run mkinitcpio -P
+    fi
+    [ "$dry" = 1 ] || mv "$last" "$last.undone"
+    say "done"
+}
+
+if [ "$undo" = 1 ]; then
+    undo_last
+    exit 0
+fi
+
+# ── the user and their rice ─────────────────────────────────────────────
+if [ -n "${RICE_SYSTEM_HOME:-}" ]; then
+    home=$RICE_SYSTEM_HOME
+else
+    user=${SUDO_USER:-$(logname 2>/dev/null || true)}
+    [ -n "$user" ] && [ "$user" != root ] || die "can't tell whose rice to use; run it through sudo from your account"
+    home=$(getent passwd "$user" | cut -d: -f6)
+fi
+rice=$(readlink -f "$home/.config/rices/current") || die "no active rice in $home/.config/rices"
+name=$(basename "$rice")
+build="$rice/build"
+[ -f "$build/meta.json" ] || die "$name isn't rendered; run 'rice-render' (as yourself) first"
+
+# the wallpaper's still frame: the shell saves one; else the rice's own image,
+# else a plain tile of its background colour
+still=""
+for c in "$home/.cache/rice/$name/still.png" "$rice/wallpaper.png" "$rice/wallpaper.jpg" "$build/plymouth/field.png"; do
+    [ -f "$c" ] && { still=$c; break; }
+done
+
+# what's already set up, for --refresh
+if [ "$refresh" = 1 ]; then
+    grep -qs 'rice-render' "$R/etc/greetd/regreet.toml" && greetd=1
+    for f in "$R"/boot/limine.conf "$R"/boot/limine/limine.conf "$R"/boot/EFI/*/limine.conf "$R"/efi/EFI/*/limine.conf "$R"/boot/efi/EFI/*/limine.conf; do
+        grep -qs '^# >>> rice' "$f" && limine=1
+    done
+    [ -d "$R/usr/share/plymouth/themes/rice" ] && plymouth=1
+    [ $((greetd + limine + plymouth)) -gt 0 ] || { say "nothing set up yet; run with --all"; exit 0; }
+fi
+
+# install missing packages with pacman (asks first unless --yes)
+need() {
+    local missing=() entry
+    for entry in "$@"; do have "${entry%%:*}" || missing+=("${entry#*:}"); done
+    [ ${#missing[@]} -eq 0 ] && return 0
+    if ! have pacman; then
+        warn "install these first: ${missing[*]}"
+        return 1
+    fi
+    if [ "$yes" != 1 ] && [ -t 0 ]; then
+        read -r -p "install ${missing[*]}? [Y/n] " reply
+        [[ $reply =~ ^[Nn] ]] && return 1
+    fi
+    run pacman -S --needed --noconfirm "${missing[@]}"
+}
+
+# ── greetd + ReGreet ────────────────────────────────────────────────────
+setup_greetd() {
+    say "login screen: ReGreet under greetd"
+    need greetd:greetd regreet:greetd-regreet cage:cage || warn "greetd won't start without greetd, greetd-regreet and cage"
+    [ -f "$build/regreet/regreet.css" ] || die "no $build/regreet/regreet.css; run rice-render first"
+    put /etc/greetd/config.toml < "$here/greetd/config.toml"
+    put /etc/greetd/regreet.toml < "$build/regreet/regreet.toml"
+    put /etc/greetd/regreet.css < "$build/regreet/regreet.css"
+    [ -n "$still" ] && put /etc/greetd/background.png < "$still"
+
+    # switch display managers for the next boot; the current session stays up
+    local link current
+    link="$R/etc/systemd/system/display-manager.service"
+    current=$(basename "$(readlink "$link" 2>/dev/null || true)")
+    if [ "$current" != greetd.service ]; then
+        if [ -n "$current" ]; then
+            record "dm $current"
+            run systemctl disable "$current"
+        fi
+        run systemctl enable greetd.service
+        say "  greetd replaces ${current:-the console login} from the next boot"
+    fi
+}
+
+# ── Limine ──────────────────────────────────────────────────────────────
+secure_boot_on() {
+    local v
+    for v in "$R"/sys/firmware/efi/efivars/SecureBoot-*; do
+        [ -f "$v" ] || continue
+        [ "$(od -An -tu1 -j4 -N1 "$v" 2>/dev/null | tr -d ' ')" = 1 ] && return 0
+    done
+    return 1
+}
+
+limine_configs() {
+    local f seen=""
+    for f in /boot/limine.conf /boot/limine/limine.conf /boot/EFI/limine/limine.conf /boot/EFI/BOOT/limine.conf \
+             /efi/limine.conf /efi/limine/limine.conf /efi/EFI/limine/limine.conf /efi/EFI/BOOT/limine.conf \
+             /boot/efi/EFI/limine/limine.conf /boot/efi/EFI/BOOT/limine.conf; do
+        [ -f "$R$f" ] || continue
+        case " $seen " in *" $(readlink -f "$R$f") "*) continue ;; esac
+        seen="$seen $(readlink -f "$R$f")"
+        printf '%s\n' "$f"
+    done
+}
+
+setup_limine() {
+    say "boot menu: Limine"
+    if secure_boot_on; then
+        warn "Secure Boot is on: if limine.conf's hash is enrolled, editing it stops Limine booting."
+        warn "skipping Limine. Theme it yourself, then re-enroll (limine-enroll-config / limine-update)."
+        return 0
+    fi
+    local confs conf dir mount rel wall
+    mapfile -t confs < <(limine_configs)
+    [ ${#confs[@]} -gt 0 ] || { warn "no limine.conf found in /boot or /efi; skipping Limine"; return 0; }
+    for conf in "${confs[@]}"; do
+        dir=$(dirname "$conf")
+        # the wallpaper sits beside the config, on the same partition, and is
+        # named relative to that partition: boot():/<path>
+        mount=$(findmnt -n -o TARGET --target "$R$conf" 2>/dev/null || echo "$R/")
+        rel=${R}${dir}
+        rel=${rel#"${mount%/}"}
+        rel=${rel#/}
+        wall="boot():/${rel:+$rel/}rice-wallpaper.png"
+        [ -n "$still" ] && put "$dir/rice-wallpaper.png" < "$still"
+
+        save "$conf"
+        if [ "$dry" = 1 ]; then say "  would theme $conf"; continue; fi
+        python3 - "$R$conf" "$build/limine/theme.conf" "$wall" "$name" <<'PY'
+import re, sys
+conf, theme, wall, name = sys.argv[1:]
+text = open(conf, encoding="utf-8", errors="surrogateescape").read()
+lines = re.sub(r"(?ms)^# >>> rice.*?^# <<< rice\n?", "", text).splitlines()
+opts = [l for l in open(theme).read().splitlines() if l.strip() and not l.lstrip().startswith("#")]
+opts.append(f"wallpaper: {wall}")
+keys = {l.split(":", 1)[0].strip().lower() for l in opts}
+out, globals_done = [], False
+for l in lines:
+    if l.startswith("/"):
+        globals_done = True       # entries begin: never touch anything below
+    if not globals_done and ":" in l and not l.lstrip().startswith("#") \
+            and l.split(":", 1)[0].strip().lower() in keys:
+        l = "# (rice) " + l       # a global the rice now sets: kept, commented
+    out.append(l)
+block = [f"# >>> rice: {name}, written by system/install (change the palette, not this)"] + opts + ["# <<< rice"]
+open(conf, "w", encoding="utf-8", errors="surrogateescape").write("\n".join(block + out) + "\n")
+PY
+        say "  themed $conf"
+    done
+}
+
+# ── Plymouth ────────────────────────────────────────────────────────────
+add_words() {   # add_words FILE WORD... : append missing words to a one-line file
+    local file=$1; shift
+    local line w
+    line=$(tr -d '\n' < "$R$file")
+    for w in "$@"; do
+        case " $line " in *" $w "*) ;; *) line="$line $w" ;; esac
+    done
+    printf '%s\n' "${line# }" | put "$file"
+}
+
+setup_plymouth() {
+    say "boot splash: Plymouth"
+    need plymouth-set-default-theme:plymouth || { warn "skipping the splash"; return 0; }
+    # anything this step changes lives in the initramfs or the boot entries
+    local before
+    before=$(wc -l < "$backup/manifest" 2>/dev/null || echo 0)
+    [ -f "$build/plymouth/rice.script" ] || die "no $build/plymouth; run rice-render first"
+    local f theme=/usr/share/plymouth/themes/rice
+    [ -d "$R$theme" ] || record "absent $theme"
+    for f in "$build"/plymouth/*; do
+        put "$theme/$(basename "$f")" < "$f"
+    done
+    local prev
+    prev=$(plymouth-set-default-theme 2>/dev/null || true)
+    if [ "$prev" != rice ]; then
+        record "plymouth ${prev:-bgrt}"
+        run plymouth-set-default-theme rice
+    fi
+
+    # the initramfs hook, so the splash shows from the start of boot
+    local mk=/etc/mkinitcpio.conf
+    if [ -f "$R$mk" ]; then
+        if ! grep -Eq '^HOOKS=.*\bplymouth\b' "$R$mk"; then
+            save "$mk"
+            if [ "$dry" = 1 ]; then
+                say "  would add plymouth to HOOKS in $mk"
+            else
+                python3 - "$R$mk" <<'PY'
+import re, sys
+path = sys.argv[1]
+text = open(path).read()
+def fix(m):
+    hooks = m.group(2).split()
+    for after in ("systemd", "udev", "base"):
+        if after in hooks:
+            hooks.insert(hooks.index(after) + 1, "plymouth")
+            break
+    else:
+        hooks.insert(0, "plymouth")
+    return f"{m.group(1)}{' '.join(hooks)}{m.group(3)}"
+text = re.sub(r"(?m)^(HOOKS=\()([^)]*)(\))", fix, text, count=1)
+open(path, "w").write(text)
+PY
+                say "  added plymouth to HOOKS in $mk"
+            fi
+            record initramfs
+        fi
+    else
+        warn "no $mk (dracut or booster?): add plymouth to your initramfs yourself"
+    fi
+
+    # `splash` (and `quiet`) on the kernel command line
+    if [ -f "$R/etc/default/limine" ] && grep -q '^KERNEL_CMDLINE' "$R/etc/default/limine"; then
+        if ! grep -Eq '^KERNEL_CMDLINE.*\bsplash\b' "$R/etc/default/limine"; then
+            save /etc/default/limine
+            [ "$dry" = 1 ] || sed -i -E '/^KERNEL_CMDLINE/ s/"$/ quiet splash"/' "$R/etc/default/limine"
+            say "  added quiet splash to KERNEL_CMDLINE in /etc/default/limine"
+        fi
+    elif [ -f "$R/etc/kernel/cmdline" ]; then
+        add_words /etc/kernel/cmdline quiet splash
+        say "  kernel command line: quiet splash (/etc/kernel/cmdline)"
+    else
+        local conf
+        while IFS= read -r conf; do
+            grep -Eiq '^[[:space:]]*(kernel_)?cmdline:.*\bsplash\b' "$R$conf" && continue
+            save "$conf"
+            [ "$dry" = 1 ] || sed -i -E '/^[[:space:]]*(kernel_)?[cC][mM][dD][lL][iI][nN][eE]:/ { /splash/! s/$/ quiet splash/ }' "$R$conf"
+            say "  added quiet splash to the cmdline lines in $conf"
+        done < <(limine_configs)
+    fi
+
+    local after
+    after=$(wc -l < "$backup/manifest" 2>/dev/null || echo 0)
+    if [ "$after" -gt "$before" ] || [ "$dry" = 1 ]; then
+        if have mkinitcpio && [ -f "$R$mk" ]; then
+            say "  rebuilding the initramfs (a minute or so)"
+            if [ "$quiet" = 1 ]; then run mkinitcpio -P >/dev/null; else run mkinitcpio -P; fi
+        fi
+    else
+        say "  splash already up to date"
+    fi
+    # limine-entry-tool regenerates entries from KERNEL_CMDLINE / /etc/kernel/cmdline
+    have limine-update && [ -z "$R" ] && run limine-update >/dev/null 2>&1 || true
+}
+
+[ "$limine" = 1 ] && setup_limine
+[ "$plymouth" = 1 ] && setup_plymouth
+[ "$greetd" = 1 ] && setup_greetd
+
+if [ "$dry" = 1 ]; then
+    say "dry run: nothing was changed"
+elif [ -f "$backup/manifest" ]; then
+    say "backed up to $backup (undo with: sudo $0 --undo)"
+    say "reboot to see it: Limine → splash → ReGreet"
+else
+    say "already up to date"
+fi

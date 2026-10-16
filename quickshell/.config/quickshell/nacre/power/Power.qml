@@ -18,7 +18,7 @@ PanelWindow {
 
     readonly property var actions: [
         { icon: "lock", name: "Lock", run: () => Quickshell.execDetached(["rice", "lock"]) },
-        { icon: "logout", name: "Log out", run: () => Hypr.dispatch("hl.dsp.exit()", "exit") },
+        { icon: "logout", name: "Log out", run: () => Quickshell.execDetached(["rice", "logout"]) },
         { icon: "reboot", name: "Restart", run: () => Quickshell.execDetached(["systemctl", "reboot"]) },
         { icon: "power", name: "Shut down", run: () => Quickshell.execDetached(["systemctl", "poweroff"]) },
     ]

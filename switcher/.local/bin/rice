@@ -13,6 +13,10 @@
 #   rice reapply         run every apply step again for the active rice
 #   rice session         start the active rice at login (no freeze, no transition)
 #   rice lock            lock the screen with the rice's lock (its shell, or hyprlock)
+#   rice logout          end the session: uwsm stop, else hyprshutdown, else
+#                        Hyprland's exit, else loginctl terminate-session
+#   rice system          re-theme the boot menu, splash and login screen to the
+#                        active rice (sudo system/install --refresh)
 #   rice json            everything the chooser needs, as JSON
 #   rice on-battery      exit 0 when running on battery (for hypridle)
 #
@@ -371,6 +375,37 @@ lock() {
     pidof hyprlock >/dev/null || setsid -f hyprlock >/dev/null 2>&1
 }
 
+# Leave the session, gracefully when possible, and make sure it really ends:
+# a login manager (greetd, SDDM) only comes back once the session is gone.
+logout() {
+    local wait=3
+    if have uwsm && uwsm check is-active >/dev/null 2>&1; then
+        exec uwsm stop
+    fi
+    if have hyprshutdown; then
+        # asks every app to close, then quits Hyprland
+        setsid -f hyprshutdown -t 'Logging out…' >/dev/null 2>&1
+        wait=20     # apps may stop to ask about unsaved work
+    elif have hyprctl; then
+        hyprctl dispatch 'hl.dsp.exit()' >/dev/null 2>&1 || hyprctl dispatch exit >/dev/null 2>&1 || true
+    fi
+    # still here after a moment? end the login session itself
+    sleep "${RICE_LOGOUT_WAIT:-$wait}"
+    if pgrep -x Hyprland >/dev/null 2>&1 && [[ -n "${XDG_SESSION_ID:-}" ]]; then
+        log "Hyprland didn't exit; ending session $XDG_SESSION_ID"
+        loginctl terminate-session "$XDG_SESSION_ID"
+    fi
+}
+
+# Boot menu, splash and login screen live in /boot and /etc, so re-theming
+# them after a switch needs root: this asks for it rather than doing it quietly.
+system_theme() {
+    local repo
+    repo="$(cd "$(dirname "$(readlink -f "$0")")/../../.." && pwd)"
+    [[ -x "$repo/system/install" ]] || die "can't find system/install next to this script ($repo)"
+    exec sudo "$repo/system/install" --refresh "$@"
+}
+
 on_battery() {
     local s
     for s in /sys/class/power_supply/*/online; do
@@ -434,6 +469,8 @@ case "${1:-}" in
     reapply) RICE_FORCE=1 switch_to "$(current)" ;;
     session) session ;;
     lock) lock ;;
+    logout) logout ;;
+    system) shift; system_theme "$@" ;;
     json) json ;;
     on-battery) on_battery ;;
     -*) die "unknown option: $1" ;;

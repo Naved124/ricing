@@ -39,7 +39,7 @@ Install with [GNU Stow](https://www.gnu.org/software/stow/). Each folder is a pa
 | `hypr` | `~/.config/hypr/` | `hyprland.lua` (entry), `base.lua`, `hypridle.conf` |
 | `quickshell` | `~/.config/quickshell/{rice,nacre}/` | the shared chooser and switch overlay, and Nacre's shell |
 | `systemd` | `~/.config/systemd/user/rice-auto.*` | the timer for auto mode |
-| `system/greetd` | (not stowed) | the login screen, installed with sudo, see below |
+| `system` | (not stowed) | the boot menu, splash and login screen, installed with sudo, see below |
 
 `./install` at the top level sets all of this up; see below.
 
@@ -67,7 +67,7 @@ That one script:
 
 It's safe to run again. Useful options: `--rice paper` to start on another rice,
 `--dry-run` to see what it would do, `--no-deps`, `--auto` for time-of-day switching,
-`--greetd` for the login screen, and `--uninstall` to remove the links. `./install --help`
+`--system` for the boot menu, splash and login screen, and `--uninstall` to remove the links. `./install --help`
 lists them all.
 
 How each app follows the rice:
@@ -120,6 +120,8 @@ rice auto on|off     time-of-day switching (see auto.conf)
 rice reapply         run every apply step again
 rice session         bring the active rice up at login (Hyprland runs this)
 rice lock            lock with the rice's own lock screen, or hyprlock
+rice logout          end the session and go back to the login screen
+rice system          re-theme the boot menu, splash and login screen (sudo)
 rice-shot region     screenshot (also: screen, window, edit)
 ```
 
@@ -184,15 +186,36 @@ Templates use `{{ roles.accent }}`-style placeholders with filters, for example
 `{{ gradient.stops | join(", ") }}` or `{{ shape.window | add(4) }}`. The palette's
 `[roles]` name colours from `[colors]`, so shared templates work for every rice.
 
-## The login screen
+## Boot and login
 
-ReGreet under greetd, themed by the active rice. This touches `/etc`, so it's opt-in:
-`./install --greetd`, or by hand:
+From power-on to the desktop in the rice's colours: the **Limine** boot menu, a
+**Plymouth** splash, and **ReGreet** under greetd as the login screen. These live in
+`/boot` and `/etc`, so a separate script installs them with sudo:
 
 ```sh
-sudo system/greetd/install            # uses the shell's wallpaper still, or pass an image
-sudo systemctl disable <your display manager>; sudo systemctl enable greetd
+sudo system/install --all          # or pick: --limine --plymouth --greetd
+sudo system/install --dry-run --all   # see what it would change first
+sudo system/install --undo         # put back everything the last run changed
 ```
+
+- **Limine**: colours, font size and the wallpaper's still frame go into a marked block
+  at the top of `limine.conf`. Boot entries are never touched, so
+  `limine-entry-tool` keeps managing them. If Secure Boot is on, it skips Limine,
+  because changing an enrolled `limine.conf` would stop it booting.
+- **Plymouth**: installs the `rice` splash theme, adds the `plymouth` hook to
+  `mkinitcpio.conf`, puts `quiet splash` on the kernel command line, and rebuilds the
+  initramfs.
+- **greetd**: copies ReGreet's settings and the wallpaper into `/etc/greetd`, then
+  switches the display manager (SDDM, GDM, …) to greetd from the next boot. Your
+  running session isn't touched.
+
+Every changed file is backed up to `/var/backups/rice/<time>/` first. After switching rice,
+`rice system` re-themes whichever of the three you set up (it asks for sudo).
+
+**Log out** (power menu, or `rice logout`) uses `uwsm stop` under uwsm, else
+`hyprshutdown`, which closes apps gracefully (install it for that), else Hyprland's exit.
+If the session is still up a few seconds later, it ends it with
+`loginctl terminate-session`, so you always land back on the login screen.
 
 ## Adding a rice
 

@@ -157,6 +157,10 @@ def load_palette(rice: Path) -> dict:
         "rice_dir": str(rice),
         "build_dir": str(rice / "build"),
         "home": str(HOME),
+        # the backdrop for boot screens: the live wallpaper's ground when the
+        # rice has one, else its background shading into its surface colour
+        "ground": [resolve(c, "wallpaper.ground") for c in data.get("wallpaper", {}).get("ground", [])][:2]
+                  or [data["roles"]["bg"], data["roles"]["surface"]],
     }
     return data
 
@@ -243,6 +247,10 @@ class Filters:
 
     def rgb(self, v):
         return "{}, {}, {}".format(*rgb(self.need_color(v)))
+
+    def rgbf(self, v):
+        """0–1 floats, for Plymouth scripts: "0.957, 0.945, 0.965"."""
+        return ", ".join(f"{c / 255:.3f}" for c in rgb(self.need_color(v)))
 
     def rgba(self, v, a="1"):
         return "rgba({}, {}, {}, {})".format(*rgb(self.need_color(v)), fmt_num(float(a)))
@@ -497,6 +505,13 @@ def outputs_for(rice: Path, ctx: dict) -> dict[Path, bytes]:
     out[build / "meta.json"] = (json.dumps(meta, indent=2) + "\n").encode()
     if not (rice / "templates/fastfetch/logo.png").exists():
         out[build / "fastfetch/logo.png"] = pearl(ctx)
+    if build / "plymouth/rice.script" in out:
+        # the splash: the pearl logo and two solid tiles the script scales
+        out[build / "plymouth/logo.png"] = out[build / "fastfetch/logo.png"]
+        for name, colour in (("bar", ctx["roles"]["accent"]), ("track", ctx["roles"]["border"]),
+                             ("field", ctx["roles"]["bg"])):
+            r, g, b = rgb(colour)
+            out[build / f"plymouth/{name}.png"] = png(4, 4, [bytes([0]) + bytes([r, g, b]) * 4] * 4)
     colors = out.get(build / "telegram/colors.tdesktop-theme")
     if colors is not None:
         out[build / "telegram/rice.tdesktop-theme"] = tdesktop_theme(colors, ctx)

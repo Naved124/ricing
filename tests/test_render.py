@@ -135,9 +135,18 @@ class EndToEnd(unittest.TestCase):
         self.assertEqual(p.returncode, 0, p.stderr)
         for name in ("nacre", "urushi", "paper"):
             build = self.rices / name / "build"
-            for f in ("kitty.conf", "nvim/rice.lua", "gtk/gtk.css", "meta.json", "fastfetch/logo.png"):
+            for f in ("kitty.conf", "nvim/rice.lua", "gtk/gtk.css", "meta.json", "fastfetch/logo.png",
+                      "limine/theme.conf", "plymouth/rice.script", "plymouth/rice.plymouth",
+                      "plymouth/logo.png", "plymouth/bar.png"):
                 self.assertTrue((build / f).is_file(), f"{name}: {f}")
-            self.assertNotIn("{{", (build / "kitty.conf").read_text())
+            for f in ("kitty.conf", "limine/theme.conf", "plymouth/rice.script"):
+                self.assertNotIn("{{", (build / f).read_text(), f"{name}: {f}")
+            limine = (build / "limine/theme.conf").read_text()
+            for key in ("term_palette", "term_palette_bright"):
+                line = next(l for l in limine.splitlines() if l.startswith(key + ":"))
+                colours = line.split(":", 1)[1].strip().split(";")
+                self.assertEqual(len(colours), 8, f"{name}: {key}")
+                self.assertTrue(all(len(c) == 6 for c in colours), f"{name}: {key}")
         self.assertTrue((self.home / ".config/quickshell/nacre/Theme.qml").is_file())
         self.assertEqual(self.run_render("--all", "--check").returncode, 0)
 
