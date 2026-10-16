@@ -10,6 +10,5 @@ Text {
     font.family: Theme.fontUi
     font.pixelSize: size
     font.weight: weight
-    renderType: Text.NativeRendering
     verticalAlignment: Text.AlignVCenter
 }
