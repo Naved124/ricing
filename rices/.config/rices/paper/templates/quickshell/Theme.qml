@@ -43,6 +43,12 @@ Singleton {
     // ── paper's light ───────────────────────────────────────────────────────
     // Shadows are warm brown, in two layers: a tight contact shadow and a
     // soft one further out. A lifted sheet gets the larger pair.
+    // MultiEffect wants an opaque shadow colour and the strength as
+    // shadowOpacity (a translucent colour comes out lighter, not darker)
+    readonly property color umber:       "{{ roles.shadow }}"
+    readonly property real  shadowTightOpacity: 0.22
+    readonly property real  shadowSoftOpacity:  0.16
+    readonly property real  shadowLiftOpacity:  0.28
     readonly property color shadowTight: "{{ roles.shadow | argb(0.22) }}"
     readonly property color shadowSoft:  "{{ roles.shadow | argb(0.16) }}"
     readonly property color shadowLift:  "{{ roles.shadow | argb(0.28) }}"
