@@ -194,6 +194,19 @@ class Switch(unittest.TestCase):
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertLess(time.monotonic() - t, 3, "waited for the previous shell to exit")
 
+    def test_a_held_lock_gives_up_with_a_hint(self):
+        self.rice("nacre")
+        lock = Path(self.env["XDG_RUNTIME_DIR"]) / "rice/lock"
+        holder = subprocess.Popen(["flock", str(lock), "sleep", "10"])
+        try:
+            time.sleep(0.3)
+            r = self.rice("paper", RICE_LOCK_WAIT="1")
+            self.assertNotEqual(r.returncode, 0)
+            self.assertIn("fuser -v", r.stderr)
+        finally:
+            holder.kill()
+            holder.wait()
+
     def test_already_active_is_a_no_op(self):
         r = self.rice("urushi")
         self.assertEqual(r.returncode, 0)

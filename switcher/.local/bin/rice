@@ -327,7 +327,7 @@ switch_to() {
     # fd 9 holds the lock: everything started here that outlives the switch
     # (shells, daemons) gets `9>&-`, or the next `rice` would wait for it to exit
     exec 9>"$RUN_DIR/lock"
-    flock 9
+    flock -w "${RICE_LOCK_WAIT:-20}" 9 || die "another switch still holds $RUN_DIR/lock (see: fuser -v $RUN_DIR/lock; deleting the file frees it)"
 
     log "${from:-none} → $target"
     # themes first, while the old desktop is still live: the freeze stays short
