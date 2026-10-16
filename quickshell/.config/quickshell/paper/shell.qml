@@ -10,9 +10,14 @@ import Quickshell
 import Quickshell.Io
 import Quickshell.Hyprland
 import qs.bar
+import qs.center
 import qs.desk
+import qs.keys
 import qs.launcher
+import qs.lock
 import qs.notes
+import qs.osd
+import qs.power
 import qs.services
 import qs.wallpaper
 
@@ -36,6 +41,11 @@ ShellRoot {
 
     // panels that follow the focused monitor
     Launcher {}
+    Center {}
+    Osd {}
+    Power {}
+    KeySheet {}
+    Lock {}
 
     // Hyprland binds: hl.dsp.global("quickshell:<name>")
     GlobalShortcut {

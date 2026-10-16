@@ -97,4 +97,5 @@ Singleton {
     readonly property string riceDir: (Quickshell.env("XDG_CONFIG_HOME") || Quickshell.env("HOME") + "/.config") + "/rices/paper"
     readonly property string wallpaper: riceDir + "/assets/wall.png"
     readonly property string paperTex:  riceDir + "/assets/paper-tex.png"
+    readonly property string inkWear:   riceDir + "/assets/ink-wear.png"
 }

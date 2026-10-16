@@ -10,6 +10,8 @@ Writes, next to this file:
                     a coffee ring, a pencil doodle and a note in Kalam
     paper-tex.png   512x512 tileable paper stock: kitty's background_image and
                     the shell's sheets
+    ink-wear.png    256x256 tileable alpha mask: where a rubber stamp's ink
+                    took (opaque) and where the paper shows through
 and ../templates/fastfetch/logo.png, a pencil typewriter that rice-render
 copies to fastfetch and the Plymouth splash.
 
@@ -207,6 +209,32 @@ def paper_tex(size: int, seed: int) -> Image.Image:
     return im.convert("RGB")
 
 
+# ── worn stamp ink ─────────────────────────────────────────────────────────
+
+def ink_wear(size: int, seed: int) -> Image.Image:
+    """White, opaque where ink took; speckles and a few scuffs let paper through."""
+    rng = random.Random(seed + 3)
+    alpha = Image.new("L", (size, size), 255)
+    d = ImageDraw.Draw(alpha)
+    for _ in range(size * size // 22):
+        x, y = rng.uniform(0, size), rng.uniform(0, size)
+        r = rng.choice((0.5, 0.7, 1.0, 1.0, 1.4, 2.2))
+        for ox in (-size, 0, size):
+            for oy in (-size, 0, size):
+                d.ellipse([x + ox - r, y + oy - r, x + ox + r, y + oy + r], fill=rng.randint(0, 90))
+    for _ in range(14):
+        x, y = rng.uniform(0, size), rng.uniform(0, size)
+        ang = rng.uniform(0, math.pi)
+        ln = rng.uniform(10, 40)
+        for ox in (-size, 0, size):
+            for oy in (-size, 0, size):
+                d.line([(x + ox, y + oy), (x + ox + math.cos(ang) * ln, y + oy + math.sin(ang) * ln)],
+                       fill=rng.randint(60, 140), width=rng.choice((1, 2)))
+    im = Image.new("RGBA", (size, size), (255, 255, 255, 255))
+    im.putalpha(alpha)
+    return im
+
+
 # ── a pencil typewriter, for fastfetch and the boot splash ─────────────────
 
 def logo(size: int, seed: int) -> Image.Image:
@@ -245,10 +273,11 @@ def main() -> None:
     a.out.mkdir(parents=True, exist_ok=True)
     wall(w, h, a.seed).save(a.out / "wall.png", optimize=True)
     paper_tex(512, a.seed).save(a.out / "paper-tex.png", optimize=True)
+    ink_wear(256, a.seed).save(a.out / "ink-wear.png", optimize=True)
     lg = a.out.parent / "templates/fastfetch/logo.png" if a.out == HERE else a.out / "logo.png"
     lg.parent.mkdir(parents=True, exist_ok=True)
     logo(192, a.seed).save(lg, optimize=True)
-    for p in (a.out / "wall.png", a.out / "paper-tex.png", lg):
+    for p in (a.out / "wall.png", a.out / "paper-tex.png", a.out / "ink-wear.png", lg):
         print(f"  {p}")
 
 

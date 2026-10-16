@@ -33,7 +33,7 @@ class PaperAssets(unittest.TestCase):
         cls.tmp.cleanup()
 
     def test_same_seed_same_pixels(self):
-        for name in ("wall.png", "paper-tex.png", "logo.png"):
+        for name in ("wall.png", "paper-tex.png", "ink-wear.png", "logo.png"):
             with self.subTest(name):
                 a, b = (Image.open(r / name).convert("RGBA") for r in self.runs)
                 self.assertIsNone(ImageChops.difference(a, b).getbbox())

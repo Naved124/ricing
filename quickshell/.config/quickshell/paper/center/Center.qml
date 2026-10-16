@@ -1,0 +1,310 @@
+pragma ComponentBehavior: Bound
+
+import QtQuick
+import Quickshell
+import Quickshell.Bluetooth
+import Quickshell.Wayland
+import qs.common
+import qs.notes
+import qs.services
+
+// The control centre (Super+N, or the bar's battery and speaker): a page
+// from a spiral notebook dropped in at the top right, five binding holes
+// down its left edge.
+//   · hand-drawn checkboxes with red ticks: Wi-Fi, Bluetooth, Do Not
+//     Disturb, night light, paper grain (right-click Wi-Fi or Bluetooth for
+//     their settings)
+//   · volume (to 150%) and brightness as pencil lines with a red dot
+//   · what's playing, on an index card
+//   · the notification history as small sticky notes, and "clear desk"
+// Esc or a click outside puts it away.
+PanelWindow {
+    id: win
+
+    readonly property bool open: Shell.centerOpen
+    readonly property var adapter: Bluetooth.defaultAdapter
+    property bool leaving: false
+
+    screen: Hypr.focusedScreen
+    visible: open || leaving
+    anchors { top: true; bottom: true; left: true; right: true }
+    exclusionMode: ExclusionMode.Ignore
+    color: "transparent"
+    WlrLayershell.layer: WlrLayer.Overlay
+    WlrLayershell.namespace: "paper-center"
+    WlrLayershell.keyboardFocus: open ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
+
+    onOpenChanged: {
+        if (open) {
+            toss.stop();
+            leaving = false;
+            page.y = page.restY;
+            page.opacity = 1;
+            flick.contentY = 0;
+            keys.forceActiveFocus();
+        } else {
+            leaving = true;
+            toss.start();
+        }
+    }
+
+    // a helper window the shell opens itself never goes in the bin
+    function run(cls, cmd) {
+        Bin.expect(cls);
+        Shell.centerOpen = false;
+        Quickshell.execDetached(cmd);
+    }
+
+    MouseArea {
+        anchors.fill: parent
+        onClicked: Shell.centerOpen = false
+    }
+    Item {
+        id: keys
+        focus: true
+        Keys.onEscapePressed: Shell.centerOpen = false
+    }
+
+    Sheet {
+        id: page
+
+        readonly property real restY: 10 + 44 + 18
+        x: win.width - width - Theme.gapsOut - 4
+        y: restY
+        width: 400
+        height: Math.min(win.height - restY - Theme.gapsOut, items.implicitHeight + 48)
+        seed: 400
+        tilt: 0.6
+        ruled: true
+        ruleTop: 58
+        ruleGap: 26
+        margin: true
+        marginX: 50
+
+        MouseArea { anchors.fill: parent }   // clicks on the page stay on it
+
+        // the spiral's holes
+        Column {
+            x: 16
+            y: 70
+            spacing: (page.height - 140 - 5 * 16) / 4
+            Repeater {
+                model: 5
+                delegate: Rectangle {
+                    width: 16
+                    height: 16
+                    radius: 8
+                    color: Theme.desk
+                    border.color: "#30000000"
+                    border.width: 1
+                    // a shadow inside the hole's top edge
+                    Rectangle {
+                        anchors.fill: parent
+                        anchors.margins: 1
+                        radius: width / 2
+                        gradient: Gradient {
+                            GradientStop { position: 0; color: "#40000000" }
+                            GradientStop { position: 0.5; color: "#00000000" }
+                        }
+                    }
+                }
+            }
+        }
+
+        Flickable {
+            id: flick
+            x: 66
+            y: 18
+            width: page.width - 66 - 22
+            height: page.height - 36
+            contentHeight: items.implicitHeight
+            clip: true
+            boundsBehavior: Flickable.StopAtBounds
+
+            Column {
+                id: items
+                width: flick.width
+                spacing: 12
+
+                // the day, and the way out
+                Item {
+                    width: parent.width
+                    height: 44
+                    Column {
+                        Serif {
+                            text: Qt.formatDate(clock.date, "dddd d MMMM")
+                            size: 22
+                            weight: 600
+                            color: Theme.ink
+                        }
+                        Hand {
+                            text: (Battery.present ? `${Math.round(Battery.level * 100)}%${Battery.charging ? " charging" : ""}${Battery.timeLeft ? " · " + Battery.timeLeft : ""} · ` : "")
+                                + `net ↓ ${Net.rate(Net.down)} ↑ ${Net.rate(Net.up)}`
+                            size: 14
+                            color: Theme.graphite
+                        }
+                    }
+                    SystemClock { id: clock; precision: SystemClock.Minutes }
+                    Row {
+                        anchors.right: parent.right
+                        anchors.top: parent.top
+                        spacing: 12
+                        Repeater {
+                            model: [
+                                { glyph: "lock", run: () => { Shell.centerOpen = false; Quickshell.execDetached(["rice", "lock"]); } },
+                                { glyph: "power", run: () => Shell.togglePower() },
+                            ]
+                            delegate: Glyph {
+                                required property var modelData
+                                name: modelData.glyph
+                                size: 22
+                                color: Theme.ink
+                                MouseArea {
+                                    anchors.fill: parent
+                                    anchors.margins: -5
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: parent.modelData.run()
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // the checklist
+                Column {
+                    width: parent.width
+                    spacing: 0
+                    Check {
+                        width: parent.width
+                        label: "wifi"
+                        detail: Net.wired ? "on a cable" : Net.wifi ? Net.wifi.name : Net.wifiEnabled ? "not connected" : "off"
+                        on: Net.wifiEnabled
+                        available: !!Net.wifiDevice
+                        onToggled: Net.setWifi(!Net.wifiEnabled)
+                        onSecondary: win.run("kitty", ["kitty", "-e", "nmtui"])
+                    }
+                    Check {
+                        readonly property var connected: Bluetooth.devices.values.filter(d => d.connected)
+                        width: parent.width
+                        label: "bluetooth"
+                        detail: !win.adapter ? "no adapter" : !on ? "off" : connected.length === 1 ? connected[0].name : connected.length ? `${connected.length} devices` : "on"
+                        on: !!win.adapter && win.adapter.enabled
+                        available: !!win.adapter
+                        onToggled: win.adapter.enabled = !win.adapter.enabled
+                        onSecondary: win.run("blueman-manager", ["blueman-manager"])
+                    }
+                    Check {
+                        width: parent.width
+                        label: "do not disturb"
+                        detail: on ? "notes wait in the pile" : ""
+                        on: Shell.dnd
+                        onToggled: Shell.setDnd(!Shell.dnd)
+                    }
+                    Check {
+                        width: parent.width
+                        label: "night light"
+                        detail: on ? `${Shell.nightTemp} K` : ""
+                        on: Shell.nightLight
+                        onToggled: Shell.setNightLight(!Shell.nightLight)
+                    }
+                    Check {
+                        width: parent.width
+                        label: "paper grain"
+                        detail: on ? "" : "off for games and video"
+                        on: Shell.grain
+                        onToggled: Shell.setGrain(!Shell.grain)
+                    }
+                }
+
+                // levels
+                Column {
+                    width: parent.width
+                    spacing: 4
+                    PencilSlider {
+                        width: parent.width
+                        glyph: Audio.muted ? "speaker-off" : "speaker"
+                        value: Audio.volume
+                        max: Audio.maxVolume
+                        muted: Audio.muted
+                        available: Audio.ready
+                        onMoved: v => Audio.setVolume(v)
+                        onGlyphClicked: Audio.toggleMute()
+                    }
+                    PencilSlider {
+                        width: parent.width
+                        visible: Brightness.available
+                        glyph: "sun"
+                        value: Brightness.level
+                        onMoved: v => Brightness.set(Math.max(0.02, v))
+                    }
+                }
+
+                NowPlaying {
+                    width: parent.width - 6
+                    x: 3
+                    visible: !!Media.player
+                    active: win.open
+                }
+
+                // the notes that came in, smaller
+                Item {
+                    width: parent.width
+                    height: 26
+                    Hand {
+                        text: Notifs.all.length ? `${Notifs.all.length} note${Notifs.all.length === 1 ? "" : "s"}` : "no notes"
+                        size: 17
+                        color: Theme.pencil
+                    }
+                    Hand {
+                        anchors.right: parent.right
+                        visible: Notifs.all.length > 0
+                        text: "clear desk"
+                        size: 16
+                        color: Theme.red
+                        font.underline: true
+                        MouseArea {
+                            anchors.fill: parent
+                            anchors.margins: -4
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: Notifs.clearAll()
+                        }
+                    }
+                }
+                Flow {
+                    width: parent.width
+                    spacing: 10
+                    Repeater {
+                        model: Notifs.all.slice().reverse().slice(0, 12)
+                        delegate: Item {
+                            id: small
+                            required property var modelData
+                            width: 148
+                            height: note.height * 0.8
+                            Sticky {
+                                id: note
+                                notification: small.modelData
+                                popup: false
+                                width: 186
+                                scale: 0.8
+                                transformOrigin: Item.TopLeft
+                            }
+                            MouseArea {
+                                anchors.fill: parent
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: Notifs.dismiss(small.modelData)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // put away: the page is tossed back up and off
+    ParallelAnimation {
+        id: toss
+        NumberAnimation { target: page; property: "y"; to: page.restY + 80; duration: Theme.durPanelOut; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.toss }
+        NumberAnimation { target: page; property: "opacity"; to: 0; duration: Theme.durPanelOut; easing.type: Easing.InQuad }
+        onFinished: win.leaving = false
+    }
+}
