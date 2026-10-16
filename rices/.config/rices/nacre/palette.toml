@@ -84,8 +84,8 @@ color15 = "#f4f1f6"
 display   = "Italiana"        # clock, lock screen, greetings, big numbers
 ui        = "Manrope"
 mono      = "IBM Plex Mono"
-ui_size   = 12
-mono_size = 13.5
+ui_size   = 14
+mono_size = 15.5
 
 # weights everywhere (shell, GTK, Qt, kitty, browsers): body text and
 # emphasis, on the CSS scale (400 regular, 600 semibold, 700 bold)
