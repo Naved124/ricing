@@ -15,12 +15,14 @@ Singleton {
     readonly property real micVolume: source?.audio?.volume ?? 0
     readonly property bool micMuted: source?.audio?.muted ?? false
     readonly property bool ready: !!sink?.ready
+    // the speaker goes past 100% (PipeWire amplifies in software); the mic doesn't
+    readonly property real maxVolume: 1.5
 
     readonly property string icon: muted || volume <= 0.001 ? "volume-mute"
         : volume < 0.45 ? "volume-low" : "volume"
 
     function setVolume(v) {
-        if (sink?.audio) sink.audio.volume = Math.max(0, Math.min(1, v));
+        if (sink?.audio) sink.audio.volume = Math.max(0, Math.min(root.maxVolume, v));
     }
     function setMicVolume(v) {
         if (source?.audio) source.audio.volume = Math.max(0, Math.min(1, v));

@@ -8,10 +8,12 @@ Item {
     id: root
 
     property string icon: "volume"
-    property real value: 0                 // 0..1 (shown)
+    property real value: 0                 // 0..max (shown)
+    property real max: 1                   // above 1 the track marks where 100% is
     property bool muted: false
     property bool available: true
     readonly property real shown: drag.pressed ? drag.preview : value
+    readonly property real fraction: Math.max(0, Math.min(1, shown / max))
 
     signal moved(real value)
     signal iconClicked()
@@ -63,7 +65,7 @@ Item {
         }
         Iridescent {
             height: parent.height
-            width: Math.max(height, parent.width * Math.min(1, root.shown))
+            width: Math.max(height, parent.width * root.fraction)
             radius: height / 2
             period: 9000
             opacity: root.muted ? 0.35 : 1
@@ -72,9 +74,20 @@ Item {
                 NumberAnimation { duration: 160; easing.type: Easing.OutCubic }
             }
         }
+        // where 100% sits when the slider goes beyond it
+        Rectangle {
+            visible: root.max > 1
+            x: parent.width / root.max - width / 2
+            anchors.verticalCenter: parent.verticalCenter
+            width: 2
+            height: parent.height + 6
+            radius: 1
+            color: Theme.inkSoft
+            opacity: 0.5
+        }
         // the knob: a small glossy pearl
         Pearl {
-            x: Math.max(0, Math.min(parent.width - width, parent.width * Math.min(1, root.shown) - width / 2))
+            x: Math.max(0, Math.min(parent.width - width, parent.width * root.fraction - width / 2))
             anchors.verticalCenter: parent.verticalCenter
             width: drag.pressed || drag.containsMouse ? 20 : 16
             height: width
@@ -90,10 +103,10 @@ Item {
             enabled: root.available
             hoverEnabled: true
             cursorShape: Qt.PointingHandCursor
-            function at(x) { return Math.max(0, Math.min(1, (x - 10) / track.width)); }
+            function at(x) { return Math.max(0, Math.min(1, (x - 10) / track.width)) * root.max; }
             onPressed: mouse => { preview = at(mouse.x); root.moved(preview); }
             onPositionChanged: mouse => { if (pressed) { preview = at(mouse.x); root.moved(preview); } }
-            onWheel: wheel => root.moved(Math.max(0, Math.min(1, root.value + (wheel.angleDelta.y > 0 ? 0.05 : -0.05))))
+            onWheel: wheel => root.moved(Math.max(0, Math.min(root.max, root.value + (wheel.angleDelta.y > 0 ? 0.05 : -0.05))))
         }
     }
 
@@ -101,7 +114,7 @@ Item {
         id: valueLabel
         anchors.right: parent.right
         anchors.verticalCenter: parent.verticalCenter
-        width: 34
+        width: 40
         horizontalAlignment: Text.AlignRight
         text: Math.round(root.shown * 100)
         font.family: Theme.fontDisplay

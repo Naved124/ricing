@@ -159,7 +159,7 @@ bind(key("mouse:273"), hl.dsp.window.resize(), "Mouse · Resize window", { mouse
 -- media keys (the shell's OSD reacts to the change itself)
 local function held() return { locked = true, repeating = true } end
 local function locked() return { locked = true } end
-bind("XF86AudioRaiseVolume",  hl.dsp.exec_cmd("wpctl set-volume -l 1 @DEFAULT_AUDIO_SINK@ 5%+"), "Media · Volume up", held())
+bind("XF86AudioRaiseVolume",  hl.dsp.exec_cmd("wpctl set-volume -l 1.5 @DEFAULT_AUDIO_SINK@ 5%+"), "Media · Volume up", held())
 bind("XF86AudioLowerVolume",  hl.dsp.exec_cmd("wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-"),      "Media · Volume down", held())
 bind("XF86AudioMute",         hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"),     "Media · Mute", locked())
 bind("XF86AudioMicMute",      hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle"),   "Media · Mute the mic", locked())

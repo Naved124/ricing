@@ -246,6 +246,7 @@ PanelWindow {
                             width: parent.width
                             icon: Audio.icon
                             value: Audio.volume
+                            max: Audio.maxVolume
                             muted: Audio.muted
                             available: Audio.ready
                             onMoved: v => Audio.setVolume(v)

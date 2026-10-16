@@ -19,6 +19,7 @@ PanelWindow {
     property bool armed: false         // ignore the initial values at startup
 
     readonly property real value: kind === "volume" ? (Audio.muted ? 0 : Audio.volume) : Brightness.level
+    readonly property real max: kind === "volume" ? Audio.maxVolume : 1
     readonly property string icon: kind === "volume" ? Audio.icon : "brightness"
 
     function show(k) {
@@ -99,7 +100,7 @@ PanelWindow {
                     anchors.left: parent.left
                     anchors.right: parent.right
                     anchors.bottom: parent.bottom
-                    height: Math.max(width, parent.height * win.value)
+                    height: Math.max(width, parent.height * Math.min(1, win.value / win.max))
                     radius: width / 2
                     period: 7000
                     Behavior on height { NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
