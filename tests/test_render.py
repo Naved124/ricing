@@ -104,6 +104,23 @@ class Palettes(unittest.TestCase):
                 for role in rr.ROLES:
                     self.assertRegex(ctx["roles"][role], r"^#[0-9a-f]{6}$")
 
+    def test_yazi_theme_uses_current_keys(self):
+        # yazi 25.5+ refuses filetype rules without `url`/`mime` (`name` is gone)
+        # and silently ignores the old [mgr] hovered/tab_* keys
+        shared = REPO / "render/.local/share/rice/templates/yazi/theme.toml"
+        for name in ("nacre", "urushi", "paper"):
+            with self.subTest(name):
+                own = RICES / name / "templates/yazi/theme.toml"
+                src = (own if own.exists() else shared).read_text()
+                theme = tomllib.loads(rr.render_text(src, ctx_for(name), "yazi/theme.toml"))
+                for gone in ("hovered", "preview_hovered", "tab_active", "tab_inactive"):
+                    self.assertNotIn(gone, theme["mgr"])
+                self.assertIn("current", theme["indicator"])
+                self.assertIn("active", theme["tabs"])
+                for rule in theme["filetype"]["rules"]:
+                    self.assertTrue({"url", "mime"} & rule.keys(), rule)
+                    self.assertNotIn("name", rule)
+
     def test_variant(self):
         self.assertEqual(ctx_for("nacre")["derived"]["variant"], "light")
         self.assertEqual(ctx_for("urushi")["derived"]["variant"], "dark")
