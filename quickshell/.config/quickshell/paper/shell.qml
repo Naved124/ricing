@@ -11,6 +11,7 @@ import Quickshell.Io
 import Quickshell.Hyprland
 import qs.bar
 import qs.desk
+import qs.notes
 import qs.services
 import qs.wallpaper
 
@@ -28,6 +29,9 @@ ShellRoot {
     // the calendar and the wastebasket, under the windows; the month card
     Desk {}
     Month {}
+
+    // notifications, as sticky notes
+    Notes {}
 
     // Hyprland binds: hl.dsp.global("quickshell:<name>")
     GlobalShortcut {
