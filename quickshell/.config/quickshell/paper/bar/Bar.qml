@@ -8,7 +8,7 @@ import qs.common
 import qs.services
 
 // The bar: a strip of ruled card taped across the top of each monitor.
-// 44 tall, about three quarters of the screen wide, centred 10 px from the
+// 44 tall, nearly the full width of the screen, centred 10 px from the
 // top and turned a hair (−0.35°), with one blue rule 10 px above its
 // bottom edge and a piece of washi tape over each end. It reserves its
 // space, so tiled windows sit below it, and steps aside for fullscreen.
@@ -20,14 +20,15 @@ PanelWindow {
 
     readonly property var monitor: Hypr.monitorFor(screen)
     readonly property int stripHeight: 44
-    readonly property int stripWidth: Math.round((screen?.width ?? 1920) * 0.75)
+    readonly property int stripWidth: (screen?.width ?? 1920) - 56   // 28 px in from each edge
     readonly property int top: 10
-    readonly property int pad: 40            // room for the tape, the tilt and the shadow
+    readonly property int pad: 40            // below: room for the tilt and the shadow
+    readonly property int side: 26           // either end: room for the tape
 
     visible: !Hypr.fullscreenOn(monitor)
 
     anchors.top: true
-    implicitWidth: stripWidth + pad * 2
+    implicitWidth: stripWidth + side * 2
     implicitHeight: top + stripHeight + pad
     exclusiveZone: top + stripHeight
     color: "transparent"
@@ -46,7 +47,7 @@ PanelWindow {
 
     Item {
         id: strip
-        x: win.pad
+        x: win.side
         y: win.top
         width: win.stripWidth
         height: win.stripHeight
@@ -62,8 +63,8 @@ PanelWindow {
             ruleGap: 1000
         }
 
-        Tape { x: -26; y: -8; rotation: -14 }
-        Tape { x: parent.width - width + 26; y: -8; rotation: 11 }
+        Tape { x: -14; y: -8; rotation: -14 }
+        Tape { x: parent.width - width + 14; y: -8; rotation: 11 }
 
         RowLayout {
             anchors.fill: parent
@@ -80,6 +81,10 @@ PanelWindow {
             Title {
                 monitor: win.monitor
                 Layout.fillWidth: true
+                Layout.alignment: Qt.AlignVCenter
+            }
+
+            NetSpeed {
                 Layout.alignment: Qt.AlignVCenter
             }
 
