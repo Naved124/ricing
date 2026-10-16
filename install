@@ -14,6 +14,10 @@
 #   --auto          enable the time-of-day timer (see ~/.config/rices/auto.conf)
 #   --system        also theme Limine, the Plymouth splash and the greetd/ReGreet
 #                   login screen (runs sudo system/install --all; asks for sudo)
+#   --fresh         for a new minimal Arch install: also add what a desktop
+#                   needs (NetworkManager, PipeWire, Bluetooth, portals, polkit
+#                   agent, Firefox, Nautilus, Noto fonts), build paru for the AUR
+#                   packages, enable the services, and imply --system
 #   -y, --yes       don't ask before installing packages
 #   -n, --dry-run   print the steps instead of running them
 #
@@ -27,7 +31,7 @@ backup="${XDG_STATE_HOME:-$HOME/.local/state}/rice/backup/$(date +%Y%m%d-%H%M%S)
 fontdir="${XDG_DATA_HOME:-$HOME/.local/share}/fonts/rice"
 fonts_url="https://raw.githubusercontent.com/google/fonts/main/ofl"
 
-rice="" deps=1 fonts=1 firefox=1 auto=0 system=0 yes=0 dry=0 uninstall=0
+rice="" deps=1 fonts=1 firefox=1 auto=0 system=0 fresh=0 yes=0 dry=0 uninstall=0
 
 # ── output ──────────────────────────────────────────────────────────────
 if [ -t 1 ]; then b=$'\e[1m' dim=$'\e[2m' red=$'\e[31m' grn=$'\e[32m' ylw=$'\e[33m' off=$'\e[0m'
@@ -59,6 +63,7 @@ while [ $# -gt 0 ]; do
         --no-firefox) firefox=0 ;;
         --auto) auto=1 ;;
         --system|--greetd) system=1 ;;
+        --fresh) fresh=1 system=1 ;;
         -y|--yes) yes=1 ;;
         -n|--dry-run) dry=1 ;;
         --uninstall) uninstall=1 ;;
@@ -69,6 +74,10 @@ while [ $# -gt 0 ]; do
 done
 
 [ "$(id -u)" -ne 0 ] || die "run this as yourself, not root; it asks for sudo when it needs it"
+if [ "$fresh" = 1 ]; then
+    [ "$deps" = 1 ] || die "--fresh installs packages; it can't be combined with --no-deps"
+    have pacman || die "--fresh is for Arch Linux (it needs pacman)"
+fi
 
 # ── uninstall ───────────────────────────────────────────────────────────
 if [ "$uninstall" = 1 ]; then
@@ -118,6 +127,49 @@ missing_themes() {
         [ "$found" = 1 ] || printf '%s\n' "${entry#*|}"
     done
 }
+
+# ── fresh system ────────────────────────────────────────────────────────
+# What a minimal Arch install lacks that the rice leans on: the bar's network
+# widget talks to NetworkManager, screen sharing and file pickers need the
+# portals, password prompts need a polkit agent, and three themes are AUR-only.
+fresh_pkgs=(
+    git base-devel networkmanager bluez bluez-utils power-profiles-daemon
+    pipewire pipewire-pulse pipewire-alsa wireplumber
+    xdg-desktop-portal-hyprland xdg-desktop-portal-gtk hyprpolkitagent
+    firefox nautilus noto-fonts noto-fonts-emoji
+)
+if [ "$fresh" = 1 ]; then
+    step "Fresh system"
+    echo "  base: ${fresh_pkgs[*]}"
+    if ask "Install them?"; then
+        run sudo pacman -Syu --needed --noconfirm "${fresh_pkgs[@]}"
+    fi
+
+    if have paru || have yay; then
+        ok "AUR helper: $(command -v paru || command -v yay)"
+    elif ask "Build paru (AUR helper) for the AUR-only themes?"; then
+        build=$(mktemp -d)
+        run git clone --depth 1 https://aur.archlinux.org/paru-bin.git "$build/paru-bin"
+        if [ "$dry" = 1 ]; then run makepkg -si --noconfirm
+        else (cd "$build/paru-bin" && makepkg -si --noconfirm) || warn "paru didn't build; AUR themes will be skipped"; fi
+        rm -rf "$build"
+    fi
+
+    # NetworkManager next to another network daemon would fight over the
+    # interfaces mid-install, so only start it now if nothing else is running
+    others=()
+    for svc in systemd-networkd iwd dhcpcd netctl; do
+        systemctl is-active --quiet "$svc" 2>/dev/null && others+=("$svc")
+    done
+    if [ ${#others[@]} -eq 0 ]; then
+        run sudo systemctl enable --now NetworkManager.service
+    else
+        run sudo systemctl enable NetworkManager.service
+        warn "${others[*]} is running; NetworkManager takes over after: sudo systemctl disable ${others[*]} && reboot"
+    fi
+    run sudo systemctl enable --now bluetooth.service power-profiles-daemon.service
+    ok "NetworkManager, Bluetooth and power profiles enabled"
+fi
 
 step "Packages"
 mapfile -t need < <(missing_pkgs "${required[@]}")
@@ -325,7 +377,7 @@ if [ -n "${HYPRLAND_INSTANCE_SIGNATURE:-}" ]; then
     # the shared chooser/overlay shell; base.lua starts it at login, so only needed now
     if have qs && ! qs -c rice ipc call rice ping >/dev/null 2>&1; then run qs -n -c rice -d >/dev/null 2>&1 || true; fi
     run rice session
-    ok "live now. Super+Space for the launcher, Super+T for the rice chooser"
+    ok "live now. tap Super for the launcher, Super+Shift+T for the rice chooser, Super+/ for all keys"
 else
     ok "log into Hyprland and it all starts by itself"
 fi

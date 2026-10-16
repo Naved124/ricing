@@ -70,6 +70,26 @@ It's safe to run again. Useful options: `--rice paper` to start on another rice,
 `--system` for the boot menu, splash and login screen, and `--uninstall` to remove the links. `./install --help`
 lists them all.
 
+### On a new Arch install
+
+Starting clean avoids leftovers from another desktop, like SDDM still owning the
+login. In archinstall pick **Limine** as the bootloader and the **Minimal** profile (no
+desktop), and create your user with sudo. Then, at the text login after the first boot:
+
+```sh
+sudo pacman -S --needed git
+git clone https://github.com/Naved124/ricing ~/ricing
+cd ~/ricing && ./install --fresh
+reboot
+```
+
+`--fresh` adds what a minimal system lacks: NetworkManager (the bar's network widget
+uses it), PipeWire, Bluetooth, the Hyprland and GTK portals, a polkit agent, Firefox,
+Nautilus and Noto fonts. It builds `paru` for the AUR-only themes, enables the
+NetworkManager, Bluetooth and power-profiles services, and does everything `--system`
+does. After the reboot you get the themed Limine menu, the splash, ReGreet, and then
+the desktop.
+
 How each app follows the rice:
 
 | App | How | When a switch shows up |
