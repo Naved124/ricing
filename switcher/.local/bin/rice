@@ -9,7 +9,7 @@
 #   rice auto on|off     enable or disable time-of-day switching (systemd timer)
 #   rice auto status     print whether auto mode is on
 #   rice auto apply      switch to the rice scheduled for now (used by the timer)
-#   rice choose          toggle the chooser (Super+T)
+#   rice choose          toggle the chooser (Super+Shift+T)
 #   rice reapply         run every apply step again for the active rice
 #   rice session         start the active rice at login (no freeze, no transition)
 #   rice lock            lock the screen with the rice's lock (its shell, or hyprlock)
@@ -252,7 +252,7 @@ switch_to() {
         log "$target is already active"; return 0
     fi
 
-    # one switch at a time; a second Super+T spam just waits its turn
+    # one switch at a time; a second Super+Ctrl+T spam just waits its turn
     exec 9>"$RUN_DIR/lock"
     flock 9
 

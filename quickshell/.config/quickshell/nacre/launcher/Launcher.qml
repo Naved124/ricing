@@ -41,8 +41,21 @@ PanelWindow {
             search.start(Shell.launcherMode);
             field.text = Shell.launcherText;
             field.forceActiveFocus();
+            focusTimer.restart();
             list.fresh = true;
             freshTimer.restart();
+        }
+    }
+    // the layer surface maps a moment after `open`, and focus asked for before
+    // that can be lost; keep asking until typing lands in the field
+    Timer {
+        id: focusTimer
+        interval: 30
+        repeat: true
+        property int tries: 0
+        onTriggered: {
+            field.forceActiveFocus();
+            if (field.activeFocus || ++tries > 20) { stop(); tries = 0; }
         }
     }
     Timer { id: freshTimer; interval: 400; onTriggered: list.fresh = false }

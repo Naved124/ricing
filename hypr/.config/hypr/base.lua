@@ -8,6 +8,11 @@
 
 local terminal = "kitty"
 local files    = "nautilus"
+-- your default browser (xdg-settings), else the first one installed
+local browser  = [[sh -c 'd=$(xdg-settings get default-web-browser 2>/dev/null); ]]
+              .. [[[ -n "$d" ] && gtk-launch "$d" 2>/dev/null && exit; ]]
+              .. [[for b in firefox zen-browser brave chromium google-chrome-stable librewolf; do ]]
+              .. [[command -v "$b" >/dev/null && exec "$b"; done']]
 local mod      = "SUPER"
 
 ---------------------------------------------------------------------------
@@ -75,75 +80,91 @@ hl.gesture({ fingers = 4, direction = "horizontal", action = "workspace" })
 ---------------------------------------------------------------------------
 local function key(k) return mod .. " + " .. k end
 
-hl.bind(key("Return"), hl.dsp.exec_cmd(terminal))
-hl.bind(key("E"),      hl.dsp.exec_cmd(files))
-hl.bind(key("Q"),      hl.dsp.window.close())
-hl.bind(key("F"),      hl.dsp.window.fullscreen({ action = "toggle" }))
-hl.bind(key("SHIFT + F"), hl.dsp.window.float({ action = "toggle" }))
-hl.bind(key("P"),      hl.dsp.window.pseudo())
-hl.bind(key("G"),      hl.dsp.group.toggle())
-hl.bind(key("TAB"),    hl.dsp.group.next())
+-- Every bind is described as "Group · what it does". The shell's key sheet
+-- (Super+/) reads these back from `hyprctl binds -j`, so this file is the
+-- only list to keep up to date; binds in local.lua show up there too.
+local function bind(keys, action, desc, flags)
+    flags = flags or {}
+    flags.description = desc
+    hl.bind(keys, action, flags)
+end
 
--- shell surfaces: each rice's Quickshell registers these global shortcuts
-hl.bind(key("Space"),  hl.dsp.global("quickshell:launcher"))
-hl.bind(key("N"),      hl.dsp.global("quickshell:center"))
-hl.bind(key("V"),      hl.dsp.global("quickshell:clipboard"))
-hl.bind(key("Escape"), hl.dsp.global("quickshell:power"))
-hl.bind(key("CTRL + L"), hl.dsp.exec_cmd("rice lock"))
+-- apps
+bind(key("T"),      hl.dsp.exec_cmd(terminal), "Apps · Terminal")
+bind(key("Return"), hl.dsp.exec_cmd(terminal), "Apps · Terminal")
+bind(key("W"),      hl.dsp.exec_cmd(browser),  "Apps · Browser")
+bind(key("E"),      hl.dsp.exec_cmd(files),    "Apps · Files")
 
--- rices
-hl.bind(key("T"),         hl.dsp.exec_cmd("rice choose"))
-hl.bind(key("SHIFT + T"), hl.dsp.exec_cmd("rice next"))
+-- shell surfaces: each rice's Quickshell registers these global shortcuts.
+-- Super on its own fires on release, and only when no other key joined in,
+-- so Super+anything still works as usual.
+bind("SUPER + Super_L", hl.dsp.global("quickshell:launcher-tap"), "Shell · Launcher", { release = true })
+bind(key("Space"),  hl.dsp.global("quickshell:launcher"),  "Shell · Launcher")
+bind(key("V"),      hl.dsp.global("quickshell:clipboard"), "Shell · Clipboard history")
+bind(key("N"),      hl.dsp.global("quickshell:center"),    "Shell · Control centre")
+bind(key("slash"),  hl.dsp.global("quickshell:keybinds"),  "Shell · This key sheet")
+bind(key("Escape"), hl.dsp.global("quickshell:power"),     "Shell · Power menu")
+bind(key("CTRL + L"), hl.dsp.exec_cmd("rice lock"),        "Shell · Lock")
 
--- capture
-hl.bind("Print",               hl.dsp.exec_cmd("rice-shot region"))
-hl.bind("SHIFT + Print",       hl.dsp.exec_cmd("rice-shot screen"))
-hl.bind(key("Print"),          hl.dsp.exec_cmd("rice-shot window"))
-hl.bind("CTRL + Print",        hl.dsp.exec_cmd("rice-shot edit"))
-hl.bind(key("SHIFT + C"),      hl.dsp.exec_cmd("hyprpicker -a"))
-
--- toggle dwindle ⇄ master
-hl.bind(key("M"), function()
+-- windows
+bind(key("Q"),         hl.dsp.window.close(),                         "Windows · Close")
+bind(key("F"),         hl.dsp.window.fullscreen({ action = "toggle" }), "Windows · Fullscreen")
+bind(key("SHIFT + F"), hl.dsp.window.float({ action = "toggle" }),      "Windows · Float")
+bind(key("P"),         hl.dsp.window.pseudo(),                        "Windows · Pseudo-tile")
+bind(key("G"),         hl.dsp.group.toggle(),                         "Windows · Group")
+bind(key("TAB"),       hl.dsp.group.next(),                           "Windows · Next in group")
+bind(key("M"), function()
     local layout = hl.get("general.layout")
     hl.config({ general = { layout = (layout == "master") and "dwindle" or "master" } })
-end)
+end, "Windows · Dwindle ⇄ master")
 
 -- focus and move: Super+HJKL / arrows, + Shift moves the window
-local dirs = { h = "left", j = "down", k = "up", l = "right",
-               left = "left", down = "down", up = "up", right = "right" }
-for k, dir in pairs(dirs) do
-    hl.bind(key(k),            hl.dsp.focus({ direction = dir }))
-    hl.bind(key("SHIFT + " .. k), hl.dsp.window.move({ direction = dir }))
+local dirs = { { "h", "left" }, { "left", "left" }, { "j", "down" }, { "down", "down" },
+               { "k", "up" }, { "up", "up" }, { "l", "right" }, { "right", "right" } }
+for _, d in ipairs(dirs) do
+    local k, dir = d[1], d[2]
+    bind(key(k),              hl.dsp.focus({ direction = dir }),       "Windows · Focus " .. dir)
+    bind(key("SHIFT + " .. k), hl.dsp.window.move({ direction = dir }), "Windows · Move " .. dir)
 end
 
 -- workspaces 1–5
 for i = 1, 5 do
-    hl.bind(key(tostring(i)),             hl.dsp.focus({ workspace = i }))
-    hl.bind(key("SHIFT + " .. tostring(i)), hl.dsp.window.move({ workspace = i }))
+    bind(key(tostring(i)),               hl.dsp.focus({ workspace = i }),       "Workspaces · Go to workspace")
+    bind(key("SHIFT + " .. tostring(i)), hl.dsp.window.move({ workspace = i }), "Workspaces · Send window to it")
 end
-hl.bind(key("mouse_down"), hl.dsp.focus({ workspace = "e+1" }))
-hl.bind(key("mouse_up"),   hl.dsp.focus({ workspace = "e-1" }))
+bind(key("mouse_down"), hl.dsp.focus({ workspace = "e+1" }), "Workspaces · Next")
+bind(key("mouse_up"),   hl.dsp.focus({ workspace = "e-1" }), "Workspaces · Previous")
+bind(key("S"),         hl.dsp.workspace.toggle_special("scratch"),          "Workspaces · Scratchpad")
+bind(key("SHIFT + S"), hl.dsp.window.move({ workspace = "special:scratch" }), "Workspaces · Send to scratchpad")
 
--- scratchpad
-hl.bind(key("S"),         hl.dsp.workspace.toggle_special("scratch"))
-hl.bind(key("SHIFT + S"), hl.dsp.window.move({ workspace = "special:scratch" }))
+-- capture
+bind("Print",          hl.dsp.exec_cmd("rice-shot region"), "Capture · Screenshot a region")
+bind("SHIFT + Print",  hl.dsp.exec_cmd("rice-shot screen"), "Capture · Screenshot the screen")
+bind(key("Print"),     hl.dsp.exec_cmd("rice-shot window"), "Capture · Screenshot the window")
+bind("CTRL + Print",   hl.dsp.exec_cmd("rice-shot edit"),   "Capture · Screenshot and edit")
+bind(key("SHIFT + C"), hl.dsp.exec_cmd("hyprpicker -a"),    "Capture · Pick a colour")
+
+-- rices
+bind(key("SHIFT + T"), hl.dsp.exec_cmd("rice choose"), "Rice · Rice chooser")
+bind(key("CTRL + T"),  hl.dsp.exec_cmd("rice next"),   "Rice · Next rice")
 
 -- mouse
-hl.bind(key("mouse:272"), hl.dsp.window.drag(),   { mouse = true })
-hl.bind(key("mouse:273"), hl.dsp.window.resize(), { mouse = true })
+bind(key("mouse:272"), hl.dsp.window.drag(),   "Mouse · Move window",   { mouse = true })
+bind(key("mouse:273"), hl.dsp.window.resize(), "Mouse · Resize window", { mouse = true })
 
 -- media keys (the shell's OSD reacts to the change itself)
-local held = { locked = true, repeating = true }
-hl.bind("XF86AudioRaiseVolume",  hl.dsp.exec_cmd("wpctl set-volume -l 1 @DEFAULT_AUDIO_SINK@ 5%+"), held)
-hl.bind("XF86AudioLowerVolume",  hl.dsp.exec_cmd("wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-"), held)
-hl.bind("XF86AudioMute",         hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"), { locked = true })
-hl.bind("XF86AudioMicMute",      hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle"), { locked = true })
-hl.bind("XF86MonBrightnessUp",   hl.dsp.exec_cmd("brightnessctl -e4 -n2 set 5%+"), held)
-hl.bind("XF86MonBrightnessDown", hl.dsp.exec_cmd("brightnessctl -e4 -n2 set 5%-"), held)
-hl.bind("XF86AudioPlay",  hl.dsp.exec_cmd("playerctl play-pause"), { locked = true })
-hl.bind("XF86AudioPause", hl.dsp.exec_cmd("playerctl play-pause"), { locked = true })
-hl.bind("XF86AudioNext",  hl.dsp.exec_cmd("playerctl next"),       { locked = true })
-hl.bind("XF86AudioPrev",  hl.dsp.exec_cmd("playerctl previous"),   { locked = true })
+local function held() return { locked = true, repeating = true } end
+local function locked() return { locked = true } end
+bind("XF86AudioRaiseVolume",  hl.dsp.exec_cmd("wpctl set-volume -l 1 @DEFAULT_AUDIO_SINK@ 5%+"), "Media · Volume up", held())
+bind("XF86AudioLowerVolume",  hl.dsp.exec_cmd("wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-"),      "Media · Volume down", held())
+bind("XF86AudioMute",         hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"),     "Media · Mute", locked())
+bind("XF86AudioMicMute",      hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle"),   "Media · Mute the mic", locked())
+bind("XF86MonBrightnessUp",   hl.dsp.exec_cmd("brightnessctl -e4 -n2 set 5%+"), "Media · Brightness up", held())
+bind("XF86MonBrightnessDown", hl.dsp.exec_cmd("brightnessctl -e4 -n2 set 5%-"), "Media · Brightness down", held())
+bind("XF86AudioPlay",  hl.dsp.exec_cmd("playerctl play-pause"), "Media · Play / pause", locked())
+bind("XF86AudioPause", hl.dsp.exec_cmd("playerctl play-pause"), "Media · Play / pause", locked())
+bind("XF86AudioNext",  hl.dsp.exec_cmd("playerctl next"),       "Media · Next track", locked())
+bind("XF86AudioPrev",  hl.dsp.exec_cmd("playerctl previous"),   "Media · Previous track", locked())
 
 ---------------------------------------------------------------------------
 -- Window classes → tags (the rice decides what each tag looks like)

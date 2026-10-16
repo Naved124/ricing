@@ -17,6 +17,7 @@ Singleton {
     property bool centerOpen: false
     property string centerFocus: ""       // "", "calendar", "media"
     property bool powerOpen: false
+    property bool keysOpen: false
     property bool recording: false
     property bool dnd: saved.dnd
     property bool nightLight: saved.nightLight
@@ -53,10 +54,17 @@ Singleton {
         powerOpen = open;
     }
 
+    function toggleKeys() {
+        const open = !keysOpen;
+        closeAll();
+        keysOpen = open;
+    }
+
     function closeAll() {
         launcherOpen = false;
         centerOpen = false;
         powerOpen = false;
+        keysOpen = false;
     }
 
     function setDnd(on) {

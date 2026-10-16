@@ -14,6 +14,7 @@ A third socket, .ctl.sock, scripts the session. Send one line per command:
     move ADDR N             move a window to workspace N (fires movewindowv2)
     fullscreen 0|1          toggle fullscreen on the active workspace
 Dispatches from the shell (`hl.dsp.focus({ workspace = N })`) are honoured.
+`hyprctl binds -j` answers with the file named by $FAKE_HYPR_BINDS, if set.
 """
 
 import json
@@ -74,6 +75,10 @@ def reply(req: str) -> str:
                  "workspace": {"id": c["ws"], "name": str(c["ws"])}, "monitor": 0,
                  "focusHistoryID": 0 if c["address"] == state["focused"] else 1}
                 for c in state["clients"]])
+    if req == "j/binds":
+        # FAKE_HYPR_BINDS: a JSON file in `hyprctl binds -j` format
+        path = os.environ.get("FAKE_HYPR_BINDS")
+        return open(path).read() if path and os.path.exists(path) else "[]"
     if req == "j/activewindow":
         return json.dumps({"address": state["focused"]})
     if req.startswith("dispatch"):

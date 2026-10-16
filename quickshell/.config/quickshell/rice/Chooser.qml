@@ -6,7 +6,7 @@ import Quickshell.Hyprland
 import Quickshell.Wayland
 import qs
 
-// The rice chooser (Super+T): every rice as a card, dressed in the active
+// The rice chooser (Super+Shift+T): every rice as a card, dressed in the active
 // rice's colours. Arrows/hjkl move, Enter applies, 1–9 pick directly, `a`
 // toggles auto mode, Esc or a click outside closes.
 // A rice can draw its own card: rices/<name>/card.qml. It receives `rice`,

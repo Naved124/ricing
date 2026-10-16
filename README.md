@@ -100,8 +100,8 @@ rice's `build/` are created there and not inside the repo.
 
 ```
 rice <name>          switch to a rice
-rice next | prev     cycle (Super+Shift+T)
-rice choose          toggle the chooser (Super+T)
+rice next | prev     cycle (Super+Ctrl+T)
+rice choose          toggle the chooser (Super+Shift+T)
 rice list            list rices, * marks the active one
 rice get roles.bg    read a value from the active palette
 rice auto on|off     time-of-day switching (see auto.conf)
@@ -115,15 +115,17 @@ rice-shot region     screenshot (also: screen, window, edit)
 
 | Keys | Action |
 | --- | --- |
-| Super+Space | launcher (`=` calculator, `/` files, `:` emoji, `>` run, `?` web, `!` clipboard) |
+| Super (tap on its own), Super+Space | launcher, ready to type (`=` calculator, `/` files, `:` emoji, `>` run, `?` web, `!` clipboard) |
+| Super+/ | the key sheet: every bind, live from Hyprland, type to filter |
+| Super+T or Super+Return, Super+W, Super+E | terminal, browser (your default), files |
 | Super+V | clipboard history (the launcher in `!` mode) |
 | Super+N | control centre |
 | Super+Escape | power menu |
 | Super+Ctrl+L | lock |
-| Super+T / Super+Shift+T | rice chooser / next rice |
+| Super+Shift+T / Super+Ctrl+T | rice chooser / next rice |
 | Print, Shift+Print, Super+Print, Ctrl+Print | screenshot a region, the screen, the window, or into satty |
 | Super+Shift+C | colour picker |
-| Super+Return, E, Q, F, Shift+F, P, G, Tab | terminal, files, close, fullscreen, float, pseudo, group, next in group |
+| Super+Q, F, Shift+F, P, G, Tab | close, fullscreen, float, pseudo, group, next in group |
 | Super+M | dwindle ⇄ master |
 | Super+H/J/K/L (+Shift) | focus (move) |
 | Super+1…9 (+Shift) | workspace (move to it) |

@@ -9,6 +9,7 @@ import Quickshell.Io
 import Quickshell.Hyprland
 import qs.bar
 import qs.center
+import qs.keys
 import qs.launcher
 import qs.lock
 import qs.notifs
@@ -36,6 +37,7 @@ ShellRoot {
     Launcher {}
     Center {}
     Power {}
+    KeySheet {}
     Lock {}
 
     // Hyprland binds: hl.dsp.global("quickshell:<name>")
@@ -43,6 +45,29 @@ ShellRoot {
         name: "launcher"
         description: "Open the launcher"
         onPressed: { Shell.orbScreen = null; Shell.toggleLauncher(""); }
+    }
+    // Super tapped on its own. Hyprland fires this on release, which some
+    // versions report as a press and others as a release, so take whichever
+    // comes first and ignore its twin.
+    GlobalShortcut {
+        id: tap
+        name: "launcher-tap"
+        description: "Open the launcher (Super on its own)"
+        property double last: 0
+        function fire() {
+            const now = Date.now();
+            if (now - last < 250) return;
+            last = now;
+            Shell.orbScreen = null;
+            Shell.toggleLauncher("");
+        }
+        onPressed: fire()
+        onReleased: fire()
+    }
+    GlobalShortcut {
+        name: "keybinds"
+        description: "Show every key bind"
+        onPressed: Shell.toggleKeys()
     }
     GlobalShortcut {
         name: "center"
@@ -70,6 +95,7 @@ ShellRoot {
         function launcher(mode: string): void { Shell.orbScreen = null; Shell.toggleLauncher(mode); }
         function center(focus: string): void { Shell.toggleCenter(focus); }
         function power(): void { Shell.togglePower(); }
+        function keybinds(): void { Shell.toggleKeys(); }
         function flash(): void { flasher.flash(); }
         function nightLight(on: bool): void { Shell.setNightLight(on); }
         // open the launcher with text already typed, e.g. "=2^10" or ":heart"
