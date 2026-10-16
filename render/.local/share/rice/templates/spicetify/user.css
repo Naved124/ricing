@@ -4,7 +4,16 @@
     --rice-radius: {{ shape.panel }}px;
     --rice-wash: linear-gradient(90deg, {{ roles.urgent | rgba(0.55) }}, {{ roles.selection | rgba(0.55) }});
 }
-body, .encore-text { font-family: "{{ fonts.ui }}", sans-serif !important; }
+/* Spotify picks its fonts through these stacks, not just body; the Noto
+   families catch what the UI font lacks (Japanese titles, symbols, emoji) */
+:root, .encore-dark-theme, .encore-light-theme, .encore-base-set {
+    --rice-font: "{{ fonts.ui }}", "Noto Sans", "Noto Sans CJK JP", "Noto Color Emoji", sans-serif;
+    --encore-title-font-stack: var(--rice-font) !important;
+    --encore-body-font-stack: var(--rice-font) !important;
+    --encore-variable-font-stack: var(--rice-font) !important;
+    --font-family: var(--rice-font) !important;
+}
+body, .encore-text, input, button, h1, h2, h3 { font-family: var(--rice-font) !important; }
 body, .encore-text-body-small, .encore-text-body-medium, .encore-text-marginal { font-weight: {{ fonts.weight }} !important; }
 .encore-text-title-small, .encore-text-title-medium, .encore-text-title-large,
 .encore-text-headline-large, .encore-text-body-medium-bold, .encore-text-body-small-bold { font-weight: {{ fonts.weight_strong }} !important; }

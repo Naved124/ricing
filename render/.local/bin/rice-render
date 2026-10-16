@@ -727,6 +727,8 @@ def spicetify() -> None:
     run = lambda *a: subprocess.run([exe, *a], capture_output=True, text=True)
     theme = run("config", "current_theme").stdout.strip()
     if theme == "Rice":
+        # Spotify keeps a copy of the theme, so a new render has to be pushed in
+        run("refresh")
         return
     run("config", "current_theme", "Rice", "color_scheme", "rice")
     # the first time Spicetify needs a backup of Spotify before it can apply

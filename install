@@ -136,7 +136,7 @@ fresh_pkgs=(
     git base-devel networkmanager bluez bluez-utils power-profiles-daemon
     pipewire pipewire-pulse pipewire-alsa wireplumber
     xdg-desktop-portal-hyprland xdg-desktop-portal-gtk hyprpolkitagent
-    firefox nautilus noto-fonts noto-fonts-emoji wpa_supplicant
+    firefox nautilus noto-fonts noto-fonts-cjk noto-fonts-emoji wpa_supplicant
     gnome-keyring libsecret seahorse
 )
 
