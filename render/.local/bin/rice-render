@@ -280,6 +280,12 @@ class Filters:
     def add(self, v, k):
         return float(v) + float(k)
 
+    def min(self, v, k):
+        return min(float(v), float(k))
+
+    def max(self, v, k):
+        return max(float(v), float(k))
+
     def round(self, v, digits="0"):
         r = round(float(v), int(digits))
         return int(r) if int(digits) == 0 else r
