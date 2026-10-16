@@ -4,13 +4,21 @@ import qs
 import qs.common
 import qs.services
 
-// Network, volume, battery and the system tray. Hovering any chip opens it.
+// Caffeine, network, volume, battery and the system tray. Hovering any chip opens it.
 Row {
     id: root
 
     required property var bar
 
     spacing: 2
+
+    // caffeine on: a cup, until clicked off
+    Chip {
+        visible: Shell.caffeine
+        icon: "coffee"
+        label: "Staying awake"
+        onClicked: Shell.caffeine = false
+    }
 
     Chip {
         icon: Net.icon

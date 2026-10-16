@@ -35,6 +35,13 @@ PanelWindow {
     // only the pill takes clicks; the shadow margin stays click-through
     mask: Region { item: pill }
 
+    // caffeine: one bar holds an idle inhibitor, so hypridle neither dims,
+    // locks nor sleeps while it's on
+    IdleInhibitor {
+        window: win
+        enabled: Shell.caffeine && win.screen === Quickshell.screens[0]
+    }
+
     Glass {
         id: pill
         x: win.side
@@ -64,6 +71,10 @@ PanelWindow {
                 monitor: win.monitor
                 Layout.fillWidth: true
                 Layout.fillHeight: true
+            }
+
+            NetSpeed {
+                Layout.alignment: Qt.AlignVCenter
             }
 
             MediaMini {

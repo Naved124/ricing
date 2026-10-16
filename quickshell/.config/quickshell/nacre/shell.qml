@@ -96,6 +96,7 @@ ShellRoot {
         function center(focus: string): void { Shell.toggleCenter(focus); }
         function power(): void { Shell.togglePower(); }
         function keybinds(): void { Shell.toggleKeys(); }
+        function caffeine(): void { Shell.caffeine = !Shell.caffeine; }
         function flash(): void { flasher.flash(); }
         function nightLight(on: bool): void { Shell.setNightLight(on); }
         // open the launcher with text already typed, e.g. "=2^10" or ":heart"

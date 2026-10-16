@@ -18,6 +18,9 @@ Singleton {
     property string centerFocus: ""       // "", "calendar", "media"
     property bool powerOpen: false
     property bool keysOpen: false
+    // caffeine: hold off dimming, locking and sleep (bar/Bar.qml inhibits idle).
+    // Deliberately forgotten on restart, so it can't drain a battery overnight.
+    property bool caffeine: false
     property bool recording: false
     property bool dnd: saved.dnd
     property bool nightLight: saved.nightLight

@@ -153,9 +153,9 @@ PanelWindow {
 
                         Toggle {
                             width: parent.tile
-                            icon: Net.icon
+                            icon: Net.wifiIcon
                             name: "Wi-Fi"
-                            detail: Net.wired ? "Wired" : Net.wifi ? Net.wifi.name : Net.wifiEnabled ? "Not connected" : "Off"
+                            detail: Net.wifi ? Net.wifi.name : Net.wifiEnabled ? "Not connected" : "Off"
                             on: Net.wifiEnabled
                             available: !!Net.wifiDevice
                             onToggled: Net.setWifi(!Net.wifiEnabled)
@@ -208,6 +208,32 @@ PanelWindow {
                             detail: profile === PowerProfile.PowerSaver ? "Saver" : profile === PowerProfile.Performance ? "Performance" : "Balanced"
                             on: profile !== PowerProfile.Balanced
                             onToggled: PowerProfiles.profile = profiles[(profiles.indexOf(profile) + 1) % profiles.length]
+                        }
+                        Toggle {
+                            width: parent.tile
+                            icon: "coffee"
+                            name: "Caffeine"
+                            detail: on ? "Staying awake" : "Off"
+                            on: Shell.caffeine
+                            onToggled: Shell.caffeine = !Shell.caffeine
+                        }
+                        Toggle {
+                            width: parent.tile
+                            icon: "camera"
+                            name: "Screenshot"
+                            detail: "A region"
+                            onToggled: { Shell.centerOpen = false; shot.restart(); }
+                            onSecondary: { Shell.centerOpen = false; shotScreen.restart(); }
+                            // wait for the panel to slide away so it isn't in the picture
+                            Timer { id: shot; interval: 350; onTriggered: Quickshell.execDetached(["rice-shot", "region"]) }
+                            Timer { id: shotScreen; interval: 350; onTriggered: Quickshell.execDetached(["rice-shot", "screen"]) }
+                        }
+                        Toggle {
+                            width: parent.tile
+                            icon: "keyboard"
+                            name: "Keys"
+                            detail: "Super + /"
+                            onToggled: Shell.toggleKeys()
                         }
                     }
 

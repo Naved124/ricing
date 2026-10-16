@@ -207,6 +207,19 @@ sudo systemctl disable <your display manager>; sudo systemctl enable greetd
 
 It shows up in `rice list` and the chooser right away.
 
+## Idle
+
+`hypr/.config/hypr/hypridle.conf` picks its timings from the power source:
+
+| | dim | lock | screen off | sleep |
+| --- | --- | --- | --- | --- |
+| plugged in | 4:30 | 5 min | 8 min | 10 min |
+| on battery | 2:30 | 3 min | 4 min | 5 min |
+
+Unplugging while idle moves you onto the battery timings within 30 s. **Caffeine** in the
+control centre (or `qs -c nacre ipc call shell caffeine`) holds all of it off until you
+turn it off or the shell restarts; a cup in the bar shows while it's on.
+
 ## Auto mode
 
 `auto.conf` lists `HH:MM rice` lines. The latest time that has passed wins, wrapping
