@@ -85,6 +85,8 @@ hl.bind(key("SHIFT + T"), hl.dsp.exec_cmd("rice next"))
 -- capture
 hl.bind("Print",               hl.dsp.exec_cmd("rice-shot region"))
 hl.bind("SHIFT + Print",       hl.dsp.exec_cmd("rice-shot screen"))
+hl.bind(key("Print"),          hl.dsp.exec_cmd("rice-shot window"))
+hl.bind("CTRL + Print",        hl.dsp.exec_cmd("rice-shot edit"))
 hl.bind(key("SHIFT + C"),      hl.dsp.exec_cmd("hyprpicker -a"))
 
 -- toggle dwindle ⇄ master

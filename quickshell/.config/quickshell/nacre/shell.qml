@@ -32,6 +32,7 @@ ShellRoot {
     Popups {}
     Osd {}
     Toast {}
+    Flash { id: flasher }
     Launcher {}
     Center {}
     Power {}
@@ -69,6 +70,7 @@ ShellRoot {
         function launcher(mode: string): void { Shell.orbScreen = null; Shell.toggleLauncher(mode); }
         function center(focus: string): void { Shell.toggleCenter(focus); }
         function power(): void { Shell.togglePower(); }
+        function flash(): void { flasher.flash(); }
         function nightLight(on: bool): void { Shell.setNightLight(on); }
         // open the launcher with text already typed, e.g. "=2^10" or ":heart"
         function search(text: string): void {

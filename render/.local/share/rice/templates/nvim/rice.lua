@@ -18,6 +18,8 @@ local c = {
   success   = "{{ roles.success }}",
   warning   = "{{ roles.warning }}",
   cursor    = "{{ roles.cursor }}",
+  -- comments: the overlay colour (Nacre's lilac), nudged toward the text so it stays legible
+  comment   = "{{ roles.overlay | mix(roles.fg, 0.3) }}",
   red       = "{{ ansi.color1 }}",
   green     = "{{ ansi.color2 }}",
   yellow    = "{{ ansi.color3 }}",
@@ -70,7 +72,7 @@ hl("Question",     { fg = c.blue })
 hl("SpellBad",     { sp = c.red, undercurl = true })
 
 -- syntax
-hl("Comment",    { fg = c.muted, italic = true })
+hl("Comment",    { fg = c.comment, italic = true })
 hl("Constant",   { fg = c.magenta })
 hl("String",     { fg = c.green })
 hl("Character",  { fg = c.green })
@@ -129,4 +131,28 @@ vim.g.rice_float_border = {
 }
 for i = 1, 4 do
   hl("RiceGrad" .. i, { fg = c.grad[((i - 1) % #c.grad) + 1], bg = c.surface })
+end
+
+-- Floating windows wear the gradient: each border character takes the next
+-- stop round the frame (RiceBorder1..N). LSP hovers and signature help use
+-- it automatically; pass `border = RiceBorder()` to your own floats.
+for i, col in ipairs(c.grad) do
+  hl("RiceBorder" .. i, { fg = col, bg = c.surface })
+end
+function _G.RiceBorder()
+  local chars = { "╭", "─", "╮", "│", "╯", "─", "╰", "│" }
+  local out = {}
+  for i, ch in ipairs(chars) do
+    out[i] = { ch, "RiceBorder" .. ((i - 1) % #c.grad + 1) }
+  end
+  return out
+end
+if not vim.g.rice_float_patched then
+  vim.g.rice_float_patched = true
+  local open = vim.lsp.util.open_floating_preview
+  vim.lsp.util.open_floating_preview = function(contents, syntax, opts, ...)
+    opts = opts or {}
+    if opts.border == nil and vim.g.colors_name == "rice" then opts.border = _G.RiceBorder() end
+    return open(contents, syntax, opts, ...)
+  end
 end

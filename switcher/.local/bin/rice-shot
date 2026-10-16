@@ -1,0 +1,79 @@
+#!/usr/bin/env bash
+# rice-shot — screenshots with a little ceremony.
+#
+#   rice-shot region     select an area (slurp), the default
+#   rice-shot screen     the focused monitor
+#   rice-shot window     the focused window
+#   rice-shot edit       select an area and open it in satty straight away
+#
+# Saves to $RICE_SHOT_DIR (default ~/Pictures/Screenshots), copies the image
+# to the clipboard, flashes the screen white for 150 ms through the active
+# rice's shell (if it has one), and posts a notification with a thumbnail:
+# "Edit" opens satty, "Open" the image viewer.
+set -uo pipefail
+
+mode=${1:-region}
+dir=${RICE_SHOT_DIR:-${XDG_PICTURES_DIR:-$HOME/Pictures}/Screenshots}
+file="$dir/$(date +%Y-%m-%d_%H-%M-%S).png"
+mkdir -p "$dir"
+
+die() { notify-send -a rice-shot -i dialog-error "Screenshot failed" "$1"; exit 1; }
+need() { command -v "$1" >/dev/null || die "$1 is not installed"; }
+need grim
+
+# the active rice's Quickshell config, if its shell is Quickshell
+shell_name() {
+    local p="$HOME/.config/rices/current/palette.toml"
+    [ -f "$p" ] && awk -F'"' '/^\[meta\]/{m=1;next} /^\[/{m=0} m && $1 ~ /^shell *= */{print $2; exit}' "$p"
+}
+
+flash() {
+    local shell; shell=$(shell_name)
+    [ -n "$shell" ] && command -v qs >/dev/null &&
+        qs -c "$shell" ipc call shell flash >/dev/null 2>&1 &
+}
+
+focused_monitor() {
+    hyprctl -j monitors 2>/dev/null | jq -r '.[] | select(.focused) | .name' | head -n1
+}
+
+case $mode in
+    region|edit)
+        need slurp
+        geom=$(slurp -d -b '#00000022' -c '#c9bfd8ff' -w 2) || exit 0   # Esc cancels quietly
+        grim -g "$geom" "$file" || die "grim couldn't capture the region"
+        ;;
+    screen)
+        mon=$(focused_monitor)
+        if [ -n "$mon" ]; then grim -o "$mon" "$file"; else grim "$file"; fi || die "grim couldn't capture the screen"
+        ;;
+    window)
+        need jq
+        geom=$(hyprctl -j activewindow 2>/dev/null | jq -r 'select(.at) | "\(.at[0]),\(.at[1]) \(.size[0])x\(.size[1])"')
+        [ -n "$geom" ] || die "no focused window"
+        grim -g "$geom" "$file" || die "grim couldn't capture the window"
+        ;;
+    -h|--help|help)
+        sed -n '2,13s/^# \{0,1\}//p' "$0"; exit 0 ;;
+    *)
+        echo "rice-shot: unknown mode '$mode' (region, screen, window, edit)" >&2; exit 2 ;;
+esac
+
+flash
+command -v wl-copy >/dev/null && wl-copy --type image/png < "$file"
+
+if [ "$mode" = edit ]; then
+    need satty
+    exec satty --filename "$file" --output-filename "$file" --early-exit --copy-command wl-copy
+fi
+
+# the notification waits for an action, so it runs in the background
+(
+    action=$(notify-send -a rice-shot -i "$file" -h "string:image-path:$file" \
+        -A edit=Edit -A open=Open "Screenshot saved" "${file/#$HOME/\~} · copied" 2>/dev/null)
+    case $action in
+        edit) command -v satty >/dev/null && satty --filename "$file" --output-filename "$file" --copy-command wl-copy ;;
+        open) xdg-open "$file" ;;
+    esac
+) >/dev/null 2>&1 &
+disown
