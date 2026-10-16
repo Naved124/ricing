@@ -1,0 +1,4 @@
+#!/bin/sh
+# after `git pull --rebase`: link any new dotfiles
+[ "$1" = rebase ] || exit 0
+exec "$(git rev-parse --show-toplevel)/tools/relink"

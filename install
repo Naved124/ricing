@@ -86,6 +86,8 @@ if [ "$uninstall" = 1 ]; then
     step "Removing the links"
     run systemctl --user disable --now rice-auto.timer 2>/dev/null || true
     run stow -D -d "$repo" -t "$HOME" "${packages[@]}"
+    [ "$(git -C "$repo" config core.hooksPath 2>/dev/null)" = .githooks ] \
+        && run git -C "$repo" config --unset core.hooksPath
     ok "done. Rendered themes stay in ~/.config/rices/*/build; earlier backups are in"
     printf '    %s\n' "${backup%/*}"
     exit 0
@@ -417,6 +419,17 @@ done
 
 run stow --no-folding --ignore='__pycache__' --ignore='^build$' -d "$repo" -t "$HOME" -R "${packages[@]}"
 ok "linked: ${packages[*]}"
+# after every `git pull`, tools/relink links the files the pull added (git
+# hooks in .githooks/); a hooks path you set yourself is left alone
+if have git && git -C "$repo" rev-parse --git-dir >/dev/null 2>&1; then
+    hooks="$(git -C "$repo" config core.hooksPath || true)"
+    if [ -z "$hooks" ] || [ "$hooks" = .githooks ]; then
+        run git -C "$repo" config core.hooksPath .githooks
+        ok "git pull re-links new files (tools/relink)"
+    else
+        warn "core.hooksPath is $hooks: run tools/relink yourself after a pull"
+    fi
+fi
 paperfonts="${XDG_DATA_HOME:-$HOME/.local/share}/fonts/paper"
 if have fc-cache && [ -d "$paperfonts" ]; then
     run fc-cache -f "$paperfonts" >/dev/null

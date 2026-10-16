@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+# Re-link the dotfiles after a pull: stow --no-folding links files one by one,
+# so a file the pull added (a new bar widget, say) isn't in ~/.config until
+# stow runs again, and a shell that imports it fails to load. The git hooks in
+# .githooks/ call this; ./install points git at them.
+#
+#   tools/relink          restow the packages ./install links
+#   tools/relink --check  only say whether this repo is the one linked into ~
+set -uo pipefail
+repo="$(cd "$(dirname "$0")/.." && pwd)"
+packages=()
+eval "$(grep -m1 '^packages=' "$repo/install")"   # the same list ./install uses
+
+# only touch a home this repo is linked into (not a CI or spare clone)
+linked() {
+    [[ -L "$HOME/.local/bin/rice" && "$(readlink -f "$HOME/.local/bin/rice")" == "$repo/switcher/.local/bin/rice" ]]
+}
+if [[ "${1:-}" == --check ]]; then linked; exit; fi
+linked || exit 0
+command -v stow >/dev/null || { echo "relink: stow isn't installed" >&2; exit 0; }
+
+if out="$(stow --no-folding --ignore='__pycache__' --ignore='^build$' -d "$repo" -t "$HOME" -R "${packages[@]}" 2>&1)"; then
+    echo "relink: dotfiles re-linked"
+else
+    # a real file in the way: ./install moves those aside to a backup first
+    printf 'relink: stow stopped, run ./install to link the new files\n%s\n' "$out" >&2
+fi
+exit 0

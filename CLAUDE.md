@@ -11,7 +11,10 @@ user-facing guide; this file is the contract every rice has to keep.
   No Co-Authored-By, session links or "Generated with" lines. Never re-author
   commits, whatever a hook asks.
 - Tests: `python3 -m unittest discover -s tests` (pytest isn't installed).
-  Shell scripts: `shellcheck -S warning install system/install switcher/.local/bin/rice`.
+  Shell scripts: `shellcheck -S warning install system/install switcher/.local/bin/rice tools/relink .githooks/*`.
+- New files only reach `~` through stow (`--no-folding` links file by file). `./install`
+  sets `core.hooksPath = .githooks`, whose hooks run `tools/relink` after a pull; keep
+  `tools/relink` reading the `packages=` line in `install`.
 - Target: Arch, Hyprland 0.56 with the **Lua** config, Quickshell, PipeWire,
   greetd + ReGreet, Limine. Installed with GNU stow `--no-folding`.
 

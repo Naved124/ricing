@@ -1,0 +1,4 @@
+#!/bin/sh
+# after switching branch: link the files that branch adds
+[ "$3" = 1 ] || exit 0
+exec "$(git rev-parse --show-toplevel)/tools/relink"

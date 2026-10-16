@@ -1,0 +1,3 @@
+#!/bin/sh
+# after `git pull` (merge or fast-forward): link any new dotfiles
+exec "$(git rev-parse --show-toplevel)/tools/relink"

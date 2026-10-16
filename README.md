@@ -94,6 +94,8 @@ That one script:
   package and refreshes the font cache;
 - moves any file the dotfiles would replace (your old `hyprland.conf`, for instance) to
   `~/.local/state/rice/backup/<time>/`, then links everything with stow;
+- points git at the repo's hooks (`.githooks/`), so every `git pull` re-links with
+  `tools/relink` and new files reach `~/.config` without running stow again;
 - creates `~/.config/hypr/local.lua` and copies your monitor and keyboard settings into
   it from the old `hyprland.conf`;
 - makes Nacre the active rice, renders every theme, links the app themes, adds the
@@ -351,6 +353,7 @@ slot changes, so a manual switch sticks until the next boundary.
 ```sh
 python3 -m unittest discover -s tests   # render, switch (sandboxed) and Hyprland config tests
 tools/regen                             # re-render the committed Theme.qml after a palette edit
+tools/relink                            # re-link the dotfiles (git pull does it through .githooks/)
 tools/shaders                           # recompile *.frag → *.frag.qsb (needs qsb)
 tools/emoji                             # rebuild the launcher's emoji list
 tools/fake-hyprland                     # a stand-in Hyprland IPC for previewing shells headless
