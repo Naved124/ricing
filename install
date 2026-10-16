@@ -93,16 +93,33 @@ optional=(
     satty:satty fd:fd cava:cava hyprpicker:hyprpicker magick:imagemagick
     powerprofilesctl:power-profiles-daemon bluetoothctl:bluez-utils
     hyprlock:hyprlock swaync:swaync swww:swww nvim:neovim
+    qt6ct:qt6ct kvantummanager:kvantum spicetify:spicetify-cli
+)
+# themes the palettes name (checked by folder, since they aren't commands)
+themes=(
+    "adw-gtk3|adw-gtk-theme"
+    "Colloid-Light|colloid-icon-theme-git"
+    "Bibata-Modern-Ice|bibata-cursor-theme-bin"
 )
 
 missing_pkgs() {
     local entry
     for entry in "$@"; do have "${entry%%:*}" || printf '%s\n' "${entry#*:}"; done
 }
+missing_themes() {
+    local entry name d found
+    for entry in "${themes[@]}"; do
+        name=${entry%%|*} found=0
+        for d in /usr/share/themes /usr/share/icons "$HOME/.local/share/themes" "$HOME/.local/share/icons" "$HOME/.themes" "$HOME/.icons"; do
+            [ -d "$d/$name" ] && { found=1; break; }
+        done
+        [ "$found" = 1 ] || printf '%s\n' "${entry#*|}"
+    done
+}
 
 step "Packages"
 mapfile -t need < <(missing_pkgs "${required[@]}")
-mapfile -t want < <(missing_pkgs "${optional[@]}")
+mapfile -t want < <(missing_pkgs "${optional[@]}"; missing_themes)
 if [ ${#need[@]} -eq 0 ] && [ ${#want[@]} -eq 0 ]; then
     ok "everything is installed"
 elif [ "$deps" = 0 ] || ! have pacman; then
@@ -242,10 +259,10 @@ ok "$rice"
 step "Rendering themes"
 run rice-render --all --quiet
 ok "every rice rendered"
+# links every app theme, turns on Firefox's userChrome in each profile it
+# finds, points qt6ct/Kvantum/mpv at the rice and applies Spicetify
 link_args=(--link --backup "$backup")
-if [ "$firefox" = 1 ] && [ -f "$HOME/.mozilla/firefox/profiles.ini" ]; then
-    link_args+=(--firefox)
-fi
+[ "$firefox" = 1 ] && link_args+=(--firefox)
 run rice-render "${link_args[@]}"
 
 # kitty includes the active rice's colours (and reloads them on SIGUSR1)
@@ -255,21 +272,6 @@ if ! grep -qsxF "$include" "$kitty_conf"; then
     run mkdir -p "$(dirname "$kitty_conf")"
     if [ "$dry" = 1 ]; then run echo "$include" '>>' "$kitty_conf"; else printf '\n%s\n' "$include" >> "$kitty_conf"; fi
     ok "kitty.conf now includes the rice"
-fi
-
-# Firefox only reads userChrome.css with this pref on
-if [ "$firefox" = 1 ] && [ -f "$HOME/.mozilla/firefox/profiles.ini" ]; then
-    pref='user_pref("toolkit.legacyUserProfileCustomizations.stylesheets", true);'
-    while IFS= read -r prof; do
-        [ -d "$prof" ] || continue
-        if ! grep -qsF "$pref" "$prof/user.js"; then
-            if [ "$dry" = 1 ]; then run echo "$pref" '>>' "$prof/user.js"; else echo "$pref" >> "$prof/user.js"; fi
-            ok "Firefox userChrome enabled in $(basename "$prof") (restart Firefox)"
-        fi
-    done < <(awk -F= -v dir="$HOME/.mozilla/firefox" '
-        /^\[/ { if (p != "") print (rel == "0" ? p : dir "/" p); p = ""; rel = "1" }
-        $1 == "Path" { p = $2 } $1 == "IsRelative" { rel = $2 }
-        END { if (p != "") print (rel == "0" ? p : dir "/" p) }' "$HOME/.mozilla/firefox/profiles.ini")
 fi
 
 # ── services ────────────────────────────────────────────────────────────

@@ -27,6 +27,10 @@ if not (":" .. path .. ":"):find(":" .. localbin .. ":", 1, true) then
     hl.env("PATH", localbin .. ":" .. path)
 end
 
+-- Qt apps take their colours from qt6ct, which the installer points at the
+-- rice's palette (and at Kvantum for the widget style)
+hl.env("QT_QPA_PLATFORMTHEME", "qt6ct")
+
 ---------------------------------------------------------------------------
 -- Monitors (override per machine in local.lua)
 ---------------------------------------------------------------------------

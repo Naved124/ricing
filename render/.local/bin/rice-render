@@ -24,12 +24,15 @@ errors, reported with file and line.
 from __future__ import annotations
 
 import argparse
+import io
 import json
 import os
 import re
 import shutil
+import subprocess
 import sys
 import tomllib
+import zipfile
 from pathlib import Path
 
 HOME = Path.home()
@@ -494,6 +497,9 @@ def outputs_for(rice: Path, ctx: dict) -> dict[Path, bytes]:
     out[build / "meta.json"] = (json.dumps(meta, indent=2) + "\n").encode()
     if not (rice / "templates/fastfetch/logo.png").exists():
         out[build / "fastfetch/logo.png"] = pearl(ctx)
+    colors = out.get(build / "telegram/colors.tdesktop-theme")
+    if colors is not None:
+        out[build / "telegram/rice.tdesktop-theme"] = tdesktop_theme(colors, ctx)
 
     for rel, dest in ctx.get("install", {}).items():
         src = build / rel
@@ -501,6 +507,19 @@ def outputs_for(rice: Path, ctx: dict) -> dict[Path, bytes]:
             raise RenderError(f"{rice}/palette.toml: [install] {rel!r} is not a rendered file")
         out[INSTALL_ROOT / os.path.expanduser(dest)] = out[src]
     return out
+
+
+def tdesktop_theme(colors: bytes, ctx: dict) -> bytes:
+    """Telegram Desktop's theme file: a zip of the palette and a tiled background."""
+    r, g, b = rgb(ctx["roles"]["bg"])
+    tile = png(8, 8, [bytes([0]) + bytes([r, g, b]) * 8 for _ in range(8)])
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
+        for name, data in (("colors.tdesktop-theme", colors), ("tiled.png", tile)):
+            info = zipfile.ZipInfo(name, date_time=(1980, 1, 1, 0, 0, 0))   # same bytes every render
+            info.compress_type = zipfile.ZIP_DEFLATED
+            z.writestr(info, data)
+    return buf.getvalue()
 
 
 def write(path: Path, data: bytes) -> bool:
@@ -553,6 +572,8 @@ LINKS = [
     (".config/yazi/theme.toml", "yazi/theme.toml"),
     (".config/zathura/rice", "zathurarc"),
     (".config/mpv/script-opts/uosc.conf", "mpv/uosc.conf"),
+    (".config/mpv/script-opts/osc.conf", "mpv/osc.conf"),
+    (".config/mpv/rice.conf", "mpv/rice.conf"),
     (".config/imv/config", "imv.conf"),
     (".config/vesktop/themes/rice.theme.css", "vesktop/rice.theme.css"),
     (".config/spicetify/Themes/Rice", "spicetify"),
@@ -566,37 +587,133 @@ Add these once (they include the active rice instead of being replaced):
   btop.conf         color_theme = "rice"
   zathurarc         include rice
   nvim init.lua     vim.cmd.colorscheme("rice")
-  Kvantum           kvantummanager --set Rice
-  qt6ct             Appearance → Palette → custom → rice
-  spicetify         spicetify config current_theme Rice && spicetify apply
-  Firefox           rice-render --link --firefox  (links userChrome into your profile)
+  Telegram          open ~/.config/rices/current/build/telegram/rice.tdesktop-theme
+                    in Telegram (again after switching rice; it can't follow live)
+  Firefox           rice-render --link --firefox  (links userChrome into every profile)
 """
 
 
+# Firefox moved new profiles to ~/.config/mozilla in 2026; older installs,
+# Flatpak and Zen keep theirs elsewhere. Every one that exists is themed.
+FIREFOX_ROOTS = [
+    ".mozilla/firefox",
+    ".config/mozilla/firefox",
+    ".var/app/org.mozilla.firefox/.mozilla/firefox",
+    ".var/app/org.mozilla.firefox/config/mozilla/firefox",
+    ".zen",
+    ".var/app/app.zen_browser.zen/.zen",
+    ".librewolf",
+]
+
+
 def firefox_profiles() -> list[Path]:
-    ini = HOME / ".mozilla/firefox/profiles.ini"
-    if not ini.exists():
-        return []
-    profiles, cur = [], {}
-    for line in ini.read_text().splitlines() + ["["]:
-        line = line.strip()
-        if line.startswith("["):
-            if "Path" in cur:
-                p = Path(cur["Path"])
-                if cur.get("IsRelative", "1") == "1":
-                    p = ini.parent / p
-                profiles.append(p)
-            cur = {}
-        elif "=" in line:
-            k, v = line.split("=", 1)
-            cur[k] = v
+    profiles: list[Path] = []
+    for root in FIREFOX_ROOTS:
+        ini = HOME / root / "profiles.ini"
+        if not ini.exists():
+            continue
+        cur: dict[str, str] = {}
+        for line in ini.read_text(errors="replace").splitlines() + ["["]:
+            line = line.strip()
+            if line.startswith("["):
+                if "Path" in cur:
+                    p = Path(cur["Path"])
+                    if cur.get("IsRelative", "1") == "1":
+                        p = ini.parent / p
+                    if p.is_dir() and p not in profiles:
+                        profiles.append(p)
+                cur = {}
+            elif "=" in line:
+                k, v = line.split("=", 1)
+                cur[k] = v
     return profiles
+
+
+USERCHROME_PREF = 'user_pref("toolkit.legacyUserProfileCustomizations.stylesheets", true);'
+
+
+def ensure_line(path: Path, line: str, note: str) -> None:
+    """Append `line` to a config file once (creating it), and say so."""
+    text = path.read_text() if path.exists() else ""
+    if line in text.splitlines():
+        return
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text + ("" if not text or text.endswith("\n") else "\n") + line + "\n")
+    print(f"  added {note} to {path}")
+
+
+def ini_set(path: Path, section: str, values: dict[str, str]) -> None:
+    """Set keys in one [section] of an INI file, leaving everything else as it was."""
+    lines = path.read_text().splitlines() if path.exists() else []
+    want = dict(values)
+    out, inside, seen = [], False, False
+    for line in lines:
+        head = line.strip()
+        if head.startswith("[") and head.endswith("]"):
+            if inside and want:
+                out += [f"{k}={v}" for k, v in want.items()]
+                want.clear()
+            inside = head[1:-1] == section
+            seen = seen or inside
+        elif inside and "=" in line and line.split("=", 1)[0].strip() in want:
+            key = line.split("=", 1)[0].strip()
+            line = f"{key}={want.pop(key)}"
+        out.append(line)
+    if want:
+        if not seen:
+            out += ([""] if out else []) + [f"[{section}]"]
+        out += [f"{k}={v}" for k, v in want.items()]
+    new = "\n".join(out) + "\n"
+    if not path.exists() or path.read_text() != new:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(new)
+        print(f"  set {', '.join(values)} in {path}")
+
+
+def configure_apps() -> None:
+    """One-time settings that point apps at the rice's files."""
+    # mpv reads the rice's OSD colours through an include
+    ensure_line(INSTALL_ROOT / ".config/mpv/mpv.conf", 'include="~~/rice.conf"', "the rice include")
+    # Qt apps: qt6ct with the rice palette, drawn by Kvantum when it's installed
+    qt = INSTALL_ROOT / ".config/qt6ct/qt6ct.conf"
+    appearance = {
+        "color_scheme_path": str(INSTALL_ROOT / ".config/qt6ct/colors/rice.conf"),
+        "custom_palette": "true",
+    }
+    if shutil.which("kvantummanager") or Path("/usr/lib/qt6/plugins/styles/libkvantum.so").exists():
+        appearance["style"] = "kvantum"
+        ini_set(INSTALL_ROOT / ".config/Kvantum/kvantum.kvconfig", "General", {"theme": "Rice"})
+    ini_set(qt, "Appearance", appearance)
+    spicetify()
+
+
+def spicetify() -> None:
+    """Point Spicetify at the Rice theme and apply it to Spotify (restarts it)."""
+    if not shutil.which("spicetify"):
+        return
+    run = lambda *a: subprocess.run(["spicetify", *a], capture_output=True, text=True)
+    theme = run("config", "current_theme").stdout.strip()
+    if theme == "Rice":
+        return
+    run("config", "current_theme", "Rice", "color_scheme", "rice")
+    # the first time Spicetify needs a backup of Spotify before it can apply
+    done = run("apply")
+    if done.returncode != 0:
+        done = run("backup", "apply")
+    if done.returncode == 0:
+        print("  spicetify: Spotify now uses the Rice theme")
+    else:
+        why = (done.stdout + done.stderr).strip().splitlines()
+        print(f"  spicetify: couldn't apply ({why[-1] if why else 'no output'}); "
+              "see https://spicetify.app/docs/advanced-usage/installation")
 
 
 def link(firefox: bool, backup: Path | None = None) -> None:
     pairs = [(INSTALL_ROOT / l, CURRENT / t) for l, t in LINKS]
     if firefox:
         for prof in firefox_profiles():
+            # Firefox ignores userChrome.css unless this is on
+            ensure_line(prof / "user.js", USERCHROME_PREF, "the userChrome switch")
             pairs += [
                 (prof / "chrome/userChrome.css", CURRENT / "firefox/userChrome.css"),
                 (prof / "chrome/userContent.css", CURRENT / "firefox/userContent.css"),
@@ -618,6 +735,7 @@ def link(firefox: bool, backup: Path | None = None) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
         path.symlink_to(target)
         print(f"  link  {path} → {target}")
+    configure_apps()
     print(HINTS)
 
 

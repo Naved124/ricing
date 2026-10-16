@@ -70,8 +70,20 @@ It's safe to run again. Useful options: `--rice paper` to start on another rice,
 `--greetd` for the login screen, and `--uninstall` to remove the links. `./install --help`
 lists them all.
 
-A few apps include the theme rather than having it replaced; the installer prints the one
-line to add for each of them (btop, zathura, nvim, Kvantum, qt6ct, Spicetify).
+How each app follows the rice:
+
+| App | How | When a switch shows up |
+| --- | --- | --- |
+| GTK apps | `gsettings` theme, icons, cursor and fonts, plus a linked `gtk.css` | at once (open GTK 3 apps on restart) |
+| Qt apps | qt6ct with the rice palette, Kvantum for the style (`QT_QPA_PLATFORMTHEME=qt6ct` is set in `base.lua`) | on restart |
+| Firefox, Zen, LibreWolf | `userChrome.css` / `userContent.css` linked into every profile, with the pref turned on in `user.js` | on restart; websites keep their own colours |
+| Spotify | Spicetify's Rice theme (installed and applied for you if `spicetify` is there) | next time Spotify starts |
+| mpv | `include="~~/rice.conf"` in `mpv.conf` for the on-screen text, `osc.conf` for the built-in controls, `uosc.conf` if you use uosc | next file opened |
+| Telegram Desktop | `~/.config/rices/current/build/telegram/rice.tdesktop-theme`: open it in Telegram | only when you open it again; Telegram can't follow by itself |
+| kitty, nvim | include line / colorscheme; reloaded live | at once |
+
+A few more include the theme rather than having it replaced; the installer prints the one
+line to add for each (btop, zathura, nvim).
 
 **Requirements:** `hyprland` ≥ 0.55, `quickshell` 0.3, Python 3.11 or newer, `stow`,
 `grim`, `slurp`, `jq`, `wl-clipboard`, `cliphist`, `brightnessctl`, `hypridle`,

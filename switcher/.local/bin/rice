@@ -217,6 +217,15 @@ apply_notifications() {
     fi
 }
 
+# apps that need a nudge to pick up the new files: Spotify (Spicetify) gets
+# the colours on its next start; restarting it here would stop the music
+apply_apps() {
+    if have spicetify && [[ "$(spicetify config current_theme 2>/dev/null)" == Rice ]]; then
+        spicetify refresh -n >/dev/null 2>&1 || true
+    fi
+    return 0
+}
+
 apply_hook() {
     local hook="$RICE_DIR/current/hooks/post-switch"
     [[ -x "$hook" ]] && "$hook" "$1" || true
@@ -235,6 +244,7 @@ apply_all() {
     step apply_notifications "$1"
     step apply_wallpaper "$1"
     step apply_shell "$1" "${2:-}"
+    step apply_apps
     step apply_hook "$1"
 }
 

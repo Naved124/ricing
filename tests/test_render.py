@@ -8,6 +8,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+import zipfile
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
@@ -115,7 +116,7 @@ class Palettes(unittest.TestCase):
 class EndToEnd(unittest.TestCase):
     def run_render(self, *args, env_extra=None):
         env = dict(os.environ, RICE_DIR=str(self.rices), RICE_TEMPLATES=str(TEMPLATES),
-                   RICE_INSTALL_ROOT=str(self.home))
+                   RICE_INSTALL_ROOT=str(self.home), HOME=str(self.home), **(env_extra or {}))
         return subprocess.run([sys.executable, str(SCRIPT), *args], env=env,
                               capture_output=True, text=True)
 
@@ -177,6 +178,45 @@ class EndToEnd(unittest.TestCase):
         self.run_render("--link", "--backup", str(backup))
         self.assertTrue(mine.is_symlink())
         self.assertEqual((backup / ".config/starship.toml").read_text(), "my prompt")
+
+    def test_telegram_theme_is_a_stable_zip(self):
+        self.run_render("nacre", "-q")
+        theme = self.rices / "nacre/build/telegram/rice.tdesktop-theme"
+        with zipfile.ZipFile(theme) as z:
+            self.assertEqual(sorted(z.namelist()), ["colors.tdesktop-theme", "tiled.png"])
+            colors = z.read("colors.tdesktop-theme").decode()
+        self.assertIn("windowBg: #f4f1f6;", colors)
+        self.assertNotIn("{{", colors)
+        # same palette, same bytes: a re-render changes nothing
+        self.assertEqual(self.run_render("nacre", "--check").returncode, 0)
+
+    def test_link_configures_apps(self):
+        (self.rices / "current").symlink_to("nacre")
+        self.run_render("nacre", "-q")
+        ff = self.home / ".config/mozilla/firefox"
+        (ff / "abc.default").mkdir(parents=True)
+        (ff / "profiles.ini").write_text("[Profile0]\nName=default\nIsRelative=1\nPath=abc.default\n")
+        mpv = self.home / ".config/mpv/mpv.conf"
+        mpv.parent.mkdir(parents=True)
+        mpv.write_text("hwdec=auto")
+        qt = self.home / ".config/qt6ct/qt6ct.conf"
+        qt.parent.mkdir(parents=True)
+        qt.write_text("[Appearance]\ncustom_palette=false\nicon_theme=Papirus\n\n[Fonts]\nfixed=@Variant(\\0)\n")
+
+        for _ in range(2):   # running it twice must not duplicate anything
+            p = self.run_render("--link", "--firefox")
+            self.assertEqual(p.returncode, 0, p.stderr)
+
+        prof = ff / "abc.default"
+        self.assertEqual((prof / "user.js").read_text().count("legacyUserProfileCustomizations"), 1)
+        self.assertTrue((prof / "chrome/userChrome.css").is_symlink())
+        self.assertEqual(mpv.read_text(), 'hwdec=auto\ninclude="~~/rice.conf"\n')
+        self.assertTrue((self.home / ".config/mpv/script-opts/osc.conf").is_symlink())
+        text = qt.read_text()
+        self.assertIn("custom_palette=true", text)
+        self.assertIn("icon_theme=Papirus", text)
+        self.assertIn("fixed=@Variant(\\0)", text)
+        self.assertEqual(text.count("color_scheme_path="), 1)
 
 
 class CommittedOutputs(unittest.TestCase):
