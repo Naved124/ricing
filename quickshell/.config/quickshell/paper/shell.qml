@@ -9,6 +9,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import Quickshell.Hyprland
+import qs.bar
 import qs.services
 import qs.wallpaper
 
@@ -16,6 +17,11 @@ ShellRoot {
     Variants {
         model: Quickshell.screens
         Wallpaper {}
+    }
+
+    Variants {
+        model: Quickshell.screens
+        Bar {}
     }
 
     // Hyprland binds: hl.dsp.global("quickshell:<name>")

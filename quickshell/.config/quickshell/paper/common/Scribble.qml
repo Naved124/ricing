@@ -14,9 +14,11 @@ Item {
     property real penWidth: 2
     property int duration: 500
 
-    // 0 → nothing on the paper, 1 → the whole loop
-    property real progress: drawn ? 1 : 0
+    // 0 → nothing on the paper, 1 → the whole loop. Starts empty and binds
+    // once created, so a loop that is born drawn still draws itself in.
+    property real progress: 0
     Behavior on progress { NumberAnimation { duration: root.duration; easing.type: Easing.InOutQuad } }
+    Component.onCompleted: progress = Qt.binding(() => root.drawn ? 1 : 0)
 
     readonly property var loop: P.scribble(width, height, seed)
     // dashes are measured in pen widths
