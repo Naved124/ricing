@@ -204,6 +204,23 @@ if [ ! -e "$HOME/.config/hypr/local.lua" ]; then
     run cp "$repo/hypr/.config/hypr/local.example.lua" "$HOME/.config/hypr/local.lua"
     ok "created ~/.config/hypr/local.lua (set your monitors there)"
 fi
+# bring your monitors and keyboard layout over from the old hyprland.conf
+# (this run's backup, else the newest earlier one)
+old_conf=""
+for c in "$backup/.config/hypr/hyprland.conf" $(ls -1dr "${backup%/*}"/*/.config/hypr/hyprland.conf 2>/dev/null); do
+    [ -f "$c" ] && { old_conf=$c; break; }
+done
+if [ -n "$old_conf" ]; then
+    if [ "$dry" = 1 ]; then
+        run "$repo/tools/hypr-migrate" "$old_conf" "$HOME/.config/hypr/local.lua"
+    else
+        migrated=$("$repo/tools/hypr-migrate" "$old_conf" "$HOME/.config/hypr/local.lua")
+        if [ -n "$migrated" ]; then
+            ok "copied your monitor and keyboard settings into local.lua:"
+            printf '%s\n' "$migrated" | sed 's/^/      /'
+        fi
+    fi
+fi
 
 case ":$PATH:" in
     *":$HOME/.local/bin:"*) ;;

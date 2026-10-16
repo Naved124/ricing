@@ -203,7 +203,9 @@ apply_gtk() {
 # or swaync. Only one daemon can own the bus name, so stop the other.
 apply_notifications() {
     if [[ "$(palette "$1" meta notifications)" == shell ]]; then
-        pkill -x swaync 2>/dev/null || true
+        # the shell is the daemon; only one can own org.freedesktop.Notifications
+        local d
+        for d in swaync mako dunst; do pkill -x "$d" 2>/dev/null || true; done
         return 0
     fi
     have swaync || return 0

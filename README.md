@@ -59,7 +59,8 @@ That one script:
   don't have them;
 - moves any file the dotfiles would replace (your old `hyprland.conf`, for instance) to
   `~/.local/state/rice/backup/<time>/`, then links everything with stow;
-- creates `~/.config/hypr/local.lua` for your monitors and keyboard layout;
+- creates `~/.config/hypr/local.lua` and copies your monitor and keyboard settings into
+  it from the old `hyprland.conf`;
 - makes Nacre the active rice, renders every theme, links the app themes, adds the
   include to `kitty.conf` and turns on Firefox's `userChrome.css`;
 - reloads Hyprland if you're in it; otherwise log in and it starts by itself.
@@ -205,6 +206,7 @@ tools/regen                             # re-render the committed Theme.qml afte
 tools/shaders                           # recompile *.frag → *.frag.qsb (needs qsb)
 tools/emoji                             # rebuild the launcher's emoji list
 tools/fake-hyprland                     # a stand-in Hyprland IPC for previewing shells headless
+tools/hypr-migrate OLD.conf [local.lua]  # turn an old hyprland.conf's monitors/keyboard into Lua
 ```
 
 A few notes:

@@ -107,7 +107,8 @@ class Switch(unittest.TestCase):
     def test_shell_rice_stops_swaync_and_wallpaper_daemons(self):
         self.rice("nacre")
         calls = self.calls()
-        self.assertIn("pkill -x swaync", calls)
+        for daemon in ("swaync", "mako", "dunst"):
+            self.assertIn(f"pkill -x {daemon}", calls)
         self.assertIn("pkill -x mpvpaper", calls)
         self.assertIn("swww kill", calls)
 

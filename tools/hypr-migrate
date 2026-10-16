@@ -1,0 +1,144 @@
+#!/usr/bin/env python3
+"""Carry machine-specific settings from an old hyprland.conf into local.lua.
+
+    hypr-migrate OLD_HYPRLAND_CONF [LOCAL_LUA]
+
+Reads `monitor = …` lines and the keyboard settings (kb_layout, kb_variant,
+kb_model, kb_options) from the old config and any files it sources, and
+prints them as Lua for ~/.config/hypr/local.lua. With LOCAL_LUA, appends
+them there instead, unless that file already sets monitors itself.
+Lines it can't translate are kept as comments so nothing is lost silently.
+"""
+
+import re
+import sys
+from pathlib import Path
+
+# monitor = NAME, MODE, POSITION, SCALE[, key, value]…  → hl.monitor fields
+EXTRAS = {
+    "transform": int, "mirror": str, "bitdepth": int, "cm": str, "vrr": int,
+    "sdr_eotf": str, "icc": str, "sdrbrightness": float, "sdrsaturation": float,
+    "supports_wide_color": int, "supports_hdr": int,
+    "sdr_min_luminance": float, "sdr_max_luminance": int,
+}
+KB = ("kb_layout", "kb_variant", "kb_model", "kb_options")
+
+
+def lua(v):
+    if isinstance(v, bool):
+        return "true" if v else "false"
+    if isinstance(v, (int, float)):
+        return repr(v)
+    if isinstance(v, dict):
+        return "{ " + ", ".join(f"{k} = {lua(x)}" for k, x in v.items()) + " }"
+    return '"' + str(v).replace("\\", "\\\\").replace('"', '\\"') + '"'
+
+
+def number(text):
+    try:
+        f = float(text)
+    except ValueError:
+        return None
+    return int(f) if f.is_integer() and "." not in text else f
+
+
+def monitor(value):
+    """One `monitor =` value → Lua line (or a comment when it can't be mapped)."""
+    parts = [p.strip() for p in value.split(",")]
+    name = parts[0]
+    if len(parts) >= 2 and parts[1] == "disable":
+        return f"hl.monitor({lua({'output': name, 'disabled': True})})"
+    if len(parts) >= 6 and parts[1] == "addreserved":
+        top, bottom, left, right = (number(p) or 0 for p in parts[2:6])
+        area = {"top": top, "bottom": bottom, "left": left, "right": right}
+        return f"hl.monitor({lua({'output': name, 'reserved_area': area})})"
+    if len(parts) < 4:
+        return f"-- couldn't translate: monitor = {value}"
+    fields = {"output": name, "mode": parts[1], "position": parts[2]}
+    scale = number(parts[3])
+    fields["scale"] = parts[3] if scale is None else scale
+    rest = parts[4:]
+    for key, raw in zip(rest[::2], rest[1::2]):
+        conv = EXTRAS.get(key)
+        if conv is None:
+            return f"-- couldn't translate ({key}): monitor = {value}"
+        try:
+            fields[key] = conv(raw)
+        except ValueError:
+            return f"-- couldn't translate ({key} = {raw}): monitor = {value}"
+    if len(rest) % 2:
+        return f"-- couldn't translate: monitor = {value}"
+    return f"hl.monitor({lua(fields)})"
+
+
+def read(path, seen):
+    """Yield (key, value) pairs from a hyprlang file and the files it sources."""
+    path = path.expanduser()
+    if path in seen or not path.is_file():
+        return
+    seen.add(path)
+    section = []
+    for raw in path.read_text(errors="replace").splitlines():
+        line = re.sub(r"(?<!#)#(?!#).*", "", raw).replace("##", "#").strip()
+        if not line:
+            continue
+        if line.endswith("{"):
+            section.append(line[:-1].strip().split(":")[-1])
+            continue
+        if line == "}":
+            section and section.pop()
+            continue
+        if "=" not in line:
+            continue
+        key, value = (s.strip() for s in line.split("=", 1))
+        if key == "source" and not section:
+            src = Path(value).expanduser()
+            if not src.is_absolute():
+                src = path.parent / src
+            for match in sorted(src.parent.glob(src.name)) if "*" in src.name else [src]:
+                yield from read(match, seen)
+            continue
+        yield ".".join(section + [key]), value
+
+
+def migrate(conf):
+    monitors, kb = [], {}
+    for key, value in read(Path(conf), set()):
+        if key == "monitor":
+            monitors.append(monitor(value))
+        elif key.startswith("input.") and key.split(".", 1)[1] in KB and value:
+            kb[key.split(".", 1)[1]] = value
+    lines = []
+    if monitors:
+        lines += ["-- monitors, from your old hyprland.conf"] + monitors
+    if kb:
+        lines += ["-- keyboard, from your old hyprland.conf",
+                  f"hl.config({lua({'input': kb})})"]
+    return lines
+
+
+def sets_monitors(text):
+    return any(l.strip().startswith("hl.monitor(") for l in text.splitlines())
+
+
+def main(argv):
+    if len(argv) not in (2, 3):
+        print(__doc__.strip(), file=sys.stderr)
+        return 2
+    lines = migrate(argv[1])
+    if not lines:
+        return 0
+    if len(argv) == 2:
+        print("\n".join(lines))
+        return 0
+    target = Path(argv[2])
+    current = target.read_text() if target.exists() else ""
+    if sets_monitors(current):
+        return 0
+    target.write_text(current.rstrip("\n") + "\n\n" + "\n".join(lines) + "\n")
+    print("\n".join(l for l in lines if not l.startswith("-- ") or "couldn't" in l))
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv))
