@@ -1,0 +1,178 @@
+"""Runs the `rice` switcher in a sandbox with fake desktop tools on PATH.
+
+Every fake (qs, hyprctl, grim, gsettings, swaync, …) appends its argv to a
+log, so the tests can check what a switch does and in which order, and that
+a failing step never leaves the screen frozen.
+"""
+
+import json
+import os
+import shutil
+import stat
+import subprocess
+import tempfile
+import unittest
+from pathlib import Path
+
+REPO = Path(__file__).resolve().parent.parent
+RICE = REPO / "switcher/.local/bin/rice"
+
+FAKE = r"""#!/bin/sh
+echo "$(basename "$0") $*" >> "$RICE_TEST_LOG"
+case "$(basename "$0") $*" in
+    "qs -c rice ipc call rice ping") echo pong ;;
+    "hyprctl monitors -j") echo '[{"name":"DP-1"},{"name":"HDMI-A-1"}]' ;;
+    "qs list -c "*) [ -f "$RICE_TEST_RUNNING" ] && echo running ;;
+    gsettings*) [ -n "$RICE_TEST_FAIL_GSETTINGS" ] && exit 1 ;;
+esac
+exit 0
+"""
+FAKES = ["qs", "hyprctl", "grim", "gsettings", "swaync", "swaync-client",
+         "pkill", "pgrep", "swww", "mpvpaper", "nvim", "systemctl", "hyprlock", "pidof"]
+
+
+@unittest.skipUnless(shutil.which("jq"), "jq not installed")
+class Switch(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        root = Path(self.tmp.name)
+        self.rices = root / "rices"
+        shutil.copytree(REPO / "rices/.config/rices", self.rices,
+                        ignore=shutil.ignore_patterns("build", "current"))
+        (self.rices / "current").symlink_to(self.rices / "urushi")
+
+        bin_ = root / "bin"
+        bin_.mkdir()
+        for name in FAKES:
+            p = bin_ / name
+            p.write_text(FAKE)
+            p.chmod(p.stat().st_mode | stat.S_IXUSR)
+        (bin_ / "rice-render").symlink_to(REPO / "render/.local/bin/rice-render")
+        (bin_ / "jq").symlink_to(shutil.which("jq"))
+
+        self.log = root / "calls.log"
+        run = root / "run"
+        run.mkdir()
+        self.env = {
+            "PATH": f"{bin_}:/usr/bin:/bin",
+            "HOME": str(root),
+            "RICE_DIR": str(self.rices),
+            "RICE_TEMPLATES": str(REPO / "render/.local/share/rice/templates"),
+            "RICE_INSTALL_ROOT": str(root / "install"),
+            "XDG_RUNTIME_DIR": str(run),
+            "XDG_STATE_HOME": str(root / "state"),
+            "RICE_TEST_LOG": str(self.log),
+            "RICE_TEST_RUNNING": str(root / "running"),
+            "RICE_SETTLE": "0",
+            "RICE_FREEZE_SETTLE": "0",
+        }
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def rice(self, *args, **env):
+        return subprocess.run([str(RICE), *args], env={**self.env, **env},
+                              capture_output=True, text=True, timeout=60)
+
+    def calls(self):
+        return self.log.read_text().splitlines() if self.log.exists() else []
+
+    def index(self, calls, prefix):
+        for i, c in enumerate(calls):
+            if c.startswith(prefix):
+                return i
+        self.fail(f"no call starting with {prefix!r} in:\n" + "\n".join(calls))
+
+    def test_switch_order(self):
+        r = self.rice("nacre")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(os.readlink(self.rices / "current"), "nacre")
+        # rendered before anything froze
+        self.assertTrue((self.rices / "nacre/build/meta.json").exists())
+
+        calls = self.calls()
+        grim = self.index(calls, "grim")
+        freeze = self.index(calls, "qs -c rice ipc call rice freeze")
+        reload = self.index(calls, "hyprctl reload")
+        start = self.index(calls, "qs -n -c nacre -d")
+        dissolve = self.index(calls, "qs -c rice ipc call rice dissolve nacre")
+        self.assertLess(grim, freeze)
+        self.assertLess(freeze, reload)
+        self.assertLess(reload, start)
+        self.assertLess(start, dissolve)
+        self.assertEqual(dissolve, len(calls) - 1, "dissolve should be the last thing")
+        # one shot per monitor
+        self.assertEqual(sum(c.startswith("grim -l 0 -o") for c in calls), 2)
+
+    def test_shell_rice_stops_swaync_and_wallpaper_daemons(self):
+        self.rice("nacre")
+        calls = self.calls()
+        self.assertIn("pkill -x swaync", calls)
+        self.assertIn("pkill -x mpvpaper", calls)
+        self.assertIn("swww kill", calls)
+
+    def test_leaving_a_shell_kills_it(self):
+        self.rice("nacre")
+        self.log.unlink()
+        r = self.rice("paper")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        calls = self.calls()
+        self.assertIn("qs kill -c nacre", calls)
+        self.assertFalse(any(c.startswith("qs -n -c paper") for c in calls))
+        self.index(calls, "qs -c rice ipc call rice dissolve paper")
+
+    def test_failing_step_still_dissolves(self):
+        render = Path(self.env["PATH"].split(":")[0]) / "rice-render"
+        render.unlink()
+        render.write_text("#!/bin/sh\nexit 3\n")
+        render.chmod(0o755)
+        r = self.rice("paper", RICE_TEST_FAIL_GSETTINGS="1")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("render failed", r.stderr)
+        self.assertEqual(os.readlink(self.rices / "current"), "paper")
+        self.index(self.calls(), "qs -c rice ipc call rice dissolve paper")
+
+    def test_already_active_is_a_no_op(self):
+        r = self.rice("urushi")
+        self.assertEqual(r.returncode, 0)
+        self.assertIn("already active", r.stderr)
+        self.assertEqual(self.calls(), [])
+
+    def test_unknown_rice(self):
+        r = self.rice("nope")
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("no such rice", r.stderr)
+
+    def test_json(self):
+        r = self.rice("json")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        d = json.loads(r.stdout)
+        self.assertEqual(d["current"], "urushi")
+        self.assertEqual([x["name"] for x in d["rices"]], ["nacre", "paper", "urushi"])
+        self.assertTrue(all(x["card"] for x in d["rices"]))
+        nacre = d["rices"][0]["meta"]
+        self.assertEqual(nacre["transition"], "ripple")
+        self.assertIn("paper 07:00", d["schedule"])
+
+    def test_lock_uses_the_shell(self):
+        self.rice("nacre")
+        self.log.unlink()
+        self.rice("lock")
+        self.assertEqual(self.calls(), ["qs -c nacre ipc call lock lock"])
+
+    def test_lock_falls_back_to_hyprlock(self):
+        self.rice("lock")
+        self.assertIn("hyprlock", " ".join(self.calls()))
+
+    def test_session_starts_the_shell_without_freezing(self):
+        (self.rices / "current").unlink()
+        (self.rices / "current").symlink_to(self.rices / "nacre")
+        r = self.rice("session")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        calls = self.calls()
+        self.index(calls, "qs -n -c nacre -d")
+        self.assertFalse(any("freeze" in c or c.startswith("grim") for c in calls))
+
+
+if __name__ == "__main__":
+    unittest.main()

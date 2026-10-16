@@ -5,12 +5,16 @@
 #   rice next | prev     cycle through rices in alphabetical order
 #   rice list            list rices, marking the active one
 #   rice current         print the active rice
-#   rice get <key>       read a value from the active palette, e.g. colors.accent
+#   rice get <key>       read a value from the active palette, e.g. roles.accent
 #   rice auto on|off     enable or disable time-of-day switching (systemd timer)
 #   rice auto status     print whether auto mode is on
 #   rice auto apply      switch to the rice scheduled for now (used by the timer)
 #   rice choose          toggle the chooser (Super+T)
 #   rice reapply         run every apply step again for the active rice
+#   rice session         start the active rice at login (no freeze, no transition)
+#   rice lock            lock the screen with the rice's lock (its shell, or hyprlock)
+#   rice json            everything the chooser needs, as JSON
+#   rice on-battery      exit 0 when running on battery (for hypridle)
 #
 # Every step after the symlink swap is optional: if a tool is not installed
 # or the rice does not ship the file for it, that step is skipped.
@@ -20,7 +24,7 @@ set -euo pipefail
 RICE_DIR="${RICE_DIR:-${XDG_CONFIG_HOME:-$HOME/.config}/rices}"
 STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/rice"
 RUN_DIR="${XDG_RUNTIME_DIR:-/tmp}/rice"
-AGS_INSTANCE="rice"
+SHARED_SHELL="rice"            # qs -c rice: the chooser and the switch overlay
 AUTO_TIMER="rice-auto.timer"
 
 mkdir -p "$STATE_DIR" "$RUN_DIR"
@@ -65,13 +69,22 @@ current() {
     [[ -L "$RICE_DIR/current" ]] && basename "$(readlink "$RICE_DIR/current")"
 }
 
-ags_running() { have ags && ags list 2>/dev/null | grep -qx "$AGS_INSTANCE"; }
-ags_req()     { ags_running && ags request -i "$AGS_INSTANCE" "$@" >/dev/null 2>&1; }
+# ── the shared shell (quickshell/.config/quickshell/rice) ───────────────────
+rice_ipc()     { have qs && qs -c "$SHARED_SHELL" ipc call rice "$@" >/dev/null 2>&1; }
+rice_running() { have qs && [[ "$(qs -c "$SHARED_SHELL" ipc call rice ping 2>/dev/null)" == pong ]]; }
+
+ensure_rice_shell() {
+    have qs || return 1
+    rice_running && return 0
+    qs -n -c "$SHARED_SHELL" -d >/dev/null 2>&1 || true
+    for _ in $(seq 60); do rice_running && return 0; sleep 0.05; done
+    return 1
+}
 
 # ── freeze: screenshot every output and pin it above everything ─────────────
 freeze() {
     have grim || return 0
-    ags_running || return 0
+    rice_running || return 0
     local dir="$RUN_DIR/freeze" out
     rm -rf "$dir"; mkdir -p "$dir"
     if have hyprctl && have jq; then
@@ -82,14 +95,14 @@ freeze() {
     else
         grim -l 0 "$dir/all.png"
     fi
-    ags_req freeze "$dir" || true
+    rice_ipc freeze "$dir" || true
+    sleep "${RICE_FREEZE_SETTLE:-0.12}"     # let the frames reach the screen
 }
 
 # ── dissolve: let the incoming rice reveal itself ────────────────────────────
 dissolve() {
-    local transition
-    transition="$(palette "$1" meta transition)"
-    ags_req dissolve "${transition:-fade}" || true
+    # the shell picks the rice's transition.frag.qsb, or fades
+    rice_ipc dissolve "$1" || true
 }
 
 # ── apply: everything that has to happen once `current` points somewhere new ─
@@ -101,15 +114,37 @@ apply_hypr() {
     [[ -n "$cursor" ]] && hyprctl setcursor "$cursor" "${size:-24}" >/dev/null || true
 }
 
-apply_bar() {
-    local bar="$RICE_DIR/current/bar"
-    [[ -d "$bar" ]] && have ags || return 0
-    ags quit -i bar >/dev/null 2>&1 || true
-    setsid -f ags run "$bar" >/dev/null 2>&1
+# render every theme file for the rice from its palette.toml
+render() {
+    have rice-render || return 0
+    rice-render -q "$1"
 }
 
+# swap the per-rice Quickshell config: stop the old one, start the new one
+apply_shell() {
+    local to="$1" from="${2:-}" new old
+    have qs || return 0
+    new="$(palette "$to" meta shell)"
+    old="$([[ -n "$from" ]] && palette "$from" meta shell || true)"
+    if [[ -n "$old" && "$old" != "$new" ]]; then
+        qs kill -c "$old" >/dev/null 2>&1 || true
+    fi
+    [[ -n "$new" ]] || return 0
+    if [[ "$old" == "$new" ]] && qs list -c "$new" 2>/dev/null | grep -q .; then
+        return 0                               # already running (it reloads itself)
+    fi
+    qs -n -c "$new" -d >/dev/null 2>&1
+}
+
+# the shell draws the wallpaper (meta.wallpaper = "shell"), or a wallpaper/
+# folder does: a video through mpvpaper, else an image through swww
 apply_wallpaper() {
     local dir="$RICE_DIR/current/wallpaper" file
+    if [[ "$(palette "$1" meta wallpaper)" == shell ]]; then
+        pkill -x mpvpaper 2>/dev/null || true
+        have swww && swww kill >/dev/null 2>&1 || true
+        return 0
+    fi
     [[ -d "$dir" ]] || return 0
     file="$(find -L "$dir" -maxdepth 1 -type f \
         \( -name '*.mp4' -o -name '*.webm' -o -name '*.mkv' \) | sort | head -n1)"
@@ -159,15 +194,25 @@ apply_gtk() {
     v="$(palette "$1" gtk cursor_size)";  [[ -n "$v" ]] && gsettings set $s cursor-size "$v"
     v="$(palette "$1" gtk color_scheme)"; [[ -n "$v" ]] && gsettings set $s color-scheme "$v"
     local ui size
-    ui="$(palette "$1" fonts ui)"; size="$(palette "$1" fonts size)"
+    ui="$(palette "$1" fonts ui)"; size="$(palette "$1" fonts ui_size)"
     [[ -n "$ui" ]] && gsettings set $s font-name "$ui ${size:-11}"
     return 0
 }
 
-apply_swaync() {
-    have swaync-client || return 0
-    swaync-client --reload-config >/dev/null 2>&1 || true
-    swaync-client --reload-css    >/dev/null 2>&1 || true
+# who shows notifications: the rice's shell (meta.notifications = "shell"),
+# or swaync. Only one daemon can own the bus name, so stop the other.
+apply_notifications() {
+    if [[ "$(palette "$1" meta notifications)" == shell ]]; then
+        pkill -x swaync 2>/dev/null || true
+        return 0
+    fi
+    have swaync || return 0
+    if pgrep -x swaync >/dev/null; then
+        swaync-client --reload-config >/dev/null 2>&1 || true
+        swaync-client --reload-css    >/dev/null 2>&1 || true
+    else
+        setsid -f swaync >/dev/null 2>&1
+    fi
 }
 
 apply_hook() {
@@ -178,6 +223,18 @@ apply_hook() {
 # A broken step must never leave the screen frozen, so failures are logged
 # and the switch carries on to the dissolve.
 step() { "$@" || log "$1 failed (exit $?), continuing"; }
+
+# everything that makes the desktop look like the rice now in `current`
+apply_all() {
+    step apply_hypr "$1"
+    step apply_gtk "$1"
+    step apply_kitty
+    step apply_nvim "$1"
+    step apply_notifications "$1"
+    step apply_wallpaper "$1"
+    step apply_shell "$1" "${2:-}"
+    step apply_hook "$1"
+}
 
 swap_link() {
     # atomic: build the new link beside the old one, then rename over it
@@ -198,20 +255,16 @@ switch_to() {
     flock 9
 
     log "${from:-none} → $target"
+    # themes first, while the old desktop is still live: the freeze stays short
+    step render "$target"
+    ensure_rice_shell || true
     freeze
 
     swap_link "$target"
-    step apply_hypr "$target"
-    step apply_gtk "$target"
-    step apply_kitty
-    step apply_nvim "$target"
-    step apply_swaync
-    step apply_wallpaper
-    step apply_bar
-    step apply_hook "$target"
-    ags_req reload || true            # chooser picks up the new current rice
+    apply_all "$target" "$from"
+    rice_ipc reload || true           # the chooser picks up the new current rice
 
-    sleep "${RICE_SETTLE:-0.35}"      # give the bar and wallpaper a frame to draw
+    sleep "${RICE_SETTLE:-0.45}"      # give the new shell and wallpaper a frame to draw
     dissolve "$target"
 
     printf '%s\n' "$target" > "$STATE_DIR/last"
@@ -270,15 +323,86 @@ auto() {
 }
 
 choose() {
-    have ags || die "ags is not installed"
-    if ! ags_running; then
-        setsid -f ags run "${XDG_CONFIG_HOME:-$HOME/.config}/ags/rice" >/dev/null 2>&1
-        for _ in $(seq 40); do ags_running && break; sleep 0.05; done
-    fi
-    ags_req toggle
+    have qs || die "quickshell (qs) is not installed"
+    ensure_rice_shell || die "couldn't start the rice shell (qs -c $SHARED_SHELL)"
+    rice_ipc toggle
 }
 
-usage() { sed -n '2,16p' "$0" | sed 's/^# \{0,1\}//'; }
+# at login: no freeze and no transition, just bring the active rice up
+session() {
+    local cur
+    cur="$(current || true)"
+    if [[ -z "$cur" ]]; then
+        cur="$(rices | head -n1)"
+        [[ -n "$cur" ]] || die "no rices in $RICE_DIR"
+        swap_link "$cur"
+    fi
+    step render "$cur"
+    step apply_gtk "$cur"
+    step apply_notifications "$cur"
+    step apply_wallpaper "$cur"
+    step apply_shell "$cur"
+    step apply_hook "$cur"
+}
+
+lock() {
+    local cur shell
+    cur="$(current || true)"
+    if [[ -n "$cur" && "$(palette "$cur" meta lock)" == shell ]]; then
+        shell="$(palette "$cur" meta shell)"
+        if [[ -n "$shell" ]] && have qs && qs -c "$shell" ipc call lock lock >/dev/null 2>&1; then
+            return 0
+        fi
+    fi
+    # hyprlock, unless one is already up
+    have hyprlock || die "no lock screen: the rice's shell isn't running and hyprlock isn't installed"
+    pidof hyprlock >/dev/null || setsid -f hyprlock >/dev/null 2>&1
+}
+
+on_battery() {
+    local s
+    for s in /sys/class/power_supply/*/online; do
+        [[ -f "$s" ]] || continue
+        [[ "$(cat "$s")" == 1 ]] && return 1     # mains connected
+    done
+    compgen -G '/sys/class/power_supply/BAT*' >/dev/null    # a battery, and no mains
+}
+
+json_str() {
+    local s="$1"
+    s="${s//\\/\\\\}"; s="${s//\"/\\\"}"
+    printf '"%s"' "$s"
+}
+
+# what the chooser shows: { current, auto, schedule, rices: [{ name, card, preview, meta }] }
+json() {
+    local r first=1 meta sched="" t n
+    if [[ -f "$RICE_DIR/auto.conf" ]]; then
+        while read -r t n _; do
+            [[ -z "$t" || "$t" == \#* ]] && continue
+            sched+="${sched:+ · }$n $t"
+        done < <(sort "$RICE_DIR/auto.conf")
+    fi
+    printf '{"current":%s,"auto":%s,"schedule":%s,"rices":[' \
+        "$(json_str "$(current || true)")" \
+        "$([[ "$(auto status)" == on ]] && echo true || echo false)" \
+        "$(json_str "$sched")"
+    while read -r r; do
+        meta="$RICE_DIR/$r/build/meta.json"
+        [[ -f "$meta" ]] || render "$r" >/dev/null 2>&1 || true
+        (( first )) || printf ','
+        first=0
+        printf '{"name":%s,"card":%s,"preview":%s,"meta":' \
+            "$(json_str "$r")" \
+            "$([[ -f "$RICE_DIR/$r/card.qml" ]] && echo true || echo false)" \
+            "$([[ -f "$RICE_DIR/$r/preview.png" ]] && json_str "$RICE_DIR/$r/preview.png" || echo null)"
+        if [[ -f "$meta" ]]; then cat "$meta"; else printf '{"name":%s}' "$(json_str "$r")"; fi
+        printf '}'
+    done < <(rices)
+    printf ']}\n'
+}
+
+usage() { sed -n '2,20p' "$0" | sed 's/^# \{0,1\}//'; }
 
 case "${1:-}" in
     ""|-h|--help|help) usage ;;
@@ -296,6 +420,10 @@ case "${1:-}" in
     auto) shift; auto "$@" ;;
     choose) choose ;;
     reapply) RICE_FORCE=1 switch_to "$(current)" ;;
+    session) session ;;
+    lock) lock ;;
+    json) json ;;
+    on-battery) on_battery ;;
     -*) die "unknown option: $1" ;;
     *) switch_to "$1" ;;
 esac
