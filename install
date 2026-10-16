@@ -103,7 +103,7 @@ optional=(
     satty:satty fd:fd cava:cava hyprpicker:hyprpicker magick:imagemagick
     powerprofilesctl:power-profiles-daemon bluetoothctl:bluez-utils
     hyprlock:hyprlock swaync:swaync swww:swww nvim:neovim
-    qt6ct:qt6ct spicetify:spicetify-cli
+    qt6ct:qt6ct
     hyprshutdown:hyprshutdown
 )
 # themes the palettes name (checked by folder, since they aren't commands)
@@ -216,6 +216,9 @@ fi
 
 step "Packages"
 mapfile -t need < <(missing_pkgs "${required[@]}")
+# Spicetify only matters with Spotify, and its AUR build is the most fragile
+# of the lot, so it's only offered when Spotify is installed
+if have spotify || have spotify-launcher; then optional+=(spicetify:spicetify-cli); fi
 mapfile -t want < <(missing_pkgs "${optional[@]}"; missing_themes)
 if [ ${#need[@]} -eq 0 ] && [ ${#want[@]} -eq 0 ]; then
     ok "everything is installed"
