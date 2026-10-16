@@ -23,7 +23,37 @@ Three rices ship today:
 | --- | --- | --- |
 | **Nacre** | pearl glass, colour only at the edges and in motion | its own Quickshell config: bar, launcher, control centre, notifications, OSDs, lock, power menu, live wallpaper |
 | **Urushi** | black lacquer, vermilion, gold | Hyprland visuals and app themes; bring your own bar (swaync, hyprlock, wallpaper files) |
-| **Paper** | ink on warm stock, daylight | the same as Urushi |
+| **Paper** | sheets on a desk, typewriter and pencil | its own Quickshell config: a taped bar, tear-off calendar, wastebasket, sticky-note notifications, index-card launcher, envelope lock, rubber-stamp power menu, and a paper grain over the screen |
+
+### Paper
+
+A desk in daylight, all light: no blur, no transparency, no borders. Windows are
+sheets with warm brown shadows, the terminal is a typewriter on paper stock, and
+Hyprland draws a faint paper grain over everything (`rice grain off` or Super+Shift+G
+turns it off, for games and video). The wallpaper, the paper texture and the stamp wear
+are drawn by `rices/.config/rices/paper/assets/gen.py` (needs `python-pillow`); the
+committed ones are 1920×1080, so for another screen run it with `--size 2560x1440`, then
+restart the shell.
+
+Closing a window drops a crumpled ball in the wastebasket on the desk. Click the
+basket to fish the last one out (it starts again from its command line), or empty it.
+Only apps it could start again count: floating dialogs and windows the shell opened
+itself are left out, and it holds up to 20.
+
+What Hyprland and Quickshell can't do, so Paper does without:
+
+- **Tilted windows and the crumple.** Hyprland can't rotate or deform a client window.
+  Shadows and a `popin` close stand in. Only the shell's own sheets tilt, and never one
+  you type into.
+- **Typewriter key sounds.** They'd need a global key listener.
+- **A wider shadow for the focused window.** Hyprland has one shadow range; only the
+  colour changes with focus.
+- **kitty's typed look.** No per-character jitter or ink spread; the paper texture is
+  its background image.
+- **Yazi's manila panes.** Yazi themes can't colour a pane's background, so the kraft is
+  in the tabs, mode pills and the hovered row.
+- **Kvantum.** Qt apps get Fusion and qt6ct like every rice (Kvantum's artwork broke
+  light rices).
 
 Targets **Hyprland 0.56** (Lua config; 0.55 or newer is needed) and **Quickshell 0.3**.
 
@@ -37,7 +67,7 @@ Install with [GNU Stow](https://www.gnu.org/software/stow/). Each folder is a pa
 | `render` | `~/.local/bin/rice-render`, `~/.local/share/rice/templates/` | palette → theme files for every app |
 | `rices` | `~/.config/rices/` | the rices and `auto.conf` |
 | `hypr` | `~/.config/hypr/` | `hyprland.lua` (entry), `base.lua`, `hypridle.conf` |
-| `quickshell` | `~/.config/quickshell/{rice,nacre}/` | the shared chooser and switch overlay, and Nacre's shell |
+| `quickshell` | `~/.config/quickshell/{rice,nacre,paper}/` | the shared chooser and switch overlay, and Nacre's and Paper's shells |
 | `systemd` | `~/.config/systemd/user/rice-auto.*` | the timer for auto mode |
 | `fonts` | `~/.local/share/fonts/paper/` | Paper's OFL fonts: Courier Prime, Kalam, Newsreader (licences beside them) |
 | `system` | (not stowed) | the boot menu, splash and login screen, installed with sudo, see below |

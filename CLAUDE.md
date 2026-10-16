@@ -29,6 +29,8 @@ user-facing guide; this file is the contract every rice has to keep.
 | `switcher/.local/bin/rice` | `rice <name>`, `rice next`, `rice choose`, `rice lock`, `rice session`, … |
 | `quickshell/.config/quickshell/rice/` | shared shell (`qs -c rice`): chooser + switch freeze/dissolve overlay, survives switches |
 | `quickshell/.config/quickshell/nacre/` | Nacre's own shell: bar, launcher, centre, OSD, notifs, lock, power, key sheet, wallpaper |
+| `quickshell/.config/quickshell/paper/` | Paper's own shell (same entry points); `common/Theme.qml` is generated, `common/Sheet.qml` is the paper every panel is cut from |
+| `fonts/.local/share/fonts/paper/` | Paper's vendored OFL fonts with their licences |
 | `install` | user installer (`--fresh` for a bare Arch install) |
 | `system/install` | sudo part: Limine theme, Plymouth, greetd/ReGreet, keyring PAM, with backup/`--undo` |
 
