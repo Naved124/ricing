@@ -99,8 +99,8 @@ PanelWindow {
                             Label {
                                 text: Qt.formatTime(clock.date, "HH:mm")
                                 font.family: Theme.fontDisplay
-                                size: 34
-                                weight: Font.Normal
+                                size: 35
+                                weight: Theme.weightDisplay
                             }
                             Label {
                                 text: Qt.formatDate(clock.date, "dddd, d MMMM") + (Battery.present ? `  ·  ${Math.round(Battery.level * 100)}%${Battery.timeLeft ? " · " + Battery.timeLeft : ""}` : "")

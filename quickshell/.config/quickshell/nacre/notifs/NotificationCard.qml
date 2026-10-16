@@ -102,7 +102,7 @@ Item {
                         Label {
                             Layout.fillWidth: true
                             text: root.notification?.summary || root.notification?.appName || ""
-                            weight: Font.DemiBold
+                            weight: Theme.weightStrong
                             size: Theme.uiSize + 2
                             elide: Text.ElideRight
                         }
@@ -137,7 +137,7 @@ Item {
                         visible: text.length > 0
                         color: Theme.ink
                         size: Theme.uiSize + 1
-                        weight: Font.Normal
+                        weight: Theme.weight
                         wrapMode: Text.Wrap
                         maximumLineCount: root.popup ? 2 : 4
                         elide: Text.ElideRight
@@ -221,6 +221,7 @@ Item {
                     placeholderTextColor: Theme.inkSoft
                     color: Theme.ink
                     font.family: Theme.fontUi
+                    font.weight: Theme.weight
                     font.pixelSize: Theme.uiSize + 1
                     background: null
                     onAccepted: {

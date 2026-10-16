@@ -84,7 +84,7 @@ Item {
                     Layout.fillWidth: true
                     text: root.player?.trackTitle || "Nothing playing"
                     size: Theme.uiSize + 4
-                    weight: Font.DemiBold
+                    weight: Theme.weightStrong
                     elide: Text.ElideRight
                 }
                 Label {

@@ -69,7 +69,7 @@ class Filters(unittest.TestCase):
         self.assertEqual(self.r("{{ motion.bloom | join(' , ') }}"), "0.2 , 0.9 , 0.2 , 1")
 
     def test_numbers(self):
-        self.assertEqual(self.r("{{ fonts.mono_size }}"), "12.5")
+        self.assertEqual(self.r("{{ fonts.mono_size }}"), "13.5")
         self.assertEqual(self.r("{{ motion.bloom | curve }}"), "[0.2, 0.9, 0.2, 1, 1, 1]")
         self.assertEqual(self.r("{{ motion.border_loop | div(100) }}"), "600")
         self.assertEqual(self.r("{{ derived.is_light | bool }}"), "true")
@@ -224,7 +224,8 @@ class EndToEnd(unittest.TestCase):
         text = qt.read_text()
         self.assertIn("custom_palette=true", text)
         self.assertIn("icon_theme=Papirus", text)
-        self.assertIn("fixed=@Variant(\\0)", text)
+        self.assertIn('fixed="IBM Plex Mono,13.5,-1,5,600,', text)   # fonts follow the rice
+        self.assertIn('general="Manrope,12,-1,5,600,', text)
         self.assertEqual(text.count("color_scheme_path="), 1)
 
 

@@ -128,14 +128,16 @@ Item {
                 text: root.m.title ?? root.rice?.name ?? ""
                 color: root.r.fg ?? "#eee"
                 font.family: root.m.fonts?.display ?? "sans-serif"
-                font.pixelSize: 26
+                font.weight: root.m.fonts?.display_weight ?? Font.Normal
+                font.pixelSize: 27
             }
             Text {
                 width: parent.width
                 text: root.m.tagline ?? ""
                 color: root.r.muted ?? "#999"
                 font.family: root.m.fonts?.ui ?? "sans-serif"
-                font.pixelSize: 13
+                font.weight: root.m.fonts?.weight ?? Font.DemiBold
+                font.pixelSize: 14
                 wrapMode: Text.Wrap
             }
         }
@@ -148,6 +150,7 @@ Item {
         text: root.active ? "● active" : `↵ ${root.m.transition ?? "fade"}`
         color: root.active ? (root.r.fg ?? "#eee") : (root.r.muted ?? "#999")
         font.family: root.m.fonts?.ui ?? "sans-serif"
-        font.pixelSize: 12
+        font.weight: root.m.fonts?.weight ?? Font.DemiBold
+        font.pixelSize: 13
     }
 }

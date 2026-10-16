@@ -8,7 +8,7 @@ fit = "Cover"
 
 [GTK]
 application_prefer_dark_theme = {{ derived.is_dark | bool }}
-font_name = "{{ fonts.ui }} {{ fonts.ui_size }}"
+font_name = "{{ fonts.ui }} {{ fonts.weight | weightname }} {{ fonts.ui_size }}"
 cursor_theme_name = "{{ gtk.cursor }}"
 icon_theme_name = "{{ gtk.icons }}"
 theme_name = "{{ gtk.theme }}"

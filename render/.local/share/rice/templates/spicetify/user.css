@@ -5,6 +5,9 @@
     --rice-wash: linear-gradient(90deg, {{ roles.urgent | rgba(0.55) }}, {{ roles.selection | rgba(0.55) }});
 }
 body, .encore-text { font-family: "{{ fonts.ui }}", sans-serif !important; }
+body, .encore-text-body-small, .encore-text-body-medium, .encore-text-marginal { font-weight: {{ fonts.weight }} !important; }
+.encore-text-title-small, .encore-text-title-medium, .encore-text-title-large,
+.encore-text-headline-large, .encore-text-body-medium-bold, .encore-text-body-small-bold { font-weight: {{ fonts.weight_strong }} !important; }
 
 .Root__nav-bar, .Root__main-view, .Root__right-sidebar, .Root__now-playing-bar {
     border-radius: var(--rice-radius) !important;

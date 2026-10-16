@@ -29,14 +29,15 @@ body {
     background-attachment: fixed;
     color: var(--fg);
     font-family: "{{ fonts.ui }}", system-ui, sans-serif;
+    font-weight: {{ fonts.weight }};
     display: grid;
     place-items: center;
 }
 main { width: min(640px, 100% - 32px); text-align: center; }
 h1 {
     font-family: "{{ fonts.display }}", serif;
-    font-weight: 400;
-    font-size: clamp(40px, 7vw, 64px);
+    font-weight: {{ fonts.display_weight }};
+    font-size: clamp(41px, 7vw, 65px);
     margin: 0;
 }
 .date {
@@ -55,7 +56,7 @@ input {
     backdrop-filter: blur(12px);
     color: var(--fg);
     font: inherit;
-    font-size: 17px;
+    font-size: 18px;
     padding: 0 24px;
     outline: none;
     caret-color: {{ roles.accent | darken(0.25) }};
@@ -76,7 +77,7 @@ nav a {
     gap: 8px;
     color: var(--muted);
     text-decoration: none;
-    font-size: 13px;
+    font-size: 14px;
 }
 .pearl {
     width: 52px;
@@ -84,8 +85,8 @@ nav a {
     border-radius: 50%;
     display: grid;
     place-items: center;
-    font-size: 18px;
-    font-weight: 600;
+    font-size: 19px;
+    font-weight: {{ fonts.weight_strong }};
     color: var(--fg);
     background: radial-gradient(circle at 35% 30%, #fff, var(--bg) 45%, var(--surface));
     box-shadow: 0 6px 18px {{ roles.shadow | rgba(0.2) }}, inset 0 0 0 1px var(--border);

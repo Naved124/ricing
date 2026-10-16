@@ -189,6 +189,15 @@ apply_nvim() {
     done
 }
 
+# 600 → SemiBold: the style name fontconfig and GTK understand
+weight_name() {
+    case "${1:-400}" in
+        1??) echo Thin ;; 2??) echo ExtraLight ;; 3??) echo Light ;;
+        4??) echo Regular ;; 5??) echo Medium ;; 6??) echo SemiBold ;;
+        7??) echo Bold ;; 8??) echo ExtraBold ;; *) echo Black ;;
+    esac
+}
+
 apply_gtk() {
     have gsettings || return 0
     local s=org.gnome.desktop.interface v
@@ -197,9 +206,13 @@ apply_gtk() {
     v="$(palette "$1" gtk cursor)";       [[ -n "$v" ]] && gsettings set $s cursor-theme "$v"
     v="$(palette "$1" gtk cursor_size)";  [[ -n "$v" ]] && gsettings set $s cursor-size "$v"
     v="$(palette "$1" gtk color_scheme)"; [[ -n "$v" ]] && gsettings set $s color-scheme "$v"
-    local ui size
+    local ui mono size msize style
     ui="$(palette "$1" fonts ui)"; size="$(palette "$1" fonts ui_size)"
-    [[ -n "$ui" ]] && gsettings set $s font-name "$ui ${size:-11}"
+    mono="$(palette "$1" fonts mono)"; msize="$(palette "$1" fonts mono_size)"
+    style="$(weight_name "$(palette "$1" fonts weight)")"
+    [[ -n "$ui" ]] && gsettings set $s font-name "$ui $style ${size:-11}"
+    [[ -n "$ui" ]] && gsettings set $s document-font-name "$ui $style ${size:-11}"
+    [[ -n "$mono" ]] && gsettings set $s monospace-font-name "$mono $style ${msize:-12}"
     return 0
 }
 

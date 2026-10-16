@@ -76,7 +76,7 @@ PanelWindow {
                 anchors.topMargin: 12
                 text: Math.round(win.value * 100)
                 font.family: Theme.fontDisplay
-                size: 22
+                size: 23
             }
 
             // the track and its iridescent fill, rising from the bottom

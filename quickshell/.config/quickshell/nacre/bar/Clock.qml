@@ -51,7 +51,7 @@ Item {
             anchors.verticalCenter: parent.verticalCenter
             text: Qt.formatTime(clock.date, "HH:mm")
             size: Theme.uiSize + 3
-            weight: Font.DemiBold
+            weight: Theme.weightStrong
         }
     }
 

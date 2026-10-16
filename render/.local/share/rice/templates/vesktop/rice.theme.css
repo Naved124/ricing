@@ -10,6 +10,8 @@
 
 :root, .theme-light, .theme-dark, .theme-darker, .theme-midnight, .visual-refresh {
     --font-primary: "{{ fonts.ui }}", sans-serif;
+    --font-weight-normal: {{ fonts.weight }};
+    --font-weight-semibold: {{ fonts.weight_strong }};
     --font-display: "{{ fonts.ui }}", sans-serif;
     --font-code: "{{ fonts.mono }}", monospace;
 
@@ -74,3 +76,7 @@
 [class*="selected_"] > [class*="link"] {
     background: linear-gradient(90deg, {{ roles.urgent | rgba(0.55) }}, {{ roles.selection | rgba(0.55) }}) !important;
 }
+
+/* text one step heavier than Discord's default */
+body, [class*="markup"], [class*="messageContent"] { font-weight: {{ fonts.weight }}; }
+strong, h1, h2, h3, [class*="username"] { font-weight: {{ fonts.weight_strong }} !important; }

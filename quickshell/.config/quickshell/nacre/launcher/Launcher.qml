@@ -123,8 +123,8 @@ PanelWindow {
                             return h < 5 ? "Good night" : h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening";
                         }
                         font.family: Theme.fontDisplay
-                        size: 34
-                        weight: Font.Normal
+                        size: 35
+                        weight: Theme.weightDisplay
                     }
                     Label {
                         anchors.baseline: greeting.baseline
@@ -178,7 +178,7 @@ PanelWindow {
                                     visible: search.mode !== ""
                                     text: search.modeInfo.name
                                     size: Theme.uiSize
-                                    weight: Font.DemiBold
+                                    weight: Theme.weightStrong
                                 }
                             }
                         }
@@ -198,6 +198,7 @@ PanelWindow {
                         selectionColor: Theme.sky
                         selectedTextColor: Theme.ink
                         font.family: Theme.fontUi
+                        font.weight: Theme.weight
                         font.pixelSize: Theme.uiSize + 4
                         background: null
 
@@ -323,7 +324,7 @@ PanelWindow {
                                 anchors.centerIn: parent
                                 visible: (row.modelData.emoji ?? "") !== ""
                                 text: row.modelData.emoji ?? ""
-                                font.pixelSize: 20
+                                font.pixelSize: 21
                             }
                             Icon {
                                 anchors.centerIn: parent
@@ -346,7 +347,7 @@ PanelWindow {
                                 width: parent.width
                                 text: row.modelData.title
                                 size: row.modelData.mono ? Theme.monoSize + 1 : Theme.uiSize + 3
-                                weight: row.modelData.mono ? Font.Normal : Font.DemiBold
+                                weight: row.modelData.mono ? Theme.weight : Theme.weightStrong
                                 elide: Text.ElideRight
                                 font.family: row.modelData.mono ? Theme.fontMono : Theme.fontUi
                             }
@@ -416,7 +417,7 @@ PanelWindow {
                                 id: pillRow
                                 anchors.centerIn: parent
                                 spacing: 5
-                                Label { text: pill.modelData.key; font.family: Theme.fontMono; size: Theme.uiSize; weight: Font.DemiBold; color: Theme.ink }
+                                Label { text: pill.modelData.key; font.family: Theme.fontMono; size: Theme.uiSize; weight: Theme.weightStrong; color: Theme.ink }
                                 Label { text: pill.modelData.name; size: Theme.uiSize; color: Theme.inkSoft }
                             }
                             MouseArea {

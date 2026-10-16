@@ -3,6 +3,7 @@
 
 * {
     font-family: "{{ fonts.ui }}", sans-serif;
+    font-weight: {{ fonts.weight }};
     color: {{ roles.fg }};
 }
 
@@ -30,7 +31,8 @@ label.title,
 #message_label,
 frame > grid > label:first-child {
     font-family: "{{ fonts.display }}", serif;
-    font-size: 30pt;
+    font-weight: {{ fonts.display_weight }};
+    font-size: 31pt;
     color: {{ roles.fg }};
 }
 
@@ -70,7 +72,7 @@ button:hover {
 button.suggested-action {
     background-image: linear-gradient(90deg, {{ roles.urgent | rgba(0.85) }}, {{ roles.selection | rgba(0.85) }});
     color: {{ roles.fg }};
-    font-weight: 600;
+    font-weight: {{ fonts.weight_strong }};
 }
 
 button.destructive-action {
@@ -89,5 +91,6 @@ infobar.error,
 #clock,
 .clock {
     font-family: "{{ fonts.display }}", serif;
-    font-size: 22pt;
+    font-weight: {{ fonts.display_weight }};
+    font-size: 23pt;
 }

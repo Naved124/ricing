@@ -62,8 +62,12 @@ Singleton {
     readonly property string fontDisplay: "Italiana"
     readonly property string fontUi:      "Manrope"
     readonly property string fontMono:    "IBM Plex Mono"
-    readonly property real   uiSize:      11
-    readonly property real   monoSize:    12.5
+    readonly property real   uiSize:      12
+    readonly property real   monoSize:    13.5
+    // body text, emphasis, and the display face (Italiana has one weight)
+    readonly property int    weight:        600
+    readonly property int    weightStrong:  700
+    readonly property int    weightDisplay: 400
 
     // ── shape ───────────────────────────────────────────────────────────────
     readonly property int radiusWindow: 16

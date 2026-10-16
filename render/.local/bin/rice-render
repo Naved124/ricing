@@ -56,7 +56,7 @@ ROLES = (
 ).split()
 REQUIRED = {
     "meta": ["name", "title", "transition"],
-    "fonts": ["display", "ui", "mono", "ui_size", "mono_size"],
+    "fonts": ["display", "ui", "mono", "ui_size", "mono_size", "weight", "weight_strong", "display_weight"],
     "shape": ["window", "panel", "popup", "chip", "border", "gaps_in", "gaps_out"],
     "ansi": [f"color{i}" for i in range(16)],
     "gradient": ["stops"],
@@ -247,6 +247,12 @@ class Filters:
 
     def rgb(self, v):
         return "{}, {}, {}".format(*rgb(self.need_color(v)))
+
+    def weightname(self, v):
+        """600 → "SemiBold": the style name fonts, GTK, kitty and mpv understand."""
+        names = {100: "Thin", 200: "ExtraLight", 300: "Light", 400: "Regular", 500: "Medium",
+                 600: "SemiBold", 700: "Bold", 800: "ExtraBold", 900: "Black"}
+        return names[min(names, key=lambda w: abs(w - int(float(v))))]
 
     def rgbf(self, v):
         """0–1 floats, for Plymouth scripts: "0.957, 0.945, 0.965"."""
@@ -666,7 +672,11 @@ def ini_set(path: Path, section: str, values: dict[str, str]) -> None:
         head = line.strip()
         if head.startswith("[") and head.endswith("]"):
             if inside and want:
-                out += [f"{k}={v}" for k, v in want.items()]
+                # new keys go at the end of the section, before its blank lines
+                at = len(out)
+                while at and not out[at - 1].strip():
+                    at -= 1
+                out[at:at] = [f"{k}={v}" for k, v in want.items()]
                 want.clear()
             inside = head[1:-1] == section
             seen = seen or inside
@@ -695,6 +705,13 @@ def configure_apps() -> None:
         "color_scheme_path": str(INSTALL_ROOT / ".config/qt6ct/colors/rice.conf"),
         "custom_palette": "true",
     }
+    # fonts, in QFont's string form: family, point size, -1, hint, weight, then defaults
+    ctx = load_palette(CURRENT.parent) if (CURRENT.parent / "palette.toml").exists() else None
+    if ctx:
+        f = ctx["fonts"]
+        qfont = lambda family, size: f'"{family},{size},-1,5,{f["weight"]},0,0,0,0,0,0,0,0,0,0,1"'
+        ini_set(qt, "Fonts", {"general": qfont(f["ui"], f["ui_size"]),
+                              "fixed": qfont(f["mono"], f["mono_size"])})
     if shutil.which("kvantummanager") or Path("/usr/lib/qt6/plugins/styles/libkvantum.so").exists():
         appearance["style"] = "kvantum"
         ini_set(INSTALL_ROOT / ".config/Kvantum/kvantum.kvconfig", "General", {"theme": "Rice"})

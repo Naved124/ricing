@@ -75,7 +75,7 @@ Item {
             horizontalAlignment: Text.AlignHCenter
             text: root.name
             size: Theme.uiSize + 1
-            weight: Font.DemiBold
+            weight: Theme.weightStrong
             elide: Text.ElideRight
         }
         Label {

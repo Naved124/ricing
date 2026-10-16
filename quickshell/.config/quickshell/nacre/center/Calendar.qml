@@ -59,8 +59,8 @@ Item {
                 anchors.verticalCenter: parent.verticalCenter
                 text: Qt.locale().standaloneMonthName(root.month) + (root.year !== root.today.getFullYear() ? ` ${root.year}` : "")
                 font.family: Theme.fontDisplay
-                size: 24
-                weight: Font.Normal
+                size: 25
+                weight: Theme.weightDisplay
                 MouseArea {
                     anchors.fill: parent
                     cursorShape: Qt.PointingHandCursor
@@ -143,7 +143,7 @@ Item {
                         anchors.centerIn: parent
                         text: cellItem.modelData.day
                         size: Theme.uiSize + 1
-                        weight: cellItem.modelData.today ? Font.Bold : Font.Medium
+                        weight: cellItem.modelData.today ? Theme.weightStrong : Theme.weight
                         color: cellItem.modelData.inMonth ? (cellItem.modelData.weekend ? Theme.inkSoft : Theme.ink) : Theme.lilac
                     }
                 }

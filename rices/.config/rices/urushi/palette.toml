@@ -67,8 +67,14 @@ color15 = "#f6efe2"
 display   = "Shippori Mincho"
 ui        = "Noto Serif JP"
 mono      = "Iosevka"
-ui_size   = 11
-mono_size = 12
+ui_size   = 12
+mono_size = 13
+
+# weights everywhere (shell, GTK, Qt, kitty, browsers): body text and
+# emphasis, on the CSS scale (400 regular, 600 semibold, 700 bold)
+weight         = 600
+weight_strong  = 700
+display_weight = 600
 
 [shape]
 window         = 2

@@ -92,8 +92,8 @@ PanelWindow {
             id: title
             text: "Keys"
             font.family: Theme.fontDisplay
-            size: 44
-            weight: Font.Normal
+            size: 45
+            weight: Theme.weightDisplay
         }
 
         // the filter: a pill on the title's line
@@ -130,6 +130,7 @@ PanelWindow {
                 color: Theme.ink
                 selectionColor: Theme.sky
                 font.family: Theme.fontUi
+                font.weight: Theme.weight
                 font.pixelSize: Theme.uiSize + 3
                 background: null
                 Keys.onEscapePressed: Shell.keysOpen = false
@@ -181,7 +182,7 @@ PanelWindow {
                                     Label {
                                         text: card.modelData.name.toUpperCase()
                                         size: Theme.uiSize
-                                        weight: Font.DemiBold
+                                        weight: Theme.weightStrong
                                         color: Theme.inkSoft
                                         font.letterSpacing: 1.6
                                         bottomPadding: 2
@@ -262,7 +263,7 @@ PanelWindow {
                                                                     color: Theme.ink
                                                                     font.family: Theme.fontMono
                                                                     font.pixelSize: Theme.uiSize + 0.5
-                                                                    font.weight: Font.Medium
+                                                                    font.weight: Theme.weight
                                                                 }
                                                             }
                                                         }

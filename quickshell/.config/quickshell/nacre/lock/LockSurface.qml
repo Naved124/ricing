@@ -117,7 +117,7 @@ Item {
                 text: Qt.formatDate(clock.date, "dddd, d MMMM")
                 font.capitalization: Font.SmallCaps
                 font.letterSpacing: 2
-                size: 18
+                size: 19
                 color: Theme.ink
             }
         }
@@ -198,7 +198,8 @@ Item {
                 placeholderTextColor: Theme.inkSoft
                 color: Theme.ink
                 font.family: Theme.fontUi
-                font.pixelSize: 15
+                font.weight: Theme.weight
+                font.pixelSize: 16
                 font.letterSpacing: text ? 3 : 0
                 background: null
                 enabled: !root.lock.busy

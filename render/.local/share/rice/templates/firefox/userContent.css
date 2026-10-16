@@ -5,6 +5,7 @@
         background-color: {{ roles.bg }} !important;
         color: {{ roles.fg }} !important;
         font-family: "{{ fonts.ui }}", sans-serif !important;
+        font-weight: {{ fonts.weight }} !important;
     }
     .search-wrapper .search-handoff-button, .search-inner-wrapper input {
         border-radius: 999px !important;

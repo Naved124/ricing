@@ -77,8 +77,8 @@ PanelWindow {
             anchors.horizontalCenter: parent.horizontalCenter
             text: "Until next time"
             font.family: Theme.fontDisplay
-            size: 44
-            weight: Font.Normal
+            size: 45
+            weight: Theme.weightDisplay
             opacity: veil.opacity
         }
 

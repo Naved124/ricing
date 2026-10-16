@@ -77,7 +77,9 @@ hl.config({
             round_only_edges  = false,
             gradient_round_only_edges = false,
             font_family       = "{{ fonts.ui }}",
-            font_size         = 10,
+            font_size         = 11,
+            font_weight_active   = {{ fonts.weight_strong }},
+            font_weight_inactive = {{ fonts.weight }},
             text_color        = "{{ roles.fg | hypr(ff) }}",
             text_color_inactive = "{{ roles.muted | hypr(ff) }}",
             col = {

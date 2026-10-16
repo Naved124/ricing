@@ -15,6 +15,7 @@ Row {
         id: widest
         text: "999.9 KB/s"
         font.family: Theme.fontMono
+        font.weight: Theme.weight
         font.pixelSize: Theme.uiSize + 0.5
     }
 
@@ -43,6 +44,7 @@ Row {
                 text: Net.rate(dir.modelData.value())
                 color: Theme.ink
                 font.family: Theme.fontMono
+                font.weight: Theme.weight
                 font.pixelSize: Theme.uiSize + 0.5
             }
         }

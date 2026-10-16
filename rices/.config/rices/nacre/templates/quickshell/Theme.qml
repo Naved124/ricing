@@ -64,6 +64,10 @@ Singleton {
     readonly property string fontMono:    "{{ fonts.mono }}"
     readonly property real   uiSize:      {{ fonts.ui_size }}
     readonly property real   monoSize:    {{ fonts.mono_size }}
+    // body text, emphasis, and the display face (Italiana has one weight)
+    readonly property int    weight:        {{ fonts.weight }}
+    readonly property int    weightStrong:  {{ fonts.weight_strong }}
+    readonly property int    weightDisplay: {{ fonts.display_weight }}
 
     // ── shape ───────────────────────────────────────────────────────────────
     readonly property int radiusWindow: {{ shape.window }}

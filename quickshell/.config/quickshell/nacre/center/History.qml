@@ -24,8 +24,8 @@ Column {
             anchors.verticalCenter: parent.verticalCenter
             text: "Notifications"
             font.family: Theme.fontDisplay
-            size: 22
-            weight: Font.Normal
+            size: 23
+            weight: Theme.weightDisplay
         }
 
         Rectangle {
@@ -110,7 +110,7 @@ Column {
                         font.capitalization: Font.SmallCaps
                         font.letterSpacing: 0.8
                         size: Theme.uiSize + 1
-                        weight: Font.DemiBold
+                        weight: Theme.weightStrong
                         color: Theme.inkSoft
                     }
                     Label {

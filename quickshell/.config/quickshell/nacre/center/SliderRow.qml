@@ -105,7 +105,7 @@ Item {
         horizontalAlignment: Text.AlignRight
         text: Math.round(root.shown * 100)
         font.family: Theme.fontDisplay
-        size: 18
+        size: 19
         color: root.muted ? Theme.inkSoft : Theme.ink
     }
 }

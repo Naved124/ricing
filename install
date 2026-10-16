@@ -158,32 +158,50 @@ python3 -c 'import sys; sys.exit(sys.version_info < (3, 11))' \
     || die "rice-render needs Python 3.11 or newer"
 
 # ── fonts ───────────────────────────────────────────────────────────────
+# family|style|file: each style is checked on its own, so a weight added later
+# (the palettes use SemiBold and Bold) is fetched even if the family is there.
+# Manrope is one variable font holding every weight; Italiana has one weight.
 font_files=(
-    "Italiana|italiana/Italiana-Regular.ttf"
-    "Manrope|manrope/Manrope%5Bwght%5D.ttf"
-    "IBM Plex Mono|ibmplexmono/IBMPlexMono-Regular.ttf ibmplexmono/IBMPlexMono-Italic.ttf ibmplexmono/IBMPlexMono-Medium.ttf ibmplexmono/IBMPlexMono-Bold.ttf"
+    "Italiana||italiana/Italiana-Regular.ttf"
+    "Manrope||manrope/Manrope%5Bwght%5D.ttf"
+    "IBM Plex Mono|Regular|ibmplexmono/IBMPlexMono-Regular.ttf"
+    "IBM Plex Mono|Italic|ibmplexmono/IBMPlexMono-Italic.ttf"
+    "IBM Plex Mono|Medium|ibmplexmono/IBMPlexMono-Medium.ttf"
+    "IBM Plex Mono|SemiBold|ibmplexmono/IBMPlexMono-SemiBold.ttf"
+    "IBM Plex Mono|SemiBold Italic|ibmplexmono/IBMPlexMono-SemiBoldItalic.ttf"
+    "IBM Plex Mono|Bold|ibmplexmono/IBMPlexMono-Bold.ttf"
+    "IBM Plex Mono|Bold Italic|ibmplexmono/IBMPlexMono-BoldItalic.ttf"
 )
 
+have_font() {   # have_font FAMILY [STYLE]
+    have fc-list || return 1
+    if [ -n "$2" ]; then
+        fc-list ":family=$1:style=$2" family | grep -q .
+    else
+        fc-list : family | tr ',' '\n' | grep -qx "$1"
+    fi
+}
+
 step "Fonts"
-fetched=0
+fetched=0 missing=""
 for entry in "${font_files[@]}"; do
-    family=${entry%%|*}
-    if have fc-list && fc-list : family | tr ',' '\n' | grep -qx "$family"; then
-        ok "$family"
-        continue
-    fi
+    IFS='|' read -r family style file <<< "$entry"
+    have_font "$family" "$style" && continue
     if [ "$fonts" = 0 ] || ! have curl; then
-        warn "$family is not installed"
+        missing="$missing, $family${style:+ $style}"
         continue
     fi
-    for f in ${entry#*|}; do
-        name=$(basename "$f" | sed 's/%5B/[/; s/%5D/]/')
-        run mkdir -p "$fontdir"
-        run curl -fsSL -o "$fontdir/$name" "$fonts_url/$f" || warn "couldn't download $name"
-    done
-    ok "$family (downloaded)"
-    fetched=1
+    name=$(basename "$file" | sed 's/%5B/[/; s/%5D/]/')
+    run mkdir -p "$fontdir"
+    if run curl -fsSL -o "$fontdir/$name" "$fonts_url/$file"; then
+        ok "$family${style:+ $style} (downloaded)"
+        fetched=1
+    else
+        warn "couldn't download $name"
+    fi
 done
+[ -n "$missing" ] && warn "not installed: ${missing#, }"
+[ "$fetched" = 0 ] && [ -z "$missing" ] && ok "Italiana, Manrope, IBM Plex Mono"
 [ "$fetched" = 1 ] && have fc-cache && run fc-cache -f "$fontdir" >/dev/null
 
 # ── dotfiles ────────────────────────────────────────────────────────────

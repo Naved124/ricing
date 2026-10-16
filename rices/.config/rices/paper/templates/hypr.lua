@@ -17,6 +17,7 @@ hl.config({
         col = { border_active = "{{ roles.accent | hypr(ff) }}", border_inactive = "{{ roles.border | hypr(ff) }}" },
         groupbar = {
             font_family = "{{ fonts.ui }}", text_color = "{{ roles.fg | hypr(ff) }}",
+            font_size = 11, font_weight_active = {{ fonts.weight_strong }}, font_weight_inactive = {{ fonts.weight }},
             col = { active = "{{ roles.selection | hypr(ff) }}", inactive = "{{ roles.surface | hypr(ff) }}" },
         },
     },

@@ -113,7 +113,8 @@ PanelWindow {
             text: "choose a rice"
             color: Rices.role("fg", "#eeeeee")
             font.family: win.fontDisplay
-            font.pixelSize: 34
+            font.weight: Rices.active?.meta?.fonts?.display_weight ?? Font.Normal
+            font.pixelSize: 35
         }
 
         Row {
@@ -162,7 +163,8 @@ PanelWindow {
                         text: slot.index < 9 ? String(slot.index + 1) : ""
                         color: Rices.role("muted", "#999999")
                         font.family: win.fontUi
-                        font.pixelSize: 12
+                        font.weight: Font.DemiBold
+                        font.pixelSize: 13
                     }
 
                     MouseArea {
@@ -212,8 +214,8 @@ PanelWindow {
                 }
                 Column {
                     anchors.verticalCenter: parent.verticalCenter
-                    Text { text: "auto mode"; color: Rices.role("fg", "#eeeeee"); font.family: win.fontUi; font.pixelSize: 13; font.weight: Font.DemiBold }
-                    Text { text: Rices.schedule; color: Rices.role("muted", "#999999"); font.family: win.fontUi; font.pixelSize: 12 }
+                    Text { text: "auto mode"; color: Rices.role("fg", "#eeeeee"); font.family: win.fontUi; font.pixelSize: 14; font.weight: Font.Bold }
+                    Text { text: Rices.schedule; color: Rices.role("muted", "#999999"); font.family: win.fontUi; font.pixelSize: 13; font.weight: Font.DemiBold }
                 }
             }
 
@@ -223,7 +225,8 @@ PanelWindow {
                 text: "←→ move   ↵ apply   1–9 pick   a auto   esc close"
                 color: Rices.role("muted", "#999999")
                 font.family: win.fontUi
-                font.pixelSize: 12
+                font.weight: Font.DemiBold
+                font.pixelSize: 13
             }
         }
     }

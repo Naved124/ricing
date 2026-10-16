@@ -84,8 +84,14 @@ color15 = "#f4f1f6"
 display   = "Italiana"        # clock, lock screen, greetings, big numbers
 ui        = "Manrope"
 mono      = "IBM Plex Mono"
-ui_size   = 11
-mono_size = 12.5
+ui_size   = 12
+mono_size = 13.5
+
+# weights everywhere (shell, GTK, Qt, kitty, browsers): body text and
+# emphasis, on the CSS scale (400 regular, 600 semibold, 700 bold)
+weight         = 600
+weight_strong  = 700
+display_weight = 400   # Italiana has only one weight
 
 [shape]
 window         = 16
@@ -98,7 +104,7 @@ gaps_in        = 6
 gaps_out       = 16
 
 [opacity]
-terminal = 0.58    # kitty: let the blur do the work, not the tint
+terminal = 0.72    # kitty: frosted, but solid enough to read at a glance
 active   = 0.97    # glassy windows (terminals, files, music, tools)
 inactive = 0.90
 glass    = 0.55    # Quickshell panel fill over Hyprland blur
