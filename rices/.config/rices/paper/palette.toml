@@ -1,0 +1,41 @@
+# Paper — warm off-white stock, ink blue and a red seal. Daylight rice.
+
+[meta]
+name = "paper"
+title = "Paper"
+tagline = "ink on warm stock, daylight"
+transition = "peel"
+
+[colors]
+bg      = "#f4efe4"
+surface = "#ebe4d4"
+overlay = "#ded5c1"
+fg      = "#2b2620"
+muted   = "#7c7365"
+accent  = "#2f5d8a"
+accent2 = "#b24a3a"
+accent3 = "#c9b994"
+red     = "#b24a3a"
+green   = "#5e7d4a"
+yellow  = "#a8842f"
+blue    = "#2f5d8a"
+
+[fonts]
+ui   = "IBM Plex Serif"
+mono = "IBM Plex Mono"
+size = 11
+
+[shape]
+radius = 4
+border = 1
+gaps   = 8
+
+[gtk]
+theme        = "adw-gtk3"
+icons        = "Papirus-Light"
+cursor       = "Bibata-Modern-Classic"
+cursor_size  = 24
+color_scheme = "prefer-light"
+
+[nvim]
+colorscheme = "rice-paper"

@@ -1,0 +1,41 @@
+# Urushi — black lacquer, vermilion and gold leaf. Sharp edges, slow motion.
+
+[meta]
+name = "urushi"
+title = "Urushi"
+tagline = "black lacquer, vermilion, gold"
+transition = "lacquer"
+
+[colors]
+bg      = "#0b0a09"
+surface = "#17130f"
+overlay = "#241d17"
+fg      = "#e9dfcc"
+muted   = "#8a7d6a"
+accent  = "#c8372d"
+accent2 = "#c9a24a"
+accent3 = "#6e1f1a"
+red     = "#c8372d"
+green   = "#7f9a5a"
+yellow  = "#c9a24a"
+blue    = "#5b7a8c"
+
+[fonts]
+ui   = "Noto Serif JP"
+mono = "Iosevka"
+size = 11
+
+[shape]
+radius = 2
+border = 1
+gaps   = 6
+
+[gtk]
+theme        = "adw-gtk3-dark"
+icons        = "Papirus-Dark"
+cursor       = "Bibata-Modern-Classic"
+cursor_size  = 24
+color_scheme = "prefer-dark"
+
+[nvim]
+colorscheme = "rice-urushi"

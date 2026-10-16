@@ -1,0 +1,19 @@
+/* Nacre card: pearl glass. Hovering makes the surface shimmer. */
+.card.rice-nacre {
+  background-image: linear-gradient(135deg,
+    rgba(184, 166, 255, 0.16), rgba(143, 211, 224, 0.10) 45%, rgba(242, 184, 198, 0.14));
+  background-color: rgba(28, 27, 34, 0.82);
+  border-color: rgba(236, 232, 242, 0.18);
+}
+
+@keyframes nacre-shimmer {
+  0%   { filter: hue-rotate(0deg) saturate(1); }
+  50%  { filter: hue-rotate(28deg) saturate(1.35); }
+  100% { filter: hue-rotate(0deg) saturate(1); }
+}
+
+.card.rice-nacre.selected .mock,
+.card.rice-nacre.selected .preview,
+.card.rice-nacre.selected .swatches {
+  animation: nacre-shimmer 2400ms ease-in-out infinite;
+}

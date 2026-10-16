@@ -1,0 +1,301 @@
+#!/usr/bin/env bash
+# rice — switch the whole desktop between rices.
+#
+#   rice <name>          switch to a rice (freeze → swap → reload → dissolve)
+#   rice next | prev     cycle through rices in alphabetical order
+#   rice list            list rices, marking the active one
+#   rice current         print the active rice
+#   rice get <key>       read a value from the active palette, e.g. colors.accent
+#   rice auto on|off     enable or disable time-of-day switching (systemd timer)
+#   rice auto status     print whether auto mode is on
+#   rice auto apply      switch to the rice scheduled for now (used by the timer)
+#   rice choose          toggle the chooser (Super+T)
+#   rice reapply         run every apply step again for the active rice
+#
+# Every step after the symlink swap is optional: if a tool is not installed
+# or the rice does not ship the file for it, that step is skipped.
+
+set -euo pipefail
+
+RICE_DIR="${RICE_DIR:-${XDG_CONFIG_HOME:-$HOME/.config}/rices}"
+STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/rice"
+RUN_DIR="${XDG_RUNTIME_DIR:-/tmp}/rice"
+AGS_INSTANCE="rice"
+AUTO_TIMER="rice-auto.timer"
+
+mkdir -p "$STATE_DIR" "$RUN_DIR"
+
+log()  { printf '\033[2mrice:\033[0m %s\n' "$*" >&2; }
+die()  { printf '\033[31mrice:\033[0m %s\n' "$*" >&2; exit 1; }
+have() { command -v "$1" >/dev/null 2>&1; }
+
+# toml_get FILE SECTION KEY — read `key = value` from `[section]` of a flat TOML
+# file. Strips quotes and trailing comments. Prints nothing if missing.
+toml_get() {
+    awk -v want_sec="$2" -v want_key="$3" '
+        /^[[:space:]]*#/ || /^[[:space:]]*$/ { next }
+        /^[[:space:]]*\[/ {
+            sec = $0; gsub(/^[[:space:]]*\[|\][[:space:]]*$/, "", sec); next
+        }
+        sec == want_sec {
+            line = $0
+            eq = index(line, "="); if (!eq) next
+            key = substr(line, 1, eq - 1); gsub(/[[:space:]]/, "", key)
+            if (key != want_key) next
+            val = substr(line, eq + 1)
+            sub(/^[[:space:]]+/, "", val)
+            if (val ~ /^"/) { sub(/^"/, "", val); sub(/".*$/, "", val) }
+            else            { sub(/[[:space:]]*#.*$/, "", val); sub(/[[:space:]]+$/, "", val) }
+            print val; exit
+        }' "$1"
+}
+
+palette() { toml_get "$RICE_DIR/$1/palette.toml" "$2" "$3"; }
+
+rices() {
+    local d
+    for d in "$RICE_DIR"/*/; do
+        d="${d%/}"
+        [[ -L "$d" ]] && continue                 # skip `current`
+        [[ -f "$d/palette.toml" ]] && basename "$d"
+    done
+}
+
+current() {
+    [[ -L "$RICE_DIR/current" ]] && basename "$(readlink "$RICE_DIR/current")"
+}
+
+ags_running() { have ags && ags list 2>/dev/null | grep -qx "$AGS_INSTANCE"; }
+ags_req()     { ags_running && ags request -i "$AGS_INSTANCE" "$@" >/dev/null 2>&1; }
+
+# ── freeze: screenshot every output and pin it above everything ─────────────
+freeze() {
+    have grim || return 0
+    ags_running || return 0
+    local dir="$RUN_DIR/freeze" out
+    rm -rf "$dir"; mkdir -p "$dir"
+    if have hyprctl && have jq; then
+        for out in $(hyprctl monitors -j | jq -r '.[].name'); do
+            grim -l 0 -o "$out" "$dir/$out.png" &
+        done
+        wait
+    else
+        grim -l 0 "$dir/all.png"
+    fi
+    ags_req freeze "$dir" || true
+}
+
+# ── dissolve: let the incoming rice reveal itself ────────────────────────────
+dissolve() {
+    local transition
+    transition="$(palette "$1" meta transition)"
+    ags_req dissolve "${transition:-fade}" || true
+}
+
+# ── apply: everything that has to happen once `current` points somewhere new ─
+apply_hypr() {
+    have hyprctl || return 0
+    hyprctl reload >/dev/null
+    local cursor size
+    cursor="$(palette "$1" gtk cursor)"; size="$(palette "$1" gtk cursor_size)"
+    [[ -n "$cursor" ]] && hyprctl setcursor "$cursor" "${size:-24}" >/dev/null || true
+}
+
+apply_bar() {
+    local bar="$RICE_DIR/current/bar"
+    [[ -d "$bar" ]] && have ags || return 0
+    ags quit -i bar >/dev/null 2>&1 || true
+    setsid -f ags run "$bar" >/dev/null 2>&1
+}
+
+apply_wallpaper() {
+    local dir="$RICE_DIR/current/wallpaper" file
+    [[ -d "$dir" ]] || return 0
+    file="$(find -L "$dir" -maxdepth 1 -type f \
+        \( -name '*.mp4' -o -name '*.webm' -o -name '*.mkv' \) | sort | head -n1)"
+    if [[ -n "$file" ]] && have mpvpaper; then
+        local shader opts="loop no-audio panscan=1.0"
+        shader="$(find -L "$dir" -maxdepth 1 -name '*.glsl' | sort | head -n1)"
+        [[ -n "$shader" ]] && opts+=" glsl-shaders=$shader"
+        pkill -x mpvpaper || true
+        have swww && swww kill >/dev/null 2>&1 || true
+        setsid -f mpvpaper -o "$opts" '*' "$file" >/dev/null 2>&1
+        return 0
+    fi
+    file="$(find -L "$dir" -maxdepth 1 -type f \
+        \( -name '*.png' -o -name '*.jpg' -o -name '*.jpeg' -o -name '*.webp' -o -name '*.gif' \) \
+        | sort | head -n1)"
+    if [[ -n "$file" ]] && have swww; then
+        pkill -x mpvpaper || true
+        swww query >/dev/null 2>&1 || { setsid -f swww-daemon >/dev/null 2>&1; sleep 0.3; }
+        # the overlay covers the change, so swap instantly
+        swww img "$file" --transition-type none >/dev/null 2>&1
+    fi
+}
+
+apply_kitty() {
+    # kitty re-reads kitty.conf (which includes current/kitty.conf) on SIGUSR1
+    pkill -USR1 -x kitty 2>/dev/null || true
+}
+
+apply_nvim() {
+    have nvim || return 0
+    local scheme sock
+    scheme="$(palette "$1" nvim colorscheme)"
+    [[ -n "$scheme" ]] || return 0
+    for sock in "${XDG_RUNTIME_DIR:-/tmp}"/nvim.*.0 /tmp/nvim.*/0; do
+        [[ -S "$sock" ]] || continue
+        timeout 1 nvim --server "$sock" --remote-expr \
+            "execute('silent! colorscheme $scheme')" >/dev/null 2>&1 || true
+    done
+}
+
+apply_gtk() {
+    have gsettings || return 0
+    local s=org.gnome.desktop.interface v
+    v="$(palette "$1" gtk theme)";        [[ -n "$v" ]] && gsettings set $s gtk-theme "$v"
+    v="$(palette "$1" gtk icons)";        [[ -n "$v" ]] && gsettings set $s icon-theme "$v"
+    v="$(palette "$1" gtk cursor)";       [[ -n "$v" ]] && gsettings set $s cursor-theme "$v"
+    v="$(palette "$1" gtk cursor_size)";  [[ -n "$v" ]] && gsettings set $s cursor-size "$v"
+    v="$(palette "$1" gtk color_scheme)"; [[ -n "$v" ]] && gsettings set $s color-scheme "$v"
+    local ui size
+    ui="$(palette "$1" fonts ui)"; size="$(palette "$1" fonts size)"
+    [[ -n "$ui" ]] && gsettings set $s font-name "$ui ${size:-11}"
+    return 0
+}
+
+apply_swaync() {
+    have swaync-client || return 0
+    swaync-client --reload-config >/dev/null 2>&1 || true
+    swaync-client --reload-css    >/dev/null 2>&1 || true
+}
+
+apply_hook() {
+    local hook="$RICE_DIR/current/hooks/post-switch"
+    [[ -x "$hook" ]] && "$hook" "$1" || true
+}
+
+# A broken step must never leave the screen frozen, so failures are logged
+# and the switch carries on to the dissolve.
+step() { "$@" || log "$1 failed (exit $?), continuing"; }
+
+swap_link() {
+    # atomic: build the new link beside the old one, then rename over it
+    ln -sfn "$1" "$RICE_DIR/.current.tmp"
+    mv -T "$RICE_DIR/.current.tmp" "$RICE_DIR/current"
+}
+
+switch_to() {
+    local target="$1" from
+    [[ -f "$RICE_DIR/$target/palette.toml" ]] || die "no such rice: $target (try: rice list)"
+    from="$(current || true)"
+    if [[ "$target" == "$from" && "${RICE_FORCE:-0}" != 1 ]]; then
+        log "$target is already active"; return 0
+    fi
+
+    # one switch at a time; a second Super+T spam just waits its turn
+    exec 9>"$RUN_DIR/lock"
+    flock 9
+
+    log "${from:-none} → $target"
+    freeze
+
+    swap_link "$target"
+    step apply_hypr "$target"
+    step apply_gtk "$target"
+    step apply_kitty
+    step apply_nvim "$target"
+    step apply_swaync
+    step apply_wallpaper
+    step apply_bar
+    step apply_hook "$target"
+    ags_req reload || true            # chooser picks up the new current rice
+
+    sleep "${RICE_SETTLE:-0.35}"      # give the bar and wallpaper a frame to draw
+    dissolve "$target"
+
+    printf '%s\n' "$target" > "$STATE_DIR/last"
+}
+
+cycle() {
+    local list cur i n
+    mapfile -t list < <(rices)
+    n=${#list[@]}; (( n )) || die "no rices in $RICE_DIR"
+    cur="$(current || true)"
+    for i in "${!list[@]}"; do [[ "${list[$i]}" == "$cur" ]] && break; done
+    [[ "${list[$i]:-}" == "$cur" ]] || i=-1
+    switch_to "${list[$(( (i + $1 + n) % n ))]}"
+}
+
+# ── auto mode ────────────────────────────────────────────────────────────────
+# Schedule lives in $RICE_DIR/auto.conf as "HH:MM rice" lines; the last entry
+# whose time has passed wins (wrapping round midnight).
+auto_target() {
+    local conf="$RICE_DIR/auto.conf" now best="" last="" t r
+    [[ -f "$conf" ]] || die "missing $conf"
+    now="$(date +%H%M)"
+    while read -r t r _; do
+        [[ -z "$t" || "$t" == \#* ]] && continue
+        last="$r"
+        (( 10#${t/:/} <= 10#$now )) && best="$r"
+    done < <(sort "$conf" | grep -v '^[[:space:]]*#')
+    printf '%s\n' "${best:-$last}"
+}
+
+auto() {
+    case "${1:-status}" in
+        on)
+            systemctl --user enable --now "$AUTO_TIMER" >/dev/null
+            rm -f "$STATE_DIR/auto-slot"
+            auto apply ;;
+        off)
+            systemctl --user disable --now "$AUTO_TIMER" >/dev/null ;;
+        status)
+            if systemctl --user is-enabled --quiet "$AUTO_TIMER" 2>/dev/null; then
+                echo on
+            else
+                echo off
+            fi ;;
+        apply)
+            # Only act when the scheduled slot changes, so a manual switch
+            # sticks until the next boundary instead of being undone every tick.
+            local target
+            target="$(auto_target)"
+            if [[ "$(cat "$STATE_DIR/auto-slot" 2>/dev/null)" != "$target" ]]; then
+                printf '%s\n' "$target" > "$STATE_DIR/auto-slot"
+                switch_to "$target"
+            fi ;;
+        *) die "usage: rice auto on|off|status|apply" ;;
+    esac
+}
+
+choose() {
+    have ags || die "ags is not installed"
+    if ! ags_running; then
+        setsid -f ags run "${XDG_CONFIG_HOME:-$HOME/.config}/ags/rice" >/dev/null 2>&1
+        for _ in $(seq 40); do ags_running && break; sleep 0.05; done
+    fi
+    ags_req toggle
+}
+
+usage() { sed -n '2,16p' "$0" | sed 's/^# \{0,1\}//'; }
+
+case "${1:-}" in
+    ""|-h|--help|help) usage ;;
+    list)
+        cur="$(current || true)"
+        while read -r r; do
+            if [[ "$r" == "$cur" ]]; then printf '* %s\n' "$r"; else printf '  %s\n' "$r"; fi
+        done < <(rices) ;;
+    current) current || die "no active rice" ;;
+    get)
+        [[ -n "${2:-}" && "$2" == *.* ]] || die "usage: rice get section.key"
+        toml_get "$RICE_DIR/current/palette.toml" "${2%%.*}" "${2#*.}" ;;
+    next) cycle 1 ;;
+    prev) cycle -1 ;;
+    auto) shift; auto "$@" ;;
+    choose) choose ;;
+    reapply) RICE_FORCE=1 switch_to "$(current)" ;;
+    -*) die "unknown option: $1" ;;
+    *) switch_to "$1" ;;
+esac

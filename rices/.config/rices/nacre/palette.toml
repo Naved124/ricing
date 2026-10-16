@@ -1,0 +1,42 @@
+# Nacre — mother-of-pearl. Soft iridescent glass over deep violet.
+# Single source of truth: every app theme is rendered from this file.
+
+[meta]
+name = "nacre"
+title = "Nacre"
+tagline = "iridescent glass, evening light"
+transition = "ripple"
+
+[colors]
+bg      = "#1c1b22"
+surface = "#2a2833"
+overlay = "#3a3746"
+fg      = "#ece8f2"
+muted   = "#9a94a8"
+accent  = "#b8a6ff"
+accent2 = "#8fd3e0"
+accent3 = "#f2b8c6"
+red     = "#f08a9b"
+green   = "#a6e3b8"
+yellow  = "#f3d9a4"
+blue    = "#9db8ff"
+
+[fonts]
+ui   = "Inter"
+mono = "JetBrains Mono"
+size = 11
+
+[shape]
+radius = 18
+border = 2
+gaps   = 10
+
+[gtk]
+theme        = "adw-gtk3-dark"
+icons        = "Papirus-Dark"
+cursor       = "Bibata-Modern-Ice"
+cursor_size  = 24
+color_scheme = "prefer-dark"
+
+[nvim]
+colorscheme = "rice-nacre"

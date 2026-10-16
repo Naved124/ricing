@@ -1,0 +1,8 @@
+[Unit]
+Description=Switch rice for the time of day
+After=graphical-session.target
+PartOf=graphical-session.target
+
+[Service]
+Type=oneshot
+ExecStart=%h/.local/bin/rice auto apply

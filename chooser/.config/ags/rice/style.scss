@@ -1,0 +1,117 @@
+// Base look for the chooser and the switch overlay. Each card's colours come
+// from its rice's palette.toml (see lib/rices.ts) plus that rice's card.css.
+
+$dim: rgba(8, 8, 10, 0.72);
+$ink: #e8e6ea;
+$muted: rgba(232, 230, 234, 0.55);
+
+window.chooser {
+  background-color: $dim;
+  color: $ink;
+}
+
+.chooser .content {
+  padding: 40px;
+}
+
+.chooser .heading {
+  font-size: 13px;
+  letter-spacing: 4px;
+  color: $muted;
+}
+
+.card {
+  padding: 18px;
+  transition:
+    transform 240ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    box-shadow 240ms ease,
+    border-color 240ms ease;
+
+  .title {
+    font-size: 24px;
+    font-weight: 600;
+  }
+
+  .tagline {
+    font-size: 12px;
+  }
+
+  .badge {
+    font-size: 11px;
+    letter-spacing: 1px;
+  }
+
+  .swatch {
+    min-width: 22px;
+    min-height: 22px;
+    border-radius: 999px;
+  }
+
+  .mock .bar {
+    margin: 6px 8px 0 8px;
+    border-radius: 3px;
+  }
+}
+
+.card.selected {
+  transform: translateY(-8px);
+}
+
+.chooser .footer {
+  padding-top: 8px;
+
+  .auto-label {
+    font-weight: 600;
+  }
+
+  .hint {
+    font-size: 11px;
+    color: $muted;
+  }
+}
+
+// ── switch overlay ──────────────────────────────────────────────────────────
+// The frozen screenshot. Transitions live only on .dissolve, so resetting the
+// classes for the next switch snaps back instantly instead of animating.
+// These are first-pass versions; the bespoke shader transitions come later.
+
+window.freeze {
+  background-color: transparent;
+}
+
+.frame.dissolve {
+  opacity: 0;
+}
+
+.frame.dissolve.fade {
+  transition: opacity 450ms ease-out;
+}
+
+// into Nacre: the old screen blooms and melts into pearl
+.frame.dissolve.ripple {
+  transform: scale(1.06);
+  filter: blur(14px) saturate(1.8) hue-rotate(40deg);
+  transition:
+    opacity 750ms cubic-bezier(0.4, 0, 0.2, 1),
+    transform 750ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    filter 750ms ease-out;
+}
+
+// into Urushi: darkens like a lid closing, then lifts away
+.frame.dissolve.lacquer {
+  transform: translateY(-1400px);
+  filter: brightness(0);
+  transition:
+    filter 350ms ease-in,
+    transform 600ms cubic-bezier(0.7, 0, 0.2, 1) 300ms,
+    opacity 200ms linear 750ms;
+}
+
+// into Paper: the old page tilts and is drawn off to the top-left
+.frame.dissolve.peel {
+  transform-origin: 0 0;
+  transform: rotate(-14deg) translate(-1800px, -300px);
+  transition:
+    transform 850ms cubic-bezier(0.5, 0, 0.2, 1),
+    opacity 250ms linear 600ms;
+}
