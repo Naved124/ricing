@@ -13,6 +13,7 @@ Singleton {
 
     property bool launcherOpen: false
     property string launcherMode: ""      // "", "=", "/", ":", ">", "?", "!"
+    property string launcherText: ""      // prefilled query (ipc: shell search)
     property bool centerOpen: false
     property string centerFocus: ""       // "", "calendar", "media"
     property bool powerOpen: false
@@ -23,6 +24,9 @@ Singleton {
     property point orbCenter: Qt.point(0, 0)
     property var orbScreen: null
 
+    // a small pill under the bar (osd/Toast.qml shows it)
+    signal toast(string icon, string text)
+
     function toggleLauncher(mode) {
         if (launcherOpen && (mode === undefined || mode === launcherMode)) {
             launcherOpen = false;
@@ -30,6 +34,7 @@ Singleton {
         }
         closeAll();
         launcherMode = mode ?? "";
+        launcherText = "";
         launcherOpen = true;
     }
 

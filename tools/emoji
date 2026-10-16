@@ -1,0 +1,44 @@
+#!/usr/bin/env python3
+"""Regenerate the launcher's bundled emoji list from Python's Unicode tables.
+
+    tools/emoji   -> quickshell/.config/quickshell/nacre/launcher/emoji.json
+
+Each entry is [glyph, lowercase name]. Skin-tone modifiers are left out, and
+text-style symbols get U+FE0F so they draw as emoji.
+"""
+
+import json
+import pathlib
+import unicodedata
+
+RANGES = [(0x1F300, 0x1F5FF), (0x1F600, 0x1F64F), (0x1F680, 0x1F6FF),
+          (0x1F900, 0x1F9FF), (0x1FA70, 0x1FAFF), (0x2600, 0x26FF), (0x2700, 0x27BF)]
+# symbols in the BMP ranges that are actually emoji
+BMP = {0x2600, 0x2601, 0x2602, 0x2603, 0x2614, 0x2615, 0x2618, 0x261D, 0x263A, 0x2640,
+       0x2642, *range(0x2648, 0x2654), 0x2660, 0x2663, 0x2665, 0x2666, 0x267B, 0x267F,
+       0x2693, 0x26A0, 0x26A1, 0x26AA, 0x26AB, 0x26BD, 0x26BE, 0x26C4, 0x26C5, 0x26D4,
+       0x26EA, 0x26F2, 0x26F3, 0x26F5, 0x26FA, 0x26FD, 0x2702, 0x2705, 0x2708, 0x2709,
+       0x270A, 0x270B, 0x270C, 0x270D, 0x270F, 0x2712, 0x2714, 0x2716, 0x2728, 0x2733,
+       0x2734, 0x2744, 0x2747, 0x274C, 0x274E, 0x2753, 0x2754, 0x2755, 0x2757, 0x2763,
+       0x2764, 0x2795, 0x2796, 0x2797, 0x27A1, 0x27B0, 0x27BF}
+
+out = []
+for lo, hi in RANGES:
+    for cp in range(lo, hi + 1):
+        if 0x1F3FB <= cp <= 0x1F3FF:
+            continue
+        try:
+            name = unicodedata.name(chr(cp))
+        except ValueError:
+            continue
+        ch = chr(cp)
+        if cp < 0x2B00:
+            if cp not in BMP:
+                continue
+            if not 0x26AA <= cp < 0x26FF and unicodedata.east_asian_width(ch) != "W":
+                ch += "️"
+        out.append([ch, name.lower()])
+
+dest = pathlib.Path(__file__).resolve().parent.parent / "quickshell/.config/quickshell/nacre/launcher/emoji.json"
+dest.write_text(json.dumps(out, ensure_ascii=False, separators=(",", ":")))
+print(f"{len(out)} emoji -> {dest}")

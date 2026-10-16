@@ -45,6 +45,7 @@ var paths = {
     "rocket":      '<path d="M12 15l-3-3a13 13 0 0 1 9.5-8.5 13 13 0 0 1-8.5 9.5"/><path d="M9 12l-3.5.5L4 10l4.5-2"/><path d="M12 15l-.5 3.5L14 20l2-4.5"/><path d="M5.5 18.5c1-2 2.5-2.5 3.5-1.5"/>',
     "record":      '<circle cx="12" cy="12" r="5" fill="C"/>',
     "send":        '<path d="M4 12l16-7-6 16-3-7z"/><path d="M11 13l9-8"/>',
+    "file":        '<path d="M7 3.5h6.5l4.5 4.5v10A2.5 2.5 0 0 1 15.5 20.5h-8.5A2.5 2.5 0 0 1 4.5 18V6A2.5 2.5 0 0 1 7 3.5z"/><path d="M13 3.5V8h5"/>',
     "app":         '<rect x="4" y="4" width="16" height="16" rx="4.5"/>',
     "keyboard":    '<rect x="2.5" y="6" width="19" height="12" rx="3"/><path d="M6 10h.01M9 10h.01M12 10h.01M15 10h.01M18 10h.01M8 14h8" stroke-width="2"/>',
     "brightness":  '<circle cx="12" cy="12" r="3.5"/><path d="M12 3v2.5M12 18.5V21M3 12h2.5M18.5 12H21M5.6 5.6l1.8 1.8M16.6 16.6l1.8 1.8M5.6 18.4l1.8-1.8M16.6 7.4l1.8-1.8"/>',

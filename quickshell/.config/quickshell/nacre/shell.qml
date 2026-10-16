@@ -6,7 +6,9 @@
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import Quickshell.Hyprland
 import qs.bar
+import qs.launcher
 import qs.notifs
 import qs.osd
 import qs.services
@@ -26,7 +28,20 @@ ShellRoot {
     // follow the focused monitor
     Popups {}
     Osd {}
-    Toast { id: toaster }
+    Toast {}
+    Launcher {}
+
+    // Hyprland binds: hl.dsp.global("quickshell:<name>")
+    GlobalShortcut {
+        name: "launcher"
+        description: "Open the launcher"
+        onPressed: { Shell.orbScreen = null; Shell.toggleLauncher(""); }
+    }
+    GlobalShortcut {
+        name: "clipboard"
+        description: "Open clipboard history in the launcher"
+        onPressed: { Shell.orbScreen = null; Shell.toggleLauncher("!"); }
+    }
 
     // qs -c nacre ipc call shell <function> [args]
     IpcHandler {
@@ -34,6 +49,15 @@ ShellRoot {
         function dnd(on: bool): void { Shell.setDnd(on); }
         function toggleDnd(): void { Shell.setDnd(!Shell.dnd); }
         function recording(on: bool): void { Shell.recording = on; }
-        function toast(icon: string, text: string): void { toaster.show(icon, text); }
+        function toast(icon: string, text: string): void { Shell.toast(icon, text); }
+        function launcher(mode: string): void { Shell.orbScreen = null; Shell.toggleLauncher(mode); }
+        // open the launcher with text already typed, e.g. "=2^10" or ":heart"
+        function search(text: string): void {
+            Shell.orbScreen = null;
+            Shell.closeAll();
+            Shell.launcherMode = "";
+            Shell.launcherText = text;
+            Shell.launcherOpen = true;
+        }
     }
 }

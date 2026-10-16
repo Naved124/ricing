@@ -9,7 +9,7 @@ import qs.common
 import qs.services
 
 // Small pill toasts under the bar: Caps Lock and microphone mute.
-// Other parts of the shell can call show(icon, text) too (e.g. screenshots).
+// Anything else asks through Shell.toast(icon, text) (e.g. screenshots, the launcher).
 PanelWindow {
     id: win
 
@@ -40,6 +40,10 @@ PanelWindow {
     Timer { interval: 1500; running: true; onTriggered: win.armed = true }
     Timer { id: hideTimer; interval: 1400; onTriggered: win.shown = false }
 
+    Connections {
+        target: Shell
+        function onToast(icon, text) { win.show(icon, text); }
+    }
     Connections {
         target: Audio
         function onMicMutedChanged() {
