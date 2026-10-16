@@ -161,7 +161,7 @@ class EndToEnd(unittest.TestCase):
         (self.rices / "paper/templates").mkdir(parents=True, exist_ok=True)
         (self.rices / "paper/templates/kitty.conf").write_text("bg {{ roles.bg }}\n")
         self.run_render("paper", "-q")
-        self.assertEqual((self.rices / "paper/build/kitty.conf").read_text(), "bg #f4efe4\n")
+        self.assertEqual((self.rices / "paper/build/kitty.conf").read_text(), "bg #f7f5ef\n")
 
     def test_install_writes_through_stow_symlinks(self):
         real = self.home / "repo-theme.qml"
@@ -233,14 +233,61 @@ class EndToEnd(unittest.TestCase):
 
 class CommittedOutputs(unittest.TestCase):
     def test_committed_theme_qml_matches_palette(self):
-        """quickshell/.config/quickshell/nacre/Theme.qml must be regenerated after palette edits."""
-        committed = REPO / "quickshell/.config/quickshell/nacre/Theme.qml"
-        if not committed.exists():
-            self.skipTest("Theme.qml not committed yet")
-        ctx = ctx_for("nacre")
-        src = RICES / "nacre/templates/quickshell/Theme.qml"
-        self.assertEqual(committed.read_text(), rr.render_text(src.read_text(), ctx, str(src)),
-                         "run: rice-render nacre (or tests/regen.sh)")
+        """Each shell's committed Theme.qml must be regenerated after palette edits."""
+        for name, rel in (("nacre", "nacre/Theme.qml"), ("paper", "paper/common/Theme.qml")):
+            with self.subTest(name):
+                committed = REPO / "quickshell/.config/quickshell" / rel
+                ctx = ctx_for(name)
+                # the [install] entry is what puts it there
+                self.assertEqual(ctx["install"]["quickshell/Theme.qml"], f".config/quickshell/{rel}")
+                src = RICES / name / "templates/quickshell/Theme.qml"
+                self.assertEqual(committed.read_text(), rr.render_text(src.read_text(), ctx, str(src)),
+                                 "run: tools/regen")
+
+
+def contrast(a: str, b: str) -> float:
+    hi, lo = sorted((rr.luminance(a), rr.luminance(b)), reverse=True)
+    return (hi + 0.05) / (lo + 0.05)
+
+
+class Paper(unittest.TestCase):
+    def setUp(self):
+        self.ctx = ctx_for("paper")
+
+    def test_normal_ansi_colours_read_on_the_paper(self):
+        bg = self.ctx["roles"]["term_bg"]
+        self.assertEqual(bg, "#f7f5ef")
+        for i in range(8):
+            c = self.ctx["ansi"][f"color{i}"]
+            with self.subTest(f"color{i} {c}"):
+                self.assertGreaterEqual(contrast(c, bg), 4.5)
+
+    def test_text_roles_read_on_the_paper(self):
+        r = self.ctx["roles"]
+        for role in ("fg", "accent", "urgent", "success", "warning", "cursor", "term_fg"):
+            with self.subTest(role):
+                self.assertGreaterEqual(contrast(r[role], r["bg"]), 4.5)
+        # carbon type on the highlighter
+        self.assertGreaterEqual(contrast(r["term_fg"], r["selection"]), 4.5)
+
+    def test_mood(self):
+        m = self.ctx["meta"]
+        self.assertEqual((m["shell"], m["notifications"], m["wallpaper"], m["lock"]),
+                         ("paper", "shell", "shell", "shell"))
+        self.assertEqual(self.ctx["derived"]["variant"], "light")
+        self.assertTrue(all(v == 1.0 for v in self.ctx["opacity"].values()), "Paper has no transparency")
+
+    def test_fonts_are_vendored_with_their_licences(self):
+        fonts = REPO / "fonts/.local/share/fonts/paper"
+        files = {f.name for f in fonts.iterdir()}
+        f = self.ctx["fonts"]
+        for family, prefix in ((f["type"], "CourierPrime"), (f["hand"], "Kalam"), (f["serif"], "Newsreader")):
+            with self.subTest(family):
+                self.assertTrue(any(n.startswith(prefix) and n.endswith(".ttf") for n in files))
+                self.assertIn(f"OFL-{prefix}.txt", files)
+        for weight in ("Light", "Regular", "Bold"):
+            self.assertIn(f"Kalam-{weight}.ttf", files)
+        self.assertEqual({f["display"], f["ui"], f["mono"]} - {f["type"], f["hand"], f["serif"]}, set())
 
 
 if __name__ == "__main__":

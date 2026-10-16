@@ -1,109 +1,150 @@
-# Paper — warm off-white stock, ink blue and a red seal. Daylight rice.
+# Paper — a desk in daylight. Windows are sheets, the terminal is a
+# typewriter, notifications are sticky notes, and closing a window crumples
+# it into the bin.
+#   · light everywhere: no blur, no transparency, no glass
+#   · shadows do the separating (no borders), warm brown, never black
+#   · ink blue for what's active, the ribbon red for what needs you
+#
+# Single source of truth. `rice-render paper` turns this file into Theme.qml
+# and every app theme; never hand-edit the generated files.
 
 [meta]
 name          = "paper"
 title         = "Paper"
-tagline       = "ink on warm stock, daylight"
-transition    = "peel"
-shell         = ""            # no Quickshell config yet
-notifications = "swaync"
-wallpaper     = "files"
-lock          = "hyprlock"
+tagline       = "sheets on a desk, typewriter and pencil"
+transition    = "peel"        # the page peeled from the bottom-right corner
+shell         = "paper"       # Quickshell config: qs -c paper
+notifications = "shell"       # sticky notes from the shell (no swaync)
+wallpaper     = "shell"       # the shell shows assets/wall.png (no swww)
+lock          = "shell"       # the torn envelope (no hyprlock)
+mood          = "light"       # no blur, no transparency
+# Hyprland's decoration:screen_shader while this rice is active (relative to
+# the rice folder). `rice` clears it when switching to a rice without one,
+# and `rice grain off` turns it off without leaving Paper.
+screen_shader = "grain.frag"
 
 [colors]
-stock    = "#f4efe4"
-stock2   = "#ebe4d4"
-stock3   = "#ded5c1"
-ink      = "#2b2620"
-graphite = "#7c7365"
-ink_blue = "#2f5d8a"
-seal     = "#b24a3a"
-fern     = "#5e7d4a"
-ochre    = "#a8842f"
-kraft    = "#c9b994"
-umber    = "#2b2620"
+desk     = "#d9d6cc"   # the desk under everything
+wall     = "#ebe8df"   # the drafting sheet on the desk (wallpaper)
+paper    = "#f7f5ef"   # windows, the terminal
+card     = "#fbfaf6"   # index cards: bar, launcher, panels
+kraft    = "#d8b98a"   # manila folders, the envelope's desk
+ink      = "#1c2a6e"   # fountain-pen blue: active, accent
+pencil   = "#4b4a46"   # body text
+graphite = "#8d8a82"   # secondary text, outlines
+red      = "#c8372d"   # the typewriter ribbon: alerts, the clock, ticks
+rule     = "#a8c3e4"   # ruled lines
+margin   = "#e3958f"   # the red margin line
+sticky   = "#f6e15f"   # yellow notes, the highlighter
+pink     = "#ffb6c8"   # urgent notes, washi tape
+mint     = "#b8e5c8"   # quiet notes
+carbon   = "#24231f"   # typewriter type
+fern     = "#2f6b3d"   # green ink
+ochre    = "#946617"   # yellow ochre (darkened from #a8741a to read on paper)
+plum     = "#8a3b7a"
+teal     = "#2d6f78"
+umber    = "#3c2d14"   # shadow colour: warm brown
+crease   = "#d9d4c6"   # hairlines and dividers
+manila   = "#3a2c14"   # text on kraft
+envelope = "#f3ead6"   # the lock screen's envelope
 
+# Roles name a colour above; templates shared by every rice only use roles.
 [roles]
-bg        = "stock"
-surface   = "stock2"
-overlay   = "stock3"
-border    = "stock3"
-fg        = "ink"
+bg        = "paper"
+surface   = "card"
+overlay   = "desk"
+border    = "crease"
+fg        = "pencil"
 muted     = "graphite"
-accent    = "ink_blue"
-urgent    = "seal"
-selection = "kraft"
+accent    = "ink"
+urgent    = "red"
+selection = "sticky"    # a highlighter stroke, with carbon text on it
 success   = "fern"
 warning   = "ochre"
-cursor    = "ink"
-link      = "ink_blue"
+cursor    = "carbon"
+link      = "ink"
 shadow    = "umber"
-term_bg   = "stock"
-term_fg   = "ink"
+term_bg   = "paper"
+term_fg   = "carbon"
 
 [gradient]
-stops = ["ink_blue", "seal"]
+stops = ["ink", "red", "sticky"]
 angle = 0
 
 [ansi]
-color0  = "#2b2620"
-color1  = "#b24a3a"
-color2  = "#5e7d4a"
-color3  = "#a8842f"
-color4  = "#2f5d8a"
-color5  = "#8a4f7d"
-color6  = "#3f7f7a"
-color7  = "#ebe4d4"
-color8  = "#7c7365"
-color9  = "#c9604f"
-color10 = "#73945d"
-color11 = "#c19c44"
-color12 = "#4a77a4"
-color13 = "#a36894"
-color14 = "#569791"
-color15 = "#f4efe4"
+# A typewriter's ribbon on paper. Every normal colour holds at least 4.5:1
+# against #f7f5ef (tests/test_render.py checks it): color3 and color7 are
+# darkened from the preview's #a8741a and #8d8a82, which read at 3.7 and 3.2.
+color0  = "#24231f"
+color1  = "#c8372d"
+color2  = "#2f6b3d"
+color3  = "#946617"
+color4  = "#1c2a6e"
+color5  = "#8a3b7a"
+color6  = "#2d6f78"
+color7  = "#716f67"
+color8  = "#4b4a46"
+color9  = "#e0503f"
+color10 = "#3f8a52"
+color11 = "#c48e2a"
+color12 = "#3348a0"
+color13 = "#a65596"
+color14 = "#3c8a94"
+color15 = "#d9d6cc"
 
 [fonts]
-display   = "IBM Plex Serif"
-ui        = "IBM Plex Sans"
-mono      = "IBM Plex Mono"
+display   = "Newsreader"      # clocks, the calendar's day, song titles
+ui        = "Newsreader"      # GTK, Qt and browser chrome: a book serif reads better than a hand
+mono      = "Courier Prime"   # the typewriter
 ui_size   = 14
 mono_size = 15
+# Paper's shell writes in three hands
+type      = "Courier Prime"
+hand      = "Kalam"           # 300, 400 and 700
+serif     = "Newsreader"
 
-# weights everywhere (shell, GTK, Qt, kitty, browsers): body text and
-# emphasis, on the CSS scale (400 regular, 600 semibold, 700 bold)
-weight         = 600
+# weights on the CSS scale; Courier Prime and Kalam come in 400 and 700
+weight         = 400
 weight_strong  = 700
 display_weight = 600
 
 [shape]
-window         = 4
+window         = 3      # paper has corners
 rounding_power = 2.0
-panel          = 4
-popup          = 4
-chip           = 4
-border         = 1
-gaps_in        = 4
-gaps_out       = 8
+panel          = 3
+popup          = 3
+chip           = 2
+border         = 0      # no borders: shadows only
+gaps_in        = 10
+gaps_out       = 22
 
 [opacity]
 terminal = 1.0
+active   = 1.0
 inactive = 1.0
-glass    = 0.96
+glass    = 1.0
+
+# The wallpaper is a still image (assets/wall.png); boot screens shade from
+# the wall into the desk.
+[wallpaper]
+image  = "assets/wall.png"
+ground = ["wall", "desk"]
 
 [motion]
-bloom  = [0.5, 0.0, 0.2, 1.0]
-settle = [0.5, 0.0, 0.2, 1.0]
-sink   = [0.5, 0.0, 0.2, 1.0]
-open        = 400
-close       = 300
-move        = 400
-workspace   = 500
-scratchpad  = 400
+# cubic-bezier control points, shared by Hyprland and the shell
+bloom  = [0.2, 1.3, 0.4, 1.0]    # "drop": a sheet dropped onto the desk
+settle = [0.2, 1.5, 0.4, 1.0]    # "slap": a sticky note pressed down
+sink   = [0.5, 0.0, 0.75, 0.4]   # "toss": thrown away
+# milliseconds
+open        = 500
+close       = 400
+move        = 500
+workspace   = 700
+scratchpad  = 500
 focus       = 300
 border_loop = 0
-panel_in    = 300
-panel_out   = 250
+panel_in    = 400
+panel_out   = 300
 stagger     = 30
 
 [gtk]
@@ -114,4 +155,8 @@ cursor_size  = 24
 color_scheme = "prefer-light"
 
 [nvim]
-colorscheme = "rice"   # build/nvim/rice.lua, linked into ~/.config/nvim/colors
+colorscheme = "rice"   # build/nvim/rice.lua (Paper's own scheme), linked into ~/.config/nvim/colors
+
+# Generated files that live outside build/ (path relative to $HOME).
+[install]
+"quickshell/Theme.qml" = ".config/quickshell/paper/common/Theme.qml"

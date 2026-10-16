@@ -118,12 +118,20 @@ class Switch(unittest.TestCase):
     def test_leaving_a_shell_kills_it(self):
         self.rice("nacre")
         self.log.unlink()
-        r = self.rice("paper")
+        r = self.rice("urushi")
         self.assertEqual(r.returncode, 0, r.stderr)
         calls = self.calls()
         self.assertIn("qs kill -c nacre", calls)
-        self.assertFalse(any(c.startswith("qs -n -c paper") for c in calls))
-        self.index(calls, "qs -c rice ipc call rice dissolve paper")
+        self.assertFalse(any(c.startswith("qs -n -c urushi") for c in calls))
+        self.index(calls, "qs -c rice ipc call rice dissolve urushi")
+
+    def test_shell_to_shell(self):
+        self.rice("nacre")
+        self.log.unlink()
+        r = self.rice("paper")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        calls = self.calls()
+        self.assertLess(self.index(calls, "qs kill -c nacre"), self.index(calls, "qs -n -c paper -d"))
 
     def test_failing_step_still_dissolves(self):
         render = Path(self.env["PATH"].split(":")[0]) / "rice-render"
