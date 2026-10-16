@@ -9,7 +9,8 @@
 # Options:
 #   --rice NAME     the rice to make active (default: keep the current one, else nacre)
 #   --no-deps       don't install packages (just report what's missing)
-#   --no-fonts      don't download Italiana, Manrope and IBM Plex Mono
+#   --no-fonts      don't download Italiana, Manrope and IBM Plex Mono (Paper's
+#                   fonts ship in the repo's fonts/ package and are always linked)
 #   --no-firefox    don't touch Firefox profiles
 #   --auto          enable the time-of-day timer (see ~/.config/rices/auto.conf)
 #   --system        also theme Limine, the Plymouth splash and the greetd/ReGreet
@@ -26,7 +27,7 @@
 set -euo pipefail
 
 repo=$(cd "$(dirname "$0")" && pwd)
-packages=(switcher render rices hypr quickshell systemd)
+packages=(switcher render rices hypr quickshell systemd fonts)
 backup="${XDG_STATE_HOME:-$HOME/.local/state}/rice/backup/$(date +%Y%m%d-%H%M%S)"
 fontdir="${XDG_DATA_HOME:-$HOME/.local/share}/fonts/rice"
 fonts_url="https://raw.githubusercontent.com/google/fonts/main/ofl"
@@ -106,16 +107,28 @@ optional=(
     qt6ct:qt6ct
     hyprshutdown:hyprshutdown
 )
+# Python modules, checked by import: Pillow regenerates Paper's paper textures
+# and wallpaper (rices/paper/assets/gen.py)
+pymods=(
+    "PIL|python-pillow"
+)
 # themes the palettes name (checked by folder, since they aren't commands)
 themes=(
     "adw-gtk3|adw-gtk-theme"
     "Colloid-Light|colloid-icon-theme-git"
     "Bibata-Modern-Ice|bibata-cursor-theme-bin"
+    "Papirus-Light|papirus-icon-theme"
 )
 
 missing_pkgs() {
     local entry
     for entry in "$@"; do have "${entry%%:*}" || printf '%s\n' "${entry#*:}"; done
+}
+missing_pymods() {
+    local entry
+    for entry in "${pymods[@]}"; do
+        python3 -c "import ${entry%%|*}" 2>/dev/null || printf '%s\n' "${entry#*|}"
+    done
 }
 missing_themes() {
     local entry name d found
@@ -216,7 +229,7 @@ fi
 
 step "Packages"
 mapfile -t need < <(missing_pkgs "${required[@]}")
-mapfile -t want < <(missing_pkgs "${optional[@]}"; missing_themes)
+mapfile -t want < <(missing_pkgs "${optional[@]}"; missing_pymods; missing_themes)
 if [ ${#need[@]} -eq 0 ] && [ ${#want[@]} -eq 0 ]; then
     ok "everything is installed"
 elif [ "$deps" = 0 ] || ! have pacman; then
@@ -349,6 +362,8 @@ done
 [ -n "$missing" ] && warn "not installed: ${missing#, }"
 [ "$fetched" = 0 ] && [ -z "$missing" ] && ok "Italiana, Manrope, IBM Plex Mono"
 [ "$fetched" = 1 ] && have fc-cache && run fc-cache -f "$fontdir" >/dev/null
+# Courier Prime, Kalam and Newsreader (Paper) are OFL fonts kept in the repo's
+# fonts/ package; stow links them below and fc-cache picks them up there
 
 # ── dotfiles ────────────────────────────────────────────────────────────
 step "Linking the dotfiles"
@@ -379,6 +394,11 @@ done
 
 run stow --no-folding --ignore='__pycache__' --ignore='^build$' -d "$repo" -t "$HOME" -R "${packages[@]}"
 ok "linked: ${packages[*]}"
+paperfonts="${XDG_DATA_HOME:-$HOME/.local/share}/fonts/paper"
+if have fc-cache && [ -d "$paperfonts" ]; then
+    run fc-cache -f "$paperfonts" >/dev/null
+    ok "fonts: Courier Prime, Kalam, Newsreader"
+fi
 if [ "$moved" = 1 ]; then
     echo "  your old files are in $backup"
     echo "  machine-specific Hyprland bits (monitors, keyboard) go in ~/.config/hypr/local.lua"

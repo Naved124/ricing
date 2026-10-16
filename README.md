@@ -39,6 +39,7 @@ Install with [GNU Stow](https://www.gnu.org/software/stow/). Each folder is a pa
 | `hypr` | `~/.config/hypr/` | `hyprland.lua` (entry), `base.lua`, `hypridle.conf` |
 | `quickshell` | `~/.config/quickshell/{rice,nacre}/` | the shared chooser and switch overlay, and Nacre's shell |
 | `systemd` | `~/.config/systemd/user/rice-auto.*` | the timer for auto mode |
+| `fonts` | `~/.local/share/fonts/paper/` | Paper's OFL fonts: Courier Prime, Kalam, Newsreader (licences beside them) |
 | `system` | (not stowed) | the boot menu, splash and login screen, installed with sudo, see below |
 
 `./install` at the top level sets all of this up; see below.
@@ -57,6 +58,8 @@ That one script:
   other distros it lists what to install);
 - downloads Italiana, Manrope and IBM Plex Mono into `~/.local/share/fonts/rice` if you
   don't have them;
+- links Paper's fonts (Courier Prime, Kalam, Newsreader, all OFL) from the repo's `fonts/`
+  package and refreshes the font cache;
 - moves any file the dotfiles would replace (your old `hyprland.conf`, for instance) to
   `~/.local/state/rice/backup/<time>/`, then links everything with stow;
 - creates `~/.config/hypr/local.lua` and copies your monitor and keyboard settings into
@@ -121,7 +124,8 @@ backdrop), `swaync`, `swww`/`mpvpaper` and `hyprlock` (for rices without their o
 
 ```sh
 # stow refuses to overwrite files: move your own hyprland.lua/.conf aside first
-stow --no-folding -t ~ switcher render rices hypr quickshell systemd
+stow --no-folding -t ~ switcher render rices hypr quickshell systemd fonts
+fc-cache -f ~/.local/share/fonts/paper
 ln -sfn nacre ~/.config/rices/current
 rice-render --all
 rice-render --link --firefox
