@@ -79,14 +79,17 @@ hl.config({
 ---------------------------------------------------------------------------
 hl.curve("drop", { type = "bezier", points = { { {{ motion.bloom.0 }}, {{ motion.bloom.1 }} }, { {{ motion.bloom.2 }}, {{ motion.bloom.3 }} } } })
 hl.curve("toss", { type = "bezier", points = { { {{ motion.sink.0 }}, {{ motion.sink.1 }} }, { {{ motion.sink.2 }}, {{ motion.sink.3 }} } } })
+hl.curve("turn", { type = "bezier", points = { { {{ motion.turn.0 }}, {{ motion.turn.1 }} }, { {{ motion.turn.2 }}, {{ motion.turn.3 }} } } })
 
 -- speed is in deciseconds
 hl.animation({ leaf = "windowsIn",   enabled = true, speed = {{ motion.open | div(100) }},      bezier = "drop", style = "slide top" })
 -- the closest Hyprland gets to crumpling: shrink away fast
 hl.animation({ leaf = "windowsOut",  enabled = true, speed = {{ motion.close | div(100) }},     bezier = "toss", style = "popin 60%" })
 hl.animation({ leaf = "windowsMove", enabled = true, speed = {{ motion.move | div(100) }},      bezier = "drop" })
--- page turns
-hl.animation({ leaf = "workspaces",  enabled = true, speed = {{ motion.workspace | div(100) }}, bezier = "default", style = "slidevert" })
+-- page turns: workspaces slide sideways and the shell's page-turn layer
+-- (paper/turn/PageTurn.qml) draws the turning page's back along the seam,
+-- on the same curve and duration
+hl.animation({ leaf = "workspaces",  enabled = true, speed = {{ motion.workspace | div(100) }}, bezier = "turn", style = "slide" })
 hl.animation({ leaf = "specialWorkspace", enabled = true, speed = {{ motion.scratchpad | div(100) }}, bezier = "drop", style = "slidevert" })
 hl.animation({ leaf = "layersIn",    enabled = true, speed = {{ motion.panel_in | div(100) }},  bezier = "drop", style = "slide top" })
 hl.animation({ leaf = "layersOut",   enabled = true, speed = {{ motion.panel_out | div(100) }}, bezier = "toss", style = "fade" })
@@ -116,4 +119,4 @@ hl.window_rule({
 -- centre, the power card and the key sheet in from the top. No blur.
 ---------------------------------------------------------------------------
 hl.layer_rule({ name = "paper-wallpaper", match = { namespace = "^paper-wallpaper$" }, no_anim = true })
-hl.layer_rule({ name = "paper-still", match = { namespace = "^paper-(bar|desk|notes|osd)$" }, no_anim = true })
+hl.layer_rule({ name = "paper-still", match = { namespace = "^paper-(bar|desk|notes|osd|turn)$" }, no_anim = true })

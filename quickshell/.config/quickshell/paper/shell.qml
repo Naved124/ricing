@@ -19,6 +19,7 @@ import qs.notes
 import qs.osd
 import qs.power
 import qs.services
+import qs.turn
 import qs.wallpaper
 
 ShellRoot {
@@ -30,6 +31,12 @@ ShellRoot {
     Variants {
         model: Quickshell.screens
         Bar {}
+    }
+
+    // switching workspace turns a page
+    Variants {
+        model: Quickshell.screens
+        PageTurn {}
     }
 
     // the calendar and the wastebasket, under the windows; the month card

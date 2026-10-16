@@ -318,7 +318,7 @@ class Paper(unittest.TestCase):
                      '{ { 0.2, 1.3 }, { 0.4, 1 } }', '{ { 0.5, 0 }, { 0.75, 0.4 } }',
                      'leaf = "windowsIn",   enabled = true, speed = 5,      bezier = "drop", style = "slide top"',
                      'leaf = "windowsOut",  enabled = true, speed = 4,     bezier = "toss", style = "popin 60%"',
-                     'leaf = "workspaces",  enabled = true, speed = 7, bezier = "default", style = "slidevert"',
+                     'leaf = "workspaces",  enabled = true, speed = 7, bezier = "turn", style = "slide"',
                      '"^paper-wallpaper$" }, no_anim = true'):
             self.assertIn(want, rendered)
         self.assertNotIn("blur = true", rendered)

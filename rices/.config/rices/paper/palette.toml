@@ -135,6 +135,7 @@ ground = ["wall", "desk"]
 bloom  = [0.2, 1.3, 0.4, 1.0]    # "drop": a sheet dropped onto the desk
 settle = [0.2, 1.5, 0.4, 1.0]    # "slap": a sticky note pressed down
 sink   = [0.5, 0.0, 0.75, 0.4]   # "toss": thrown away
+turn   = [0.45, 0.05, 0.25, 1.0] # "turn": a page turned (workspaces)
 # milliseconds
 open        = 500
 close       = 400

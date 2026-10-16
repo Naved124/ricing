@@ -30,7 +30,8 @@ Three rices ship today:
 A desk in daylight, all light: no blur, no transparency, no borders. Windows are
 sheets with warm brown shadows, the terminal is a typewriter on paper stock, and
 Hyprland draws a faint paper grain over everything (`rice grain off` or Super+Shift+G
-turns it off, for games and video). The wallpaper, the paper texture and the stamp wear
+turns it off, for games and video). Switching workspace turns a page: Hyprland slides
+the workspaces sideways and the shell draws the turning page's back along the seam. The wallpaper, the paper texture and the stamp wear
 are drawn by `rices/.config/rices/paper/assets/gen.py` (needs `python-pillow`); the
 committed ones are 1920×1080, so for another screen run it with `--size 2560x1440`, then
 restart the shell.

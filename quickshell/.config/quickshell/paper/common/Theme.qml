@@ -83,6 +83,7 @@ Singleton {
     readonly property var drop:   [0.2, 1.3, 0.4, 1, 1, 1]
     readonly property var slap:   [0.2, 1.5, 0.4, 1, 1, 1]
     readonly property var toss:   [0.5, 0, 0.75, 0.4, 1, 1]
+    readonly property var turn:   [0.45, 0.05, 0.25, 1, 1, 1]
 
     readonly property int durOpen:      500
     readonly property int durClose:     400

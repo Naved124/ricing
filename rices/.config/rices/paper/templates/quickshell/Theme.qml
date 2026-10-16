@@ -83,6 +83,7 @@ Singleton {
     readonly property var drop:   {{ motion.bloom | curve }}
     readonly property var slap:   {{ motion.settle | curve }}
     readonly property var toss:   {{ motion.sink | curve }}
+    readonly property var turn:   {{ motion.turn | curve }}
 
     readonly property int durOpen:      {{ motion.open }}
     readonly property int durClose:     {{ motion.close }}
