@@ -76,6 +76,7 @@ hl.bind(key("Space"),  hl.dsp.global("quickshell:launcher"))
 hl.bind(key("N"),      hl.dsp.global("quickshell:center"))
 hl.bind(key("V"),      hl.dsp.global("quickshell:clipboard"))
 hl.bind(key("Escape"), hl.dsp.global("quickshell:power"))
+hl.bind(key("CTRL + L"), hl.dsp.exec_cmd("rice lock"))
 
 -- rices
 hl.bind(key("T"),         hl.dsp.exec_cmd("rice choose"))

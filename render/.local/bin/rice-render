@@ -149,6 +149,7 @@ def load_palette(rice: Path) -> dict:
     data["derived"] = {
         "is_light": luminance(data["roles"]["bg"]) > 0.5,
         "variant": "light" if luminance(data["roles"]["bg"]) > 0.5 else "dark",
+        "is_dark": luminance(data["roles"]["bg"]) <= 0.5,
         "rice_dir": str(rice),
         "build_dir": str(rice / "build"),
         "home": str(HOME),

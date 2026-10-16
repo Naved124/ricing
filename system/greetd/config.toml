@@ -1,0 +1,8 @@
+# greetd: ReGreet inside cage, a minimal kiosk compositor.
+# Installed to /etc/greetd/config.toml by ./install (run with sudo).
+[terminal]
+vt = 1
+
+[default_session]
+command = "cage -s -mlast -- regreet"
+user = "greeter"

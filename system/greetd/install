@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+# Install the login screen: greetd + ReGreet, themed by the active rice.
+#
+#   sudo system/greetd/install [IMAGE]
+#
+# Copies config.toml, the rice's rendered regreet.toml/.css and a background
+# (IMAGE, else the shell's still frame of the active rice) into /etc/greetd,
+# then enables greetd. Needs: greetd, greetd-regreet, cage.
+# Re-run after switching rices if you want the greeter to follow.
+set -euo pipefail
+
+[ "$(id -u)" -eq 0 ] || { echo "run with sudo: sudo $0 $*" >&2; exit 1; }
+
+here=$(cd "$(dirname "$0")" && pwd)
+user=${SUDO_USER:-$(logname 2>/dev/null || true)}
+[ -n "$user" ] || { echo "can't tell which user's rice to use; run through sudo" >&2; exit 1; }
+home=$(getent passwd "$user" | cut -d: -f6)
+
+rice=$(readlink -f "$home/.config/rices/current")
+name=$(basename "$rice")
+build="$rice/build/regreet"
+[ -f "$build/regreet.css" ] || { echo "no $build/regreet.css; run 'rice-render' as $user first" >&2; exit 1; }
+
+image=${1:-}
+if [ -z "$image" ]; then
+    for c in "$home/.cache/rice/$name/still.png" "$rice/wallpaper.png" "$rice/wallpaper.jpg"; do
+        [ -f "$c" ] && { image=$c; break; }
+    done
+fi
+
+for bin in greetd regreet cage; do
+    command -v "$bin" >/dev/null || echo "warning: $bin is not installed" >&2
+done
+
+install -Dm644 "$here/config.toml" /etc/greetd/config.toml
+install -Dm644 "$build/regreet.toml" /etc/greetd/regreet.toml
+install -Dm644 "$build/regreet.css" /etc/greetd/regreet.css
+if [ -n "$image" ]; then
+    install -Dm644 "$image" /etc/greetd/background.png
+else
+    echo "warning: no background image found; ReGreet will use its plain colour" >&2
+fi
+
+echo "installed the $name greeter into /etc/greetd"
+if ! systemctl is-enabled -q greetd 2>/dev/null; then
+    echo "enable it with:  sudo systemctl disable --now <your current display manager>; sudo systemctl enable greetd"
+fi
