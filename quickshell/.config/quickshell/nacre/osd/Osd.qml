@@ -89,6 +89,7 @@ PanelWindow {
                 anchors.topMargin: 48
                 anchors.bottomMargin: 46
                 width: 14
+                clip: true          // the fill never leaves the track, whatever the level
 
                 Rectangle {
                     anchors.fill: parent
