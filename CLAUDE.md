@@ -31,6 +31,7 @@ user-facing guide; this file is the contract every rice has to keep.
 | `quickshell/.config/quickshell/nacre/` | Nacre's own shell: bar, launcher, centre, OSD, notifs, lock, power, key sheet, wallpaper |
 | `quickshell/.config/quickshell/paper/` | Paper's own shell (same entry points); `common/Theme.qml` is generated, `common/Sheet.qml` is the paper every panel is cut from |
 | `fonts/.local/share/fonts/paper/` | Paper's vendored OFL fonts with their licences |
+| `zsh/.config/zsh/rice.zsh` | **shared** zsh setup (one line in `~/.zshrc` sources it); colours from `build/zsh.zsh`, reloaded on the next prompt after a switch |
 | `install` | user installer (`--fresh` for a bare Arch install) |
 | `system/install` | sudo part: Limine theme, Plymouth, greetd/ReGreet, keyring PAM, with backup/`--undo` |
 
@@ -72,6 +73,12 @@ placement and behaviour (dialogs float, pip floats, games tear). The rice's
 `templates/hypr.lua` decides how each tag looks (opacity, borders, blur).
 
 **Environment**: `~/.local/bin` is put on PATH; `QT_QPA_PLATFORMTHEME=qt6ct`.
+
+**Shell**: zsh + Starship, the same in every rice (`rice.zsh`). A rice only changes
+colours: `build/zsh.zsh` (from the shared template, ANSI colours only, since roles like
+mint vanish on light glass) and `starship.toml`. Prompt glyphs are Nerd Font codepoints:
+write them with `chr(0xf09b)`-style escapes, because private-use glyphs typed directly
+get lost.
 
 **Autostart**: `qs -c rice -d`, `rice session`, hypridle, hyprsunset, cliphist.
 

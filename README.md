@@ -70,6 +70,7 @@ Install with [GNU Stow](https://www.gnu.org/software/stow/). Each folder is a pa
 | `quickshell` | `~/.config/quickshell/{rice,nacre,paper}/` | the shared chooser and switch overlay, and Nacre's and Paper's shells |
 | `systemd` | `~/.config/systemd/user/rice-auto.*` | the timer for auto mode |
 | `fonts` | `~/.local/share/fonts/paper/` | Paper's OFL fonts: Courier Prime, Kalam, Newsreader (licences beside them) |
+| `zsh` | `~/.config/zsh/rice.zsh` | the shell setup, sourced from `~/.zshrc` (see Shell) |
 | `system` | (not stowed) | the boot menu, splash and login screen, installed with sudo, see below |
 
 `./install` at the top level sets all of this up; see below.
@@ -154,7 +155,7 @@ backdrop), `swaync`, `swww`/`mpvpaper` and `hyprlock` (for rices without their o
 
 ```sh
 # stow refuses to overwrite files: move your own hyprland.lua/.conf aside first
-stow --no-folding -t ~ switcher render rices hypr quickshell systemd fonts
+stow --no-folding -t ~ switcher render rices hypr quickshell systemd fonts zsh
 fc-cache -f ~/.local/share/fonts/paper
 ln -sfn nacre ~/.config/rices/current
 rice-render --all
@@ -231,12 +232,39 @@ rice-shot region     screenshot (also: screen, window, edit)
 
 Switches are serialised with `flock`, so pressing the key repeatedly just queues them.
 
+## Shell
+
+zsh is set up the same way in every rice; only its colours follow the rice. `./install`
+adds one line to `~/.zshrc`, and anything you write after it wins:
+
+```sh
+[ -f ~/.config/zsh/rice.zsh ] && source ~/.config/zsh/rice.zsh
+```
+
+- **Prompt:** Starship with the rice's `starship.toml`: an Arch glyph, folder glyphs
+  (home, Documents, Downloads, Music, Pictures, Videos, Projects, Code, .config), a
+  GitHub or GitLab glyph inside repositories, the branch, and language versions.
+- **Completion:** an arrow-key menu (Shift+Tab goes back), case-insensitive and
+  partial-word matching (`dow` finds `Downloads`), plus `zsh-completions`.
+- **Suggestions:** `zsh-autosuggestions` from history, then completion; → or Ctrl+Space
+  accepts.
+- **Highlighting:** `zsh-syntax-highlighting` in the rice's terminal colours (commands
+  green, aliases and functions violet, unknown commands red, strings amber, options
+  blue). Open shells pick up a rice switch on their next prompt.
+- **History:** 50 000 shared lines; Up/Down search for what's already typed.
+- **ls:** `eza` with icons (`ls`, `ll`, `la`, `lt`) when it's installed.
+
+Packages: `zsh starship eza zsh-autosuggestions zsh-syntax-highlighting
+zsh-history-substring-search zsh-completions ttf-nerd-fonts-symbols-mono` (the glyphs need
+the Nerd Font symbols; kitty 0.36+ also has them built in). Make zsh your shell with
+`chsh -s /usr/bin/zsh`, then `exec zsh`.
+
 ## Theme files
 
 `rice-render` reads `palette.toml` and writes every app's theme into the rice's `build/`
 folder. Templates live in `render/.local/share/rice/templates/`, and a rice's own
 `templates/` folder overrides any of them. It writes themes for kitty, nvim (with
-lualine), starship, btop, yazi, fastfetch, GTK 3 and 4, qt6ct, Firefox (chrome
+lualine), starship, zsh highlighting, btop, yazi, fastfetch, GTK 3 and 4, qt6ct, Firefox (chrome
 and a start page), Vesktop, Spicetify, mpv/uosc, imv, zathura, cava (in a terminal),
 ReGreet and Hyprland's visual layer. A theme for an app you don't use is just an unused
 file. Paper overrides kitty (Courier Prime on a tiled paper texture), nvim and lualine,

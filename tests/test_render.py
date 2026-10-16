@@ -7,6 +7,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import tomllib
 import unittest
 import zipfile
 from pathlib import Path
@@ -156,6 +157,22 @@ class EndToEnd(unittest.TestCase):
                 self.assertTrue(all(len(c) == 6 for c in colours), f"{name}: {key}")
         self.assertTrue((self.home / ".config/quickshell/nacre/Theme.qml").is_file())
         self.assertEqual(self.run_render("--all", "--check").returncode, 0)
+
+    def test_zsh_colours_and_prompt_glyphs(self):
+        self.assertEqual(self.run_render("--all", "-q").returncode, 0)
+        for name in ("nacre", "urushi", "paper"):
+            build = self.rices / name / "build"
+            zsh = (build / "zsh.zsh").read_text()
+            self.assertNotIn("{{", zsh, name)
+            self.assertRegex(zsh, r"ZSH_HIGHLIGHT_STYLES\[command\]='fg=#[0-9a-f]{6}'", name)
+            self.assertRegex(zsh, r"ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE='fg=#[0-9a-f]{6}'", name)
+            prompt = tomllib.loads((build / "starship.toml").read_text())
+            self.assertIn("${custom.github}", prompt["format"])
+            self.assertIn("Downloads", prompt["directory"]["substitutions"])
+            self.assertIn("github.com", prompt["custom"]["github"]["when"])
+        if shutil.which("zsh"):
+            p = subprocess.run(["zsh", "-n", str(self.rices / "nacre/build/zsh.zsh")])
+            self.assertEqual(p.returncode, 0)
 
     def test_check_reports_stale_output(self):
         self.run_render("--all", "-q")

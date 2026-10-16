@@ -27,7 +27,7 @@
 set -euo pipefail
 
 repo=$(cd "$(dirname "$0")" && pwd)
-packages=(switcher render rices hypr quickshell systemd fonts)
+packages=(switcher render rices hypr quickshell systemd fonts zsh)
 backup="${XDG_STATE_HOME:-$HOME/.local/state}/rice/backup/$(date +%Y%m%d-%H%M%S)"
 fontdir="${XDG_DATA_HOME:-$HOME/.local/share}/fonts/rice"
 fonts_url="https://raw.githubusercontent.com/google/fonts/main/ofl"
@@ -106,6 +106,7 @@ optional=(
     hyprlock:hyprlock swaync:swaync swww:swww nvim:neovim
     qt6ct:qt6ct
     hyprshutdown:hyprshutdown
+    zsh:zsh starship:starship eza:eza
 )
 # Python modules, checked by import: Pillow regenerates Paper's paper textures
 # and wallpaper (rices/paper/assets/gen.py)
@@ -118,6 +119,16 @@ themes=(
     "Colloid-Light|colloid-icon-theme-git"
     "Bibata-Modern-Ice|bibata-cursor-theme-bin"
     "Papirus-Light|papirus-icon-theme"
+)
+
+# zsh plugins and the Nerd Font glyphs, checked by file since they aren't
+# commands (or by pacman when the file is "-")
+files=(
+    "/usr/share/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh|zsh-autosuggestions"
+    "/usr/share/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh|zsh-syntax-highlighting"
+    "/usr/share/zsh/plugins/zsh-history-substring-search/zsh-history-substring-search.zsh|zsh-history-substring-search"
+    "-|zsh-completions"                       # no single telltale file: asked of pacman
+    "/usr/share/fonts/TTF/SymbolsNerdFontMono-Regular.ttf|ttf-nerd-fonts-symbols-mono"
 )
 
 missing_pkgs() {
@@ -140,6 +151,14 @@ missing_themes() {
         [ "$found" = 1 ] || printf '%s\n' "${entry#*|}"
     done
 }
+missing_files() {
+    local entry
+    for entry in "${files[@]}"; do
+        # the file, or failing that pacman's word that the package is in
+        [ -e "${entry%%|*}" ] || { have pacman && pacman -Qq "${entry#*|}" >/dev/null 2>&1; } \
+            || printf '%s\n' "${entry#*|}"
+    done
+}
 
 # ── fresh system ────────────────────────────────────────────────────────
 # What a minimal Arch install lacks that the rice leans on: the bar's network
@@ -151,6 +170,8 @@ fresh_pkgs=(
     xdg-desktop-portal-hyprland xdg-desktop-portal-gtk hyprpolkitagent
     firefox nautilus noto-fonts noto-fonts-cjk noto-fonts-emoji wpa_supplicant
     gnome-keyring libsecret seahorse
+    zsh starship eza zsh-autosuggestions zsh-syntax-highlighting
+    zsh-history-substring-search zsh-completions ttf-nerd-fonts-symbols-mono
 )
 
 # graphics drivers for the GPUs in this machine, read from sysfs (lspci may not
@@ -229,7 +250,7 @@ fi
 
 step "Packages"
 mapfile -t need < <(missing_pkgs "${required[@]}")
-mapfile -t want < <(missing_pkgs "${optional[@]}"; missing_pymods; missing_themes)
+mapfile -t want < <(missing_pkgs "${optional[@]}"; missing_pymods; missing_themes; missing_files)
 if [ ${#need[@]} -eq 0 ] && [ ${#want[@]} -eq 0 ]; then
     ok "everything is installed"
 elif [ "$deps" = 0 ] || ! have pacman; then
@@ -402,6 +423,17 @@ fi
 if [ "$moved" = 1 ]; then
     echo "  your old files are in $backup"
     echo "  machine-specific Hyprland bits (monitors, keyboard) go in ~/.config/hypr/local.lua"
+fi
+# zsh: one line in ~/.zshrc pulls in the shared setup (prompt, completion,
+# suggestions, highlighting); everything else in ~/.zshrc stays yours
+zsh_line='[ -f ~/.config/zsh/rice.zsh ] && source ~/.config/zsh/rice.zsh'
+if ! grep -qsF "$zsh_line" "$HOME/.zshrc"; then
+    if [ "$dry" = 1 ]; then run append "'$zsh_line'" to ~/.zshrc
+    else printf '\n# the rice: prompt, completion, suggestions, highlighting\n%s\n' "$zsh_line" >> "$HOME/.zshrc"; fi
+    ok "added the rice's zsh setup to ~/.zshrc"
+fi
+if grep -qs 'starship init' "$HOME/.zshrc"; then
+    warn "$HOME/.zshrc runs starship init itself; rice.zsh already does, so that line can go"
 fi
 if [ ! -e "$HOME/.config/hypr/local.lua" ]; then
     run cp "$repo/hypr/.config/hypr/local.example.lua" "$HOME/.config/hypr/local.lua"

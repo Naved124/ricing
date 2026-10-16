@@ -2,7 +2,7 @@
 # For the transient prompt (old prompts collapse to ❯), add to your shell rc:
 #   zsh:  see the README "Shell" section;  fish: enable_transience
 add_newline = false
-format = "$directory$git_branch$git_status$cmd_duration$line_break$character"
+format = "$os$directory${custom.github}${custom.gitlab}$git_branch$git_status$python$nodejs$rust$golang$docker_context$cmd_duration$line_break$character"
 palette = "rice"
 
 [palettes.rice]
@@ -12,13 +12,52 @@ prompt = "{{ roles.urgent | darken(0.2) }}"
 muted  = "{{ roles.muted }}"
 error  = "{{ ansi.color1 }}"
 
+[os]
+disabled = false
+style    = "path"
+format   = "[$symbol]($style)"
+
+[os.symbols]
+Arch  = " "
+Linux = " "
+
 [directory]
 style = "bold path"
 truncation_length = 3
 truncate_to_repo = true
+home_symbol = " ~"
+read_only = " 󰌾"
+read_only_style = "error"
+
+# folders get their glyph in place of the name's start
+[directory.substitutions]
+"Documents" = "󰈙 Documents"
+"Downloads" = " Downloads"
+"Music"     = "󰝚 Music"
+"Pictures"  = " Pictures"
+"Videos"    = " Videos"
+"Projects"  = " Projects"
+"Code"      = " Code"
+"ricing"    = " ricing"
+".config"   = " .config"
+
+# the git host of the repo you're in (only checked inside repositories)
+[custom.github]
+when         = "git remote get-url origin 2>/dev/null | grep -q github.com"
+require_repo = true
+symbol       = " "
+style        = "branch"
+format       = "[$symbol]($style)"
+
+[custom.gitlab]
+when         = "git remote get-url origin 2>/dev/null | grep -q gitlab"
+require_repo = true
+symbol       = " "
+style        = "branch"
+format       = "[$symbol]($style)"
 
 [git_branch]
-symbol = " "
+symbol = " "
 style  = "branch"
 format = "[$symbol$branch]($style) "
 
@@ -34,3 +73,28 @@ format   = "[$duration]($style) "
 [character]
 success_symbol = "[❯](bold prompt)"
 error_symbol   = "[❯](bold error)"
+
+[python]
+symbol = " "
+style  = "muted"
+format = "[$symbol$version( \\($virtualenv\\))]($style) "
+
+[nodejs]
+symbol = " "
+style  = "muted"
+format = "[$symbol$version]($style) "
+
+[rust]
+symbol = " "
+style  = "muted"
+format = "[$symbol$version]($style) "
+
+[golang]
+symbol = " "
+style  = "muted"
+format = "[$symbol$version]($style) "
+
+[docker_context]
+symbol = " "
+style  = "muted"
+format = "[$symbol$context]($style) "
