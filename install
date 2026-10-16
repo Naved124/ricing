@@ -242,7 +242,7 @@ ok "$rice"
 step "Rendering themes"
 run rice-render --all --quiet
 ok "every rice rendered"
-link_args=(--link)
+link_args=(--link --backup "$backup")
 if [ "$firefox" = 1 ] && [ -f "$HOME/.mozilla/firefox/profiles.ini" ]; then
     link_args+=(--firefox)
 fi

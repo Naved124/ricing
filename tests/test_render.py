@@ -163,6 +163,21 @@ class EndToEnd(unittest.TestCase):
         self.assertTrue(dest.is_symlink())
         self.assertIn("pragma Singleton", real.read_text())
 
+    def test_link_skips_or_backs_up_real_files(self):
+        (self.rices / "current").symlink_to("nacre")
+        mine = self.home / ".config/starship.toml"
+        mine.parent.mkdir(parents=True, exist_ok=True)
+        mine.write_text("my prompt")
+        out = self.run_render("--link")
+        self.assertEqual(out.returncode, 0, out.stderr)
+        self.assertIn("skip", out.stdout)
+        self.assertFalse(mine.is_symlink())
+
+        backup = self.home / "backup"
+        self.run_render("--link", "--backup", str(backup))
+        self.assertTrue(mine.is_symlink())
+        self.assertEqual((backup / ".config/starship.toml").read_text(), "my prompt")
+
 
 class CommittedOutputs(unittest.TestCase):
     def test_committed_theme_qml_matches_palette(self):

@@ -27,6 +27,7 @@ import argparse
 import json
 import os
 import re
+import shutil
 import sys
 import tomllib
 from pathlib import Path
@@ -592,7 +593,7 @@ def firefox_profiles() -> list[Path]:
     return profiles
 
 
-def link(firefox: bool) -> None:
+def link(firefox: bool, backup: Path | None = None) -> None:
     pairs = [(INSTALL_ROOT / l, CURRENT / t) for l, t in LINKS]
     if firefox:
         for prof in firefox_profiles():
@@ -606,8 +607,14 @@ def link(firefox: bool) -> None:
                 continue
             path.unlink()
         elif path.exists():
-            print(f"  skip  {path} (a real file is there; move it aside to link it)")
-            continue
+            if backup is None:
+                print(f"  skip  {path} (a real file is there; move it aside, or use --backup DIR)")
+                continue
+            saved = backup / path.relative_to(INSTALL_ROOT) if path.is_relative_to(INSTALL_ROOT) \
+                else backup / path.name
+            saved.parent.mkdir(parents=True, exist_ok=True)
+            shutil.move(path, saved)
+            print(f"  moved {path} → {saved}")
         path.parent.mkdir(parents=True, exist_ok=True)
         path.symlink_to(target)
         print(f"  link  {path} → {target}")
@@ -620,6 +627,8 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--all", action="store_true")
     ap.add_argument("--link", action="store_true")
     ap.add_argument("--firefox", action="store_true", help="with --link: also link Firefox chrome/")
+    ap.add_argument("--backup", type=Path, metavar="DIR",
+                    help="with --link: move real files in the way into DIR instead of skipping them")
     ap.add_argument("--check", action="store_true")
     ap.add_argument("-q", "--quiet", action="store_true")
     a = ap.parse_args(argv)
@@ -649,7 +658,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"rice-render: {e}", file=sys.stderr)
         return 1
     if a.link:
-        link(a.firefox)
+        link(a.firefox, a.backup)
     return 1 if (a.check and stale) else 0
 
 
