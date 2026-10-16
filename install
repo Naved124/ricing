@@ -285,6 +285,22 @@ if have spotify || have spotify-launcher; then
         run sudo chmod a+wr /opt/spotify
         run sudo chmod -R a+wr /opt/spotify/Apps
     fi
+    # Spotify runs under XWayland by default, where Hyprland scales it up into
+    # blurry text; these flags make it a native Wayland window. The AUR
+    # wrapper reads spotify-flags.conf, spotify-launcher its own config.
+    flags="$HOME/.config/spotify-flags.conf"
+    if ! grep -qs ozone "$flags"; then
+        if [ "$dry" = 1 ]; then run append ozone flags to "$flags"
+        else printf '%s\n' --enable-features=UseOzonePlatform,WaylandWindowDecorations --ozone-platform=wayland >> "$flags"; fi
+        ok "Spotify runs on Wayland (sharp text)"
+    fi
+    launcher="$HOME/.config/spotify-launcher.conf"
+    if [ ! -e "$launcher" ]; then
+        if [ "$dry" = 1 ]; then run write "$launcher"
+        else printf '[spotify]\nextra_arguments = ["--enable-features=UseOzonePlatform", "--ozone-platform=wayland"]\n' > "$launcher"; fi
+    elif ! grep -qs ozone "$launcher"; then
+        warn "add --ozone-platform=wayland to extra_arguments in $launcher for sharp text"
+    fi
 fi
 
 # ── fonts ───────────────────────────────────────────────────────────────
