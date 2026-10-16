@@ -11,6 +11,7 @@ import shutil
 import stat
 import subprocess
 import tempfile
+import time
 import unittest
 from pathlib import Path
 
@@ -23,6 +24,8 @@ case "$(basename "$0") $*" in
     "qs -c rice ipc call rice ping") echo pong ;;
     "hyprctl monitors -j") echo '[{"name":"DP-1"},{"name":"HDMI-A-1"}]' ;;
     "qs list -c "*) [ -f "$RICE_TEST_RUNNING" ] && echo running ;;
+    # a daemon outlives the switch, keeping whatever files it inherited
+    "qs -n -c "*" -d") if [ -n "$RICE_TEST_DAEMON" ]; then sleep 4 >/dev/null 2>&1 & fi ;;
     gsettings*) [ -n "$RICE_TEST_FAIL_GSETTINGS" ] && exit 1 ;;
     "uwsm check is-active") [ -n "$RICE_TEST_UWSM" ] || exit 1 ;;
     "pgrep -x Hyprland") [ -n "$RICE_TEST_HYPR_ALIVE" ] || exit 1 ;;
@@ -181,6 +184,15 @@ class Switch(unittest.TestCase):
         self.assertEqual(r.returncode, 0, r.stderr)
         calls = self.calls()
         self.assertLess(self.index(calls, "qs kill -c paper"), self.index(calls, "qs -n -c paper -d"))
+
+    def test_a_started_shell_doesnt_keep_the_lock(self):
+        # the shell `rice` starts runs on after the switch; if it held the
+        # switch lock, every later `rice` would wait for it forever
+        self.assertEqual(self.rice("nacre", RICE_TEST_DAEMON="1").returncode, 0)
+        t = time.monotonic()
+        r = self.rice("paper", RICE_TEST_DAEMON="1")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertLess(time.monotonic() - t, 3, "waited for the previous shell to exit")
 
     def test_already_active_is_a_no_op(self):
         r = self.rice("urushi")

@@ -83,7 +83,7 @@ rice_running() { have qs && [[ "$(qs -c "$SHARED_SHELL" ipc call rice ping 2>/de
 ensure_rice_shell() {
     have qs || return 1
     rice_running && return 0
-    qs -n -c "$SHARED_SHELL" -d >/dev/null 2>&1 || true
+    qs -n -c "$SHARED_SHELL" -d >/dev/null 2>&1 9>&- || true
     for _ in $(seq 60); do rice_running && return 0; sleep 0.05; done
     return 1
 }
@@ -180,7 +180,7 @@ apply_shell() {
         [[ "${RICE_FORCE:-0}" == 1 ]] || return 0
         qs kill -c "$new" >/dev/null 2>&1 || true
     fi
-    qs -n -c "$new" -d >/dev/null 2>&1
+    qs -n -c "$new" -d >/dev/null 2>&1 9>&-
 }
 
 # the shell draws the wallpaper (meta.wallpaper = "shell"), or a wallpaper/
@@ -201,7 +201,7 @@ apply_wallpaper() {
         [[ -n "$shader" ]] && opts+=" glsl-shaders=$shader"
         pkill -x mpvpaper || true
         have swww && swww kill >/dev/null 2>&1 || true
-        setsid -f mpvpaper -o "$opts" '*' "$file" >/dev/null 2>&1
+        setsid -f mpvpaper -o "$opts" '*' "$file" >/dev/null 2>&1 9>&-
         return 0
     fi
     file="$(find -L "$dir" -maxdepth 1 -type f \
@@ -209,7 +209,7 @@ apply_wallpaper() {
         | sort | head -n1)"
     if [[ -n "$file" ]] && have swww; then
         pkill -x mpvpaper || true
-        swww query >/dev/null 2>&1 || { setsid -f swww-daemon >/dev/null 2>&1; sleep 0.3; }
+        swww query >/dev/null 2>&1 || { setsid -f swww-daemon >/dev/null 2>&1 9>&-; sleep 0.3; }
         # the overlay covers the change, so swap instantly
         swww img "$file" --transition-type none >/dev/null 2>&1
     fi
@@ -273,7 +273,7 @@ apply_notifications() {
         swaync-client --reload-config >/dev/null 2>&1 || true
         swaync-client --reload-css    >/dev/null 2>&1 || true
     else
-        setsid -f swaync >/dev/null 2>&1
+        setsid -f swaync >/dev/null 2>&1 9>&-
     fi
 }
 
@@ -324,6 +324,8 @@ switch_to() {
     fi
 
     # one switch at a time; a second Super+Ctrl+T spam just waits its turn
+    # fd 9 holds the lock: everything started here that outlives the switch
+    # (shells, daemons) gets `9>&-`, or the next `rice` would wait for it to exit
     exec 9>"$RUN_DIR/lock"
     flock 9
 
