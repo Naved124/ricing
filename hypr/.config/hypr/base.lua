@@ -236,5 +236,5 @@ hl.window_rule({ name = "suppress-maximize", match = { class = ".*" }, suppress_
 ---------------------------------------------------------------------------
 -- Shared shell surfaces (rice chooser and switch overlay)
 ---------------------------------------------------------------------------
-hl.layer_rule({ name = "rice-chooser", match = { namespace = "^rice-chooser$" }, blur = true, ignore_alpha = 0.3, no_anim = true })
+hl.layer_rule({ name = "rice-chooser", match = { namespace = "^rice-chooser$" }, blur = true, ignore_alpha = 0.2, no_anim = true })
 hl.layer_rule({ name = "rice-freeze",  match = { namespace = "^rice-freeze$" },  no_anim = true })

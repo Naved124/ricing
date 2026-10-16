@@ -33,14 +33,18 @@ Singleton {
     readonly property color success:   "#cdeedb"
     readonly property color warning:   "#f3e2b0"
 
-    // Frosted glass: a translucent pearl over Hyprland's blur, never white.
-    readonly property color glass:       "#b8f4f1f6"
-    readonly property color glassStrong: "#dbf4f1f6"
-    readonly property color glassSoft:   "#8ce7e2ec"
-    readonly property color hairline:    "#b2c9bfd8"
-    // Shadows are lilac-tinted, never black.
-    readonly property color shadow:      "#407d6a9a"
-    readonly property color shadowSoft:  "#1f7d6a9a"
+    // Frosted glass: a cool, half-clear pane over Hyprland's blur, so the
+    // wallpaper's colour comes through. Never solid white.
+    readonly property color glass:       "#8cf4f6fb"
+    readonly property color glassStrong: "#d1f4f6fb"
+    readonly property color glassSoft:   "#73e7e2ec"
+    readonly property color hairline:    "#73a0aad2"
+    // the pane's light: a bright top lip and a faint sky glow at the bottom
+    readonly property color glassHighlight: "#e6ffffff"
+    readonly property color glassGlow:      "#59c3dff3"
+    // Shadows are cool steel, never black.
+    readonly property color shadow:      "#406e82b4"
+    readonly property color shadowSoft:  "#1f6e82b4"
     // A rose → sky wash for selected rows.
     readonly property color washFrom:    "#8cf2c3d6"
     readonly property color washTo:      "#8cc3dff3"
@@ -48,6 +52,11 @@ Singleton {
     // ── iridescence ─────────────────────────────────────────────────────────
     // rose → sky → mint → sun → orchid → rose. Only for focus and active state.
     readonly property var gradient: ["#f2c3d6", "#c3dff3", "#cdeedb", "#f3e2b0", "#dcc6f2", "#f2c3d6"]
+
+    // ── wallpaper ───────────────────────────────────────────────────────────
+    readonly property var wallGround:  ["#c9d3e6", "#d8cde6"]
+    readonly property var wallBlooms:  ["#ed97ba", "#8ec4eb", "#8eebb6", "#ead086", "#c49bed"]
+    readonly property var wallAccents: ["#9fb8e0", "#c7a8e0", "#9fb8e0"]
 
     // ── type ────────────────────────────────────────────────────────────────
     readonly property string fontDisplay: "Italiana"

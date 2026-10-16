@@ -46,7 +46,7 @@ class Filters(unittest.TestCase):
         self.assertEqual(self.r("{{ colors.ink | argb(ff) }}"), "#ff3b3548")
 
     def test_arguments_can_name_palette_values(self):
-        self.assertEqual(self.r("{{ roles.bg | argb(opacity.glass) }}"), "#b8f4f1f6")
+        self.assertEqual(self.r("{{ roles.bg | argb(opacity.glass) }}"), "#8cf4f1f6")   # 0.55
         self.assertEqual(self.r("{{ colors.pearl | mix(colors.ink, 1) }}"), "#3b3548")
 
     def test_mix_lighten_darken(self):

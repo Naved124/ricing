@@ -6,14 +6,27 @@ local iridescent = {
     angle  = {{ gradient.angle }},
 }
 
+-- the ice edge: a bright near-white stop where light catches the top-left
+-- corner, then the iridescence, then white again; it turns with the loop
+local rim = {
+    colors = { "rgba(ffffffee)", "{{ colors.rose | hypr(ff) }}", "{{ colors.sky | hypr(ff) }}",
+               "{{ colors.mint | hypr(ff) }}", "{{ colors.orchid | hypr(ff) }}", "rgba(ffffffcc)" },
+    angle  = 45,
+}
+-- unfocused panes: white along the top fading to lilac, still glass
+local pane = {
+    colors = { "rgba(ffffff99)", "{{ colors.lilac | hypr(55) }}" },
+    angle  = 90,
+}
+
 hl.config({
     general = {
         gaps_in     = {{ shape.gaps_in }},
         gaps_out    = {{ shape.gaps_out }},
         border_size = {{ shape.border }},
         col = {
-            active_border   = iridescent,
-            inactive_border = "{{ roles.border | hypr(55) }}",
+            active_border   = rim,
+            inactive_border = pane,
         },
     },
 
@@ -24,28 +37,35 @@ hl.config({
         inactive_opacity = {{ opacity.inactive }},
         dim_inactive     = false,
 
+        -- frost: wide and a little darker and crisper than the default, with
+        -- the wallpaper's colour pushed up so the glass reads as tinted ice
         blur = {
-            enabled  = true,
-            size     = 8,
-            passes   = 3,
-            vibrancy = 0.2,
-            noise    = 0.02,
+            enabled           = true,
+            size              = 10,
+            passes            = 3,
+            noise             = 0.035,
+            contrast          = 1.15,
+            brightness        = 0.92,
+            vibrancy          = 0.4,
+            vibrancy_darkness = 0.25,
+            popups            = true,
+            xray              = false,
         },
 
-        -- lilac-tinted, never black; softer on inactive windows
+        -- cool ice-blue shadows, never black; softer on inactive windows
         shadow = {
             enabled        = true,
-            range          = 30,
+            range          = 34,
             render_power   = 3,
-            color          = "{{ roles.shadow | hypr(40) }}",
-            color_inactive = "{{ roles.shadow | hypr(22) }}",
+            color          = "{{ roles.shadow | hypr(0.30) }}",
+            color_inactive = "{{ roles.shadow | hypr(0.18) }}",
         },
     },
 
     group = {
         col = {
-            border_active   = iridescent,
-            border_inactive = "{{ roles.border | hypr(55) }}",
+            border_active   = rim,
+            border_inactive = pane,
         },
         groupbar = {
             enabled           = true,
@@ -97,8 +117,8 @@ hl.animation({ leaf = "layers",       enabled = true, speed = 3, bezier = "bloom
 ---------------------------------------------------------------------------
 -- forced opaque: browsers, video, images, editors, games
 hl.window_rule({ name = "nacre-opaque", match = { tag = "opaque" }, opacity = "1.0 override 1.0 override" })
--- glassy: terminals, files, music, system tools keep their translucency
-hl.window_rule({ name = "nacre-glassy", match = { tag = "glassy" }, opacity = "1.0 override {{ opacity.inactive }} override" })
+-- glassy: terminals, files, music, system tools stay a little see-through
+hl.window_rule({ name = "nacre-glassy", match = { tag = "glassy" }, opacity = "{{ opacity.active }} override {{ opacity.inactive }} override" })
 -- floating dialogs: rounder
 hl.window_rule({ name = "nacre-dialog", match = { tag = "dialog" }, rounding = 20 })
 -- picture-in-picture: no border
@@ -115,7 +135,7 @@ hl.window_rule({
 -- Quickshell surfaces: real frosted glass behind the panels
 ---------------------------------------------------------------------------
 hl.layer_rule({
-    name = "nacre-glass", match = { namespace = "^nacre-(bar|launcher|notifs|center|osd|power|toast)$" },
-    blur = true, ignore_alpha = 0.3, no_anim = true,
+    name = "nacre-glass", match = { namespace = "^nacre-(bar|launcher|notifs|center|osd|power|toast|keys|lock)$" },
+    blur = true, ignore_alpha = 0.2, no_anim = true,
 })
 hl.layer_rule({ name = "nacre-wallpaper", match = { namespace = "^nacre-wallpaper$" }, no_anim = true })

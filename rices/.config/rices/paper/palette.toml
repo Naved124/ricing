@@ -39,6 +39,7 @@ cursor    = "ink"
 link      = "ink_blue"
 shadow    = "umber"
 term_bg   = "stock"
+term_fg   = "ink"
 
 [gradient]
 stops = ["ink_blue", "seal"]

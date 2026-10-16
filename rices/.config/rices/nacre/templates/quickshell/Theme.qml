@@ -33,12 +33,16 @@ Singleton {
     readonly property color success:   "{{ roles.success }}"
     readonly property color warning:   "{{ roles.warning }}"
 
-    // Frosted glass: a translucent pearl over Hyprland's blur, never white.
-    readonly property color glass:       "{{ roles.bg | argb(opacity.glass) }}"
-    readonly property color glassStrong: "{{ roles.bg | argb(0.86) }}"
-    readonly property color glassSoft:   "{{ roles.surface | argb(0.55) }}"
-    readonly property color hairline:    "{{ roles.border | argb(0.7) }}"
-    // Shadows are lilac-tinted, never black.
+    // Frosted glass: a cool, half-clear pane over Hyprland's blur, so the
+    // wallpaper's colour comes through. Never solid white.
+    readonly property color glass:       "{{ colors.glaze | argb(opacity.glass) }}"
+    readonly property color glassStrong: "{{ colors.glaze | argb(0.82) }}"
+    readonly property color glassSoft:   "{{ roles.surface | argb(0.45) }}"
+    readonly property color hairline:    "{{ colors.rim | argb(0.45) }}"
+    // the pane's light: a bright top lip and a faint sky glow at the bottom
+    readonly property color glassHighlight: "#e6ffffff"
+    readonly property color glassGlow:      "{{ colors.sky | argb(0.35) }}"
+    // Shadows are cool steel, never black.
     readonly property color shadow:      "{{ roles.shadow | argb(0.25) }}"
     readonly property color shadowSoft:  "{{ roles.shadow | argb(0.12) }}"
     // A rose → sky wash for selected rows.
@@ -48,6 +52,11 @@ Singleton {
     // ── iridescence ─────────────────────────────────────────────────────────
     // rose → sky → mint → sun → orchid → rose. Only for focus and active state.
     readonly property var gradient: [{{ gradient.stops | closed | quote | join(", ") }}]
+
+    // ── wallpaper ───────────────────────────────────────────────────────────
+    readonly property var wallGround:  [{{ wallpaper.ground | quote | join(", ") }}]
+    readonly property var wallBlooms:  [{{ wallpaper.blooms | quote | join(", ") }}]
+    readonly property var wallAccents: [{{ wallpaper.accents | quote | join(", ") }}]
 
     // ── type ────────────────────────────────────────────────────────────────
     readonly property string fontDisplay: "{{ fonts.display }}"

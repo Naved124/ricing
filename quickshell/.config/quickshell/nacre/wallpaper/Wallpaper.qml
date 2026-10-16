@@ -49,14 +49,17 @@ PanelWindow {
         anchors.fill: parent
         fragmentShader: Qt.resolvedUrl("../shaders/wallpaper.frag.qsb")
 
-        readonly property color pearl: Theme.pearl
-        readonly property color shell: Theme.shell
+        readonly property color ground0: Theme.wallGround[0]
+        readonly property color ground1: Theme.wallGround[1]
         readonly property color lilac: Theme.lilac
-        readonly property color c0: Theme.gradient[0]
-        readonly property color c1: Theme.gradient[1]
-        readonly property color c2: Theme.gradient[2]
-        readonly property color c3: Theme.gradient[3]
-        readonly property color c4: Theme.gradient[4]
+        readonly property color c0: Theme.wallBlooms[0]
+        readonly property color c1: Theme.wallBlooms[1]
+        readonly property color c2: Theme.wallBlooms[2]
+        readonly property color c3: Theme.wallBlooms[3]
+        readonly property color c4: Theme.wallBlooms[4]
+        readonly property color a0: Theme.wallAccents[0]
+        readonly property color a1: Theme.wallAccents[1]
+        readonly property color a2: Theme.wallAccents[2]
         readonly property size resolution: Qt.size(width, height)
         readonly property real time: root.time
         readonly property point ripplePos: root.ripplePos

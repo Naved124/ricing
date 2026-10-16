@@ -52,7 +52,7 @@ FILTER = re.compile(r"\|\s*([A-Za-z_]\w*)(?:\(([^()]*)\))?")
 
 ROLES = (
     "bg surface overlay border fg muted accent urgent selection success "
-    "warning cursor link shadow term_bg"
+    "warning cursor link shadow term_bg term_fg"
 ).split()
 REQUIRED = {
     "meta": ["name", "title", "transition"],

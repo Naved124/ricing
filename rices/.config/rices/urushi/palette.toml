@@ -39,6 +39,7 @@ cursor    = "gold"
 link      = "indigo"
 shadow    = "soot"
 term_bg   = "lacquer"
+term_fg   = "washi"
 
 [gradient]
 stops = ["oxblood", "vermilion", "gold"]

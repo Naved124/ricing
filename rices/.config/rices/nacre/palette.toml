@@ -28,8 +28,13 @@ sky      = "#c3dff3"   # gradient stop, selection, links
 mint     = "#cdeedb"   # gradient stop, success
 sun      = "#f3e2b0"   # gradient stop, warning
 orchid   = "#dcc6f2"   # gradient stop, cursor
-mist     = "#f7f4f9"   # terminal background (used at 88%)
-plum     = "#7d6a9a"   # shadow tint, never shown as a fill
+mist     = "#f7f4f9"   # pale panel tint
+plum     = "#7d6a9a"   # deep lilac, for the odd accent line
+frost    = "#eef2f8"   # terminal glass (used at 58% over the blur)
+ink_deep = "#2e2a3d"   # terminal text: darker, so it reads on lighter glass
+steel    = "#6e82b4"   # window and panel shadows: cool, never black
+glaze    = "#f4f6fb"   # Quickshell glass fill (used at 55%)
+rim      = "#a0aad2"   # glass hairline (used at 45%)
 
 # Roles name a colour above; templates shared by every rice only use roles.
 [roles]
@@ -46,8 +51,9 @@ success   = "mint"
 warning   = "sun"
 cursor    = "orchid"
 link      = "sky"
-shadow    = "plum"
-term_bg   = "mist"
+shadow    = "steel"
+term_bg   = "frost"
+term_fg   = "ink_deep"
 
 [gradient]
 # rose → sky → mint → sun → orchid → rose, rotating conically
@@ -55,14 +61,16 @@ stops = ["rose", "sky", "mint", "sun", "orchid"]
 angle = 45
 
 [ansi]
+# normal colours hold at least 4.5:1 (checked at 4.6) against the terminal
+# glass: #eef2f8 at 58% over the blurred wallpaper, wherever the window sits
 color0  = "#3b3548"
-color1  = "#d9789c"
-color2  = "#6aa483"
-color3  = "#c9a45c"
-color4  = "#6f9fc2"
-color5  = "#a77fb8"
-color6  = "#5fa9a8"
-color7  = "#e7e2ec"
+color1  = "#91284f"
+color2  = "#355744"
+color3  = "#644d21"
+color4  = "#2f546f"
+color5  = "#674277"
+color6  = "#2f5757"
+color7  = "#534e5b"
 color8  = "#7a7189"
 color9  = "#e891b0"
 color10 = "#86bf9c"
@@ -90,9 +98,18 @@ gaps_in        = 6
 gaps_out       = 16
 
 [opacity]
-terminal = 0.88
-inactive = 0.94
-glass    = 0.72    # Quickshell panel fill over Hyprland blur
+terminal = 0.58    # kitty: let the blur do the work, not the tint
+active   = 0.97    # glassy windows (terminals, files, music, tools)
+inactive = 0.90
+glass    = 0.55    # Quickshell panel fill over Hyprland blur
+
+# The live wallpaper (shaders/wallpaper.frag): a cold steel-to-lilac ground,
+# vivid blooms (the gradient stops at 70% saturation) and deeper ice/orchid
+# accents, so the blur has real shapes to smear.
+[wallpaper]
+ground  = ["#c9d3e6", "#d8cde6"]
+blooms  = ["#ed97ba", "#8ec4eb", "#8eebb6", "#ead086", "#c49bed"]
+accents = ["#9fb8e0", "#c7a8e0", "#9fb8e0"]
 
 [motion]
 # cubic-bezier control points
