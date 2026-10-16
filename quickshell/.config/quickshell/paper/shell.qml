@@ -11,6 +11,7 @@ import Quickshell.Io
 import Quickshell.Hyprland
 import qs.bar
 import qs.desk
+import qs.launcher
 import qs.notes
 import qs.services
 import qs.wallpaper
@@ -32,6 +33,9 @@ ShellRoot {
 
     // notifications, as sticky notes
     Notes {}
+
+    // panels that follow the focused monitor
+    Launcher {}
 
     // Hyprland binds: hl.dsp.global("quickshell:<name>")
     GlobalShortcut {
