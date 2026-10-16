@@ -147,6 +147,7 @@ rice auto on|off     time-of-day switching (see auto.conf)
 rice reapply         run every apply step again
 rice session         bring the active rice up at login (Hyprland runs this)
 rice lock            lock with the rice's own lock screen, or hyprlock
+rice grain off|on    the rice's screen shader (Paper's paper grain); remembered
 rice logout          end the session and go back to the login screen
 rice system          re-theme the boot menu, splash and login screen (sudo)
 rice-shot region     screenshot (also: screen, window, edit)
@@ -164,6 +165,7 @@ rice-shot region     screenshot (also: screen, window, edit)
 | Super+Escape | power menu |
 | Super+L | lock |
 | Super+Shift+T / Super+Ctrl+T | rice chooser / next rice |
+| Super+Shift+G | Paper's grain on or off (it stops games and video skipping the compositor) |
 | Print, Shift+Print, Super+Print, Ctrl+Print | screenshot a region, the screen, the window, or into satty |
 | Super+Shift+C | colour picker |
 | Super+Q, F, Shift+F, P, G, Tab | close, fullscreen, float, pseudo, group, next in group |

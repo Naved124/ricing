@@ -13,6 +13,9 @@
 #   rice reapply         run every apply step again for the active rice
 #   rice session         start the active rice at login (no freeze, no transition)
 #   rice lock            lock the screen with the rice's lock (its shell, or hyprlock)
+#   rice grain on|off|toggle|status
+#                        the rice's screen shader (Paper's paper grain); off is
+#                        remembered, and leaves fullscreen games direct scanout
 #   rice logout          end the session: uwsm stop, else hyprshutdown, else
 #                        Hyprland's exit, else loginctl terminate-session
 #   rice system          re-theme the boot menu, splash and login screen to the
@@ -116,6 +119,43 @@ apply_hypr() {
     local cursor size
     cursor="$(palette "$1" gtk cursor)"; size="$(palette "$1" gtk cursor_size)"
     [[ -n "$cursor" ]] && hyprctl setcursor "$cursor" "${size:-24}" >/dev/null || true
+}
+
+# Hyprland's screen shader, set explicitly on every switch: the rice's own
+# (meta.screen_shader, relative to its folder) unless `rice grain off` is in
+# force, else none. `hyprctl reload` already resets every option, but a
+# shader left behind would cost every other rice direct scanout, so this
+# doesn't rely on it.
+screen_shader_for() {
+    local s
+    s="$(palette "$1" meta screen_shader)"
+    [[ -n "$s" && ! -e "$STATE_DIR/grain-off" && -f "$RICE_DIR/$1/$s" ]] || return 0
+    printf '%s\n' "$RICE_DIR/$1/$s"
+}
+
+apply_screen_shader() {
+    have hyprctl || return 0
+    local want
+    want="$(screen_shader_for "$1")"
+    hyprctl eval "hl.config({ decoration = { screen_shader = \"$want\" } })" >/dev/null
+}
+
+grain() {
+    local cur
+    cur="$(current || true)"
+    case "${1:-status}" in
+        on)  rm -f "$STATE_DIR/grain-off" ;;
+        off) : > "$STATE_DIR/grain-off" ;;
+        toggle)
+            if [[ -e "$STATE_DIR/grain-off" ]]; then grain on; else grain off; fi
+            return ;;
+        status)
+            if [[ -e "$STATE_DIR/grain-off" ]]; then echo off; else echo on; fi
+            return ;;
+        *) die "usage: rice grain on|off|toggle|status" ;;
+    esac
+    [[ -n "$cur" ]] && apply_screen_shader "$cur"
+    return 0
 }
 
 # render every theme file for the rice from its palette.toml
@@ -255,6 +295,7 @@ step() { "$@" || log "$1 failed (exit $?), continuing"; }
 # everything that makes the desktop look like the rice now in `current`
 apply_all() {
     step apply_hypr "$1"
+    step apply_screen_shader "$1"
     step apply_gtk "$1"
     step apply_kitty
     step apply_nvim "$1"
@@ -462,7 +503,7 @@ json() {
     printf ']}\n'
 }
 
-usage() { sed -n '2,20p' "$0" | sed 's/^# \{0,1\}//'; }
+usage() { sed -n '2,23p' "$0" | sed 's/^# \{0,1\}//'; }
 
 case "${1:-}" in
     ""|-h|--help|help) usage ;;
@@ -482,6 +523,7 @@ case "${1:-}" in
     reapply) RICE_FORCE=1 switch_to "$(current)" ;;
     session) session ;;
     lock) lock ;;
+    grain) shift; grain "$@" ;;
     logout) logout ;;
     system) shift; system_theme "$@" ;;
     json) json ;;

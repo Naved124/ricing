@@ -144,6 +144,35 @@ class Switch(unittest.TestCase):
         self.assertEqual(os.readlink(self.rices / "current"), "paper")
         self.index(self.calls(), "qs -c rice ipc call rice dissolve paper")
 
+    def shader_calls(self):
+        return [c for c in self.calls() if c.startswith("hyprctl eval") and "screen_shader" in c]
+
+    def test_screen_shader_follows_the_rice(self):
+        self.rice("paper")
+        grain = str(self.rices / "paper/grain.frag")
+        self.assertEqual(self.shader_calls(),
+                         [f'hyprctl eval hl.config({{ decoration = {{ screen_shader = "{grain}" }} }})'])
+        calls = self.calls()
+        self.assertLess(self.index(calls, "hyprctl reload"), self.index(calls, "hyprctl eval"))
+        self.log.unlink()
+        self.rice("nacre")   # leaving Paper clears it explicitly
+        self.assertEqual(self.shader_calls(), ['hyprctl eval hl.config({ decoration = { screen_shader = "" } })'])
+
+    def test_grain_off_is_remembered(self):
+        self.rice("paper")
+        self.log.unlink()
+        self.assertEqual(self.rice("grain", "status").stdout, "on\n")
+        self.rice("grain", "toggle")
+        self.assertEqual(self.rice("grain", "status").stdout, "off\n")
+        self.assertEqual(self.shader_calls(), ['hyprctl eval hl.config({ decoration = { screen_shader = "" } })'])
+        self.log.unlink()
+        r = self.rice("reapply")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(self.shader_calls(), ['hyprctl eval hl.config({ decoration = { screen_shader = "" } })'])
+        self.log.unlink()
+        self.rice("grain", "on")
+        self.assertIn("grain.frag", self.shader_calls()[0])
+
     def test_already_active_is_a_no_op(self):
         r = self.rice("urushi")
         self.assertEqual(r.returncode, 0)

@@ -85,6 +85,37 @@ input {
 """
 
 
+LUA = shutil.which("lua5.4") or shutil.which("lua")
+
+# a stand-in `hl` that accepts any call, so the config runs as plain Lua
+HL_STUB = r"""
+local function any() return setmetatable({}, { __index = function() return any() end, __call = function() return any() end }) end
+hl = setmetatable({ get = function() return "dwindle" end }, { __index = function() return any() end })
+dofile(arg[1])
+"""
+
+
+@unittest.skipUnless(LUA, "lua not installed")
+class LuaSmoke(unittest.TestCase):
+    """Without Hyprland, at least run every rice's rendered Lua (syntax, nil calls)."""
+
+    def test_every_rice_runs(self):
+        with tempfile.TemporaryDirectory() as d:
+            rices = Path(d) / "rices"
+            shutil.copytree(REPO / "rices/.config/rices", rices, ignore=shutil.ignore_patterns("build", "current"))
+            env = dict(os.environ, RICE_DIR=str(rices), HOME=d, RICE_INSTALL_ROOT=d,
+                       RICE_TEMPLATES=str(REPO / "render/.local/share/rice/templates"))
+            subprocess.run([str(REPO / "render/.local/bin/rice-render"), "--all", "-q"], env=env, check=True)
+            stub = Path(d) / "stub.lua"
+            stub.write_text(HL_STUB)
+            files = [REPO / "hypr/.config/hypr/base.lua"] + sorted(rices.glob("*/build/hypr.lua"))
+            self.assertGreaterEqual(len(files), 4)
+            for f in files:
+                with self.subTest(f.parent.parent.name):
+                    r = subprocess.run([LUA, str(stub), str(f)], capture_output=True, text=True, env=env)
+                    self.assertEqual(r.returncode, 0, r.stderr)
+
+
 class Migrate(unittest.TestCase):
     def run_migrate(self, conf: str, *extra: str) -> str:
         with tempfile.TemporaryDirectory() as d:

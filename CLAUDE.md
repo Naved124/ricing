@@ -56,6 +56,7 @@ reads them from `hyprctl binds -j`):
 | Print, Shift+Print, Super+Print, Ctrl+Print | `rice-shot region/screen/window/edit` |
 | Super+Shift+C | hyprpicker |
 | Super+Shift+T / Super+Ctrl+T | rice chooser / next rice |
+| Super+Shift+G | `rice grain toggle`: the rice's screen shader (Paper's grain) on/off |
 | Media keys | `wpctl` (volume up to **150%**: `-l 1.5`), `brightnessctl`, `playerctl`; work while locked |
 
 **Monitor and scale**: `base.lua` only has the fallback
@@ -81,6 +82,10 @@ Copy an existing one; every section below is read by shared code.
   - `notifications = "shell" | "swaync"`
   - `wallpaper = "shell" | "files"` (`files` = `wallpaper/` folder via mpvpaper/swww)
   - `lock = "shell" | "hyprlock"`
+  - `screen_shader = "<file in the rice folder>"`, optional: Hyprland's
+    `decoration:screen_shader`, set by `rice` on every switch (and cleared for rices
+    without one); `rice grain off` keeps it off. No `time` uniform: it must not redraw
+    every frame.
 - `[colors]` named colours; `[roles]` maps role → colour name. Shared templates use
   **only** roles: `bg surface overlay border fg muted accent urgent selection success
   warning cursor link shadow term_bg term_fg`. Every role must exist.
@@ -103,7 +108,7 @@ Copy an existing one; every section below is read by shared code.
 ## How a switch hooks in
 
 `rice <name>`: render → freeze (shared shell overlay) → swap `current` → apply:
-`hyprctl reload` + cursor, GTK via gsettings (theme, icons, cursor, fonts, colour
+`hyprctl reload` + cursor, the screen shader (`hyprctl eval`), GTK via gsettings (theme, icons, cursor, fonts, colour
 scheme), kitty, nvim, notifications daemon, wallpaper, the rice's Quickshell
 (old one killed, new one started), `spicetify refresh`, `hooks/post-switch` →
 dissolve with the rice's `transition` shader. A failing step is logged and skipped.

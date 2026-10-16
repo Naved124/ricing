@@ -276,6 +276,28 @@ class Paper(unittest.TestCase):
                          ("paper", "shell", "shell", "shell"))
         self.assertEqual(self.ctx["derived"]["variant"], "light")
         self.assertTrue(all(v == 1.0 for v in self.ctx["opacity"].values()), "Paper has no transparency")
+        self.assertTrue((RICES / "paper" / m["screen_shader"]).is_file())
+
+    def test_grain_never_redraws_on_its_own(self):
+        """A `time` uniform would make Hyprland drop damage tracking and redraw every frame."""
+        src = (RICES / "paper/grain.frag").read_text()
+        code = "\n".join(l.split("//")[0] for l in src.splitlines())
+        self.assertNotRegex(code, r"\btime\b")
+        self.assertTrue(src.startswith("#version 300 es"))
+
+    def test_hypr_layer(self):
+        rendered = rr.render_text((RICES / "paper/templates/hypr.lua").read_text(), self.ctx, "hypr.lua")
+        for want in ('border_size = 0', 'blur = { enabled = false }', 'range          = 18',
+                     'offset         = { 3, 8 }', '"rgba(3c2d1438)"', '"rgba(3c2d1420)"',
+                     'gaps_in     = 10', 'gaps_out    = 22', 'rounding         = 3',
+                     '{ { 0.2, 1.3 }, { 0.4, 1 } }', '{ { 0.5, 0 }, { 0.75, 0.4 } }',
+                     'leaf = "windowsIn",   enabled = true, speed = 5,      bezier = "drop", style = "slide top"',
+                     'leaf = "windowsOut",  enabled = true, speed = 4,     bezier = "toss", style = "popin 60%"',
+                     'leaf = "workspaces",  enabled = true, speed = 7, bezier = "default", style = "slidevert"',
+                     '"^paper-wallpaper$" }, no_anim = true'):
+            self.assertIn(want, rendered)
+        self.assertNotIn("blur = true", rendered)
+        self.assertNotRegex(rendered, r"hl\.(bind|monitor|env|exec_cmd)\b", "visuals only")
 
     def test_fonts_are_vendored_with_their_licences(self):
         fonts = REPO / "fonts/.local/share/fonts/paper"

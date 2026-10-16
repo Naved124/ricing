@@ -154,6 +154,9 @@ bind(key("SHIFT + C"), hl.dsp.exec_cmd("hyprpicker -a"),    "Capture · Pick a c
 -- rices
 bind(key("SHIFT + T"), hl.dsp.exec_cmd("rice choose"), "Rice · Rice chooser")
 bind(key("CTRL + T"),  hl.dsp.exec_cmd("rice next"),   "Rice · Next rice")
+-- the rice's screen shader (Paper's grain) blocks direct scanout; games and
+-- video may want it off. Off is remembered; rices without one ignore it.
+bind(key("SHIFT + G"), hl.dsp.exec_cmd("rice grain toggle"), "Rice · Paper grain on/off")
 
 -- mouse
 bind(key("mouse:272"), hl.dsp.window.drag(),   "Mouse · Move window",   { mouse = true })
