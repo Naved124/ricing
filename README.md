@@ -207,12 +207,17 @@ Switches are serialised with `flock`, so pressing the key repeatedly just queues
 folder. Templates live in `render/.local/share/rice/templates/`, and a rice's own
 `templates/` folder overrides any of them. It writes themes for kitty, nvim (with
 lualine), starship, btop, yazi, fastfetch, GTK 3 and 4, qt6ct, Firefox (chrome
-and a start page), Vesktop, Spicetify, mpv/uosc, imv, zathura, ReGreet and Hyprland's
-visual layer. A theme for an app you don't use is just an unused file.
+and a start page), Vesktop, Spicetify, mpv/uosc, imv, zathura, cava (in a terminal),
+ReGreet and Hyprland's visual layer. A theme for an app you don't use is just an unused
+file. Paper overrides kitty (Courier Prime on a tiled paper texture), nvim and lualine,
+btop (graph paper), yazi (a manila folder), fastfetch (a typed typewriter), cava (ink),
+the Firefox start page (ruled paper) and ReGreet.
 
 Templates use `{{ roles.accent }}`-style placeholders with filters, for example
 `{{ roles.bg | rgba(0.8) }}`, `{{ colors.rose | mix(colors.sky, 0.5) }}`,
-`{{ gradient.stops | join(", ") }}` or `{{ shape.window | add(4) }}`. The palette's
+`{{ gradient.stops | join(", ") }}`, `{{ shape.window | add(4) }}` or
+`{{ roles.accent | readable }}` (the rice's text colour, or its background when the text
+wouldn't read on that colour, as on Paper's ink blue). The palette's
 `[roles]` name colours from `[colors]`, so shared templates work for every rice.
 
 ## Boot and login

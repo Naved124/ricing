@@ -8,16 +8,16 @@ find_position     = { fg = "{{ ansi.color5 }}" }
 marker_selected   = { fg = "{{ roles.success }}", bg = "{{ roles.success }}" }
 marker_copied     = { fg = "{{ roles.warning }}", bg = "{{ roles.warning }}" }
 marker_cut        = { fg = "{{ roles.urgent }}", bg = "{{ roles.urgent }}" }
-tab_active        = { fg = "{{ roles.fg }}", bg = "{{ roles.accent }}" }
+tab_active        = { fg = "{{ roles.accent | readable }}", bg = "{{ roles.accent }}" }
 tab_inactive      = { fg = "{{ roles.muted }}", bg = "{{ roles.surface }}" }
 border_style      = { fg = "{{ roles.border }}" }
 
 [mode]
-normal_main = { fg = "{{ roles.fg }}", bg = "{{ gradient.stops | last }}", bold = true }
+normal_main = { fg = "{{ gradient.stops | last | readable }}", bg = "{{ gradient.stops | last }}", bold = true }
 normal_alt  = { fg = "{{ roles.fg }}", bg = "{{ roles.surface }}" }
-select_main = { fg = "{{ roles.fg }}", bg = "{{ gradient.stops | first }}", bold = true }
+select_main = { fg = "{{ gradient.stops | first | readable }}", bg = "{{ gradient.stops | first }}", bold = true }
 select_alt  = { fg = "{{ roles.fg }}", bg = "{{ roles.surface }}" }
-unset_main  = { fg = "{{ roles.fg }}", bg = "{{ roles.warning }}", bold = true }
+unset_main  = { fg = "{{ roles.warning | readable }}", bg = "{{ roles.warning }}", bold = true }
 unset_alt   = { fg = "{{ roles.fg }}", bg = "{{ roles.surface }}" }
 
 [status]

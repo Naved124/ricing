@@ -16,6 +16,7 @@ Template syntax:
     {{ roles.bg | rgba(0.88) }}           filters, chained with |
     {{ gradient.stops | hypr(ee) | join(", ") }}
     {{ colors.pearl | mix(colors.ink, 0.1) }}
+    {{ roles.accent | readable }}         text that reads on that colour
 Filters map over lists element by element, except list filters (join, json,
 first, last, len, closed, curve). Paths and filters that don't exist are
 errors, reported with file and line.
@@ -104,6 +105,12 @@ def luminance(c: str) -> float:
 
     r, g, b = rgb(c)
     return 0.2126 * ch(r) + 0.7152 * ch(g) + 0.0722 * ch(b)
+
+
+def contrast(a: str, b: str) -> float:
+    """WCAG contrast ratio, 1 to 21."""
+    hi, lo = sorted((luminance(a), luminance(b)), reverse=True)
+    return (hi + 0.05) / (lo + 0.05)
 
 
 # ── palette loading ──────────────────────────────────────────────────────────
@@ -280,6 +287,16 @@ class Filters:
 
     def darken(self, v, t):
         return mix(self.need_color(v), "#000000", float(t))
+
+    def readable(self, v):
+        """Text to put on colour v: the rice's text colour while it reads (3:1),
+        else its background colour if that reads better. Light pastel accents
+        keep dark text; Paper's ink blue gets paper-white."""
+        c = self.need_color(v)
+        fg, bg = self.ctx["roles"]["fg"], self.ctx["roles"]["bg"]
+        if contrast(fg, c) >= 3.0 or contrast(fg, c) >= contrast(bg, c):
+            return Color(fg)
+        return Color(bg)
 
     def upper(self, v):
         return str(v).upper()
@@ -599,6 +616,7 @@ LINKS = [
     (".config/spicetify/Themes/Rice", "spicetify"),
     (".config/nvim/colors/rice.lua", "nvim/rice.lua"),
     (".config/nvim/lua/lualine/themes/rice.lua", "nvim/lualine.lua"),
+    (".config/cava/config", "cava/config"),
 ]
 
 HINTS = """

@@ -3,23 +3,23 @@
 
 @define-color accent_color {{ roles.accent | darken(0.35) }};
 @define-color accent_bg_color {{ roles.accent }};
-@define-color accent_fg_color {{ roles.fg }};
+@define-color accent_fg_color {{ roles.accent | readable }};
 
 @define-color destructive_color {{ ansi.color1 }};
 @define-color destructive_bg_color {{ roles.urgent }};
-@define-color destructive_fg_color {{ roles.fg }};
+@define-color destructive_fg_color {{ roles.urgent | readable }};
 
 @define-color success_color {{ ansi.color2 }};
 @define-color success_bg_color {{ roles.success }};
-@define-color success_fg_color {{ roles.fg }};
+@define-color success_fg_color {{ roles.success | readable }};
 
 @define-color warning_color {{ ansi.color3 }};
 @define-color warning_bg_color {{ roles.warning }};
-@define-color warning_fg_color {{ roles.fg }};
+@define-color warning_fg_color {{ roles.warning | readable }};
 
 @define-color error_color {{ ansi.color1 }};
 @define-color error_bg_color {{ roles.urgent }};
-@define-color error_fg_color {{ roles.fg }};
+@define-color error_fg_color {{ roles.urgent | readable }};
 
 @define-color window_bg_color {{ roles.bg }};
 @define-color window_fg_color {{ roles.fg }};

@@ -74,6 +74,13 @@ class Filters(unittest.TestCase):
         self.assertEqual(self.r("{{ motion.border_loop | div(100) }}"), "600")
         self.assertEqual(self.r("{{ derived.is_light | bool }}"), "true")
 
+    def test_readable_text_on_a_colour(self):
+        # Nacre's ink reads on its pastels; Paper's pencil doesn't read on ink blue
+        self.assertEqual(self.r("{{ roles.accent | readable }}"), "#3b3548")
+        paper = ctx_for("paper")
+        self.assertEqual(rr.render_text("{{ roles.accent | readable }}", paper, "t"), "#f7f5ef")
+        self.assertEqual(rr.render_text("{{ roles.selection | readable }}", paper, "t"), "#4b4a46")
+
     def test_non_tags_are_left_alone(self):
         lua = "points = { {0.2, 0.9}, {0.2, 1} }"
         self.assertEqual(self.r(lua), lua)
@@ -221,6 +228,7 @@ class EndToEnd(unittest.TestCase):
         self.assertTrue((prof / "chrome/userChrome.css").is_symlink())
         self.assertEqual(mpv.read_text(), 'hwdec=auto\ninclude="~~/rice.conf"\n')
         self.assertTrue((self.home / ".config/mpv/script-opts/osc.conf").is_symlink())
+        self.assertTrue((self.home / ".config/cava/config").is_symlink())
         text = qt.read_text()
         self.assertIn("custom_palette=true", text)
         self.assertIn("style=Fusion", text)
@@ -298,6 +306,25 @@ class Paper(unittest.TestCase):
             self.assertIn(want, rendered)
         self.assertNotIn("blur = true", rendered)
         self.assertNotRegex(rendered, r"hl\.(bind|monitor|env|exec_cmd)\b", "visuals only")
+
+    def render(self, rel):
+        return rr.render_text((RICES / "paper/templates" / rel).read_text(), self.ctx, rel)
+
+    def test_typewriter_terminal(self):
+        k = self.render("kitty.conf")
+        for want in ('family="Courier Prime"', "background_image_layout tiled", "background_tint       0.92",
+                     "window_padding_width  22 26", "cursor_shape          underline",
+                     "background_opacity    1", "/assets/paper-tex.png"):
+            self.assertIn(want, k)
+        self.assertNotIn("bold_is_bright", k)    # not a kitty option; kitty never brightens bold
+
+    def test_nvim_scheme(self):
+        n = self.render("nvim/rice.lua")
+        self.assertIn('hl("Keyword",    { fg = c.ink, bold = true })', n)
+        self.assertIn('hl("Comment",    { fg = c.note, italic = true })', n)
+        self.assertIn('hl("DiagnosticWarn",  { fg = c.ochre })', n)
+        self.assertIn('ruled    = "#e9eced"', n)          # #a8c3e4 at 18% over the paper
+        self.assertIn('vim.g.colors_name = "rice"', n)    # the linked name every rice shares
 
     def test_fonts_are_vendored_with_their_licences(self):
         fonts = REPO / "fonts/.local/share/fonts/paper"

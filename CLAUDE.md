@@ -115,7 +115,10 @@ dissolve with the rice's `transition` shader. A failing step is logged and skipp
 
 Rendered for every rice from shared templates: kitty, GTK css, qt6ct (Fusion style +
 palette + fonts), btop, fastfetch, Firefox userChrome, imv, mpv, nvim + lualine,
-Spicetify, starship, Telegram, Vesktop, yazi, zathura, Limine, Plymouth, ReGreet.
+Spicetify, starship, Telegram, Vesktop, yazi, zathura, cava, Limine, Plymouth, ReGreet.
+Text on a coloured fill (accent buttons, active tabs, mode pills) uses
+`{{ roles.X | readable }}`, never a fixed role: it picks `fg`, or `bg` when `fg` falls
+under 3:1 on that fill and `bg` reads better.
 
 ## Checklist for a new rice
 

@@ -5,11 +5,13 @@ local c = {
   fg      = "{{ roles.fg }}",
   muted   = "{{ roles.muted }}",
   grad    = { {{ gradient.stops | closed | quote | join(", ") }} },
+  on      = { {{ gradient.stops | closed | readable | quote | join(", ") }} },
 }
 local function stop(i) return c.grad[((i - 1) % #c.grad) + 1] end
+local function on(i) return c.on[((i - 1) % #c.on) + 1] end
 local function mode(i)
   return {
-    a = { fg = c.fg, bg = stop(i), gui = "bold" },
+    a = { fg = on(i), bg = stop(i), gui = "bold" },
     b = { fg = c.fg, bg = c.bg },
     c = { fg = c.muted, bg = c.bg },
   }
