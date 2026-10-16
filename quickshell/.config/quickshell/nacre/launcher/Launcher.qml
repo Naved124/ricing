@@ -24,7 +24,7 @@ PanelWindow {
 
     // where the card grows from: the orb, in this screen's coordinates
     readonly property point orb: Shell.orbCenter.x > 0 ? Shell.orbCenter
-        : Qt.point((width - 780) / 2 + 22 + 13, 12 + 19)
+        : Qt.point(Theme.gapsOut + 6 + 13, 12 + 19)
 
     screen: Shell.orbScreen ?? Hypr.focusedScreen
     visible: open || !bloom.settled

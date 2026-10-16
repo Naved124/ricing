@@ -2,10 +2,12 @@ import QtQuick
 import QtQuick.Layouts
 import Quickshell
 import Quickshell.Wayland
+import qs
 import qs.common
 import qs.services
 
-// The bar: a floating pill, top-centre, 780 × 38, 12 px from the top.
+// The bar: a floating pill across the top, 38 tall, 12 px down, its ends
+// lined up with the window gaps.
 // One per monitor, each showing that monitor's workspaces. It reserves its
 // space so windows never slide under it, and steps aside for fullscreen.
 PanelWindow {
@@ -15,15 +17,15 @@ PanelWindow {
     screen: modelData
 
     readonly property var monitor: Hypr.monitorFor(screen)
-    readonly property int pillWidth: 780
+    readonly property int side: Theme.gapsOut   // ends line up with the windows below
+    readonly property int pillWidth: width - side * 2
     readonly property int pillHeight: 38
-    readonly property int pad: 22          // room for the lilac shadow
+    readonly property int pad: 22          // room for the lilac shadow below
 
     visible: !Hypr.fullscreenOn(monitor)
 
-    anchors.top: true
+    anchors { top: true; left: true; right: true }
     margins.top: 12
-    implicitWidth: pillWidth + pad * 2
     implicitHeight: pillHeight + pad
     exclusiveZone: pillHeight
     color: "transparent"
@@ -35,7 +37,7 @@ PanelWindow {
 
     Glass {
         id: pill
-        x: win.pad
+        x: win.side
         y: 0
         width: win.pillWidth
         height: win.pillHeight

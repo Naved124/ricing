@@ -11,6 +11,18 @@ local files    = "nautilus"
 local mod      = "SUPER"
 
 ---------------------------------------------------------------------------
+-- Environment
+---------------------------------------------------------------------------
+-- rice, rice-shot and rice-render live in ~/.local/bin, which a display
+-- manager's session often leaves off PATH; without this every rice bind
+-- (screenshots, lock, chooser) and `rice session` silently does nothing.
+local localbin = os.getenv("HOME") .. "/.local/bin"
+local path = os.getenv("PATH") or "/usr/local/bin:/usr/bin:/bin"
+if not (":" .. path .. ":"):find(":" .. localbin .. ":", 1, true) then
+    hl.env("PATH", localbin .. ":" .. path)
+end
+
+---------------------------------------------------------------------------
 -- Monitors (override per machine in local.lua)
 ---------------------------------------------------------------------------
 hl.monitor({ output = "", mode = "preferred", position = "auto", scale = "auto" })
@@ -55,7 +67,8 @@ hl.config({
     },
 })
 
-hl.gesture({ fingers = 3, direction = "horizontal", action = "workspace" })
+-- four fingers sideways switches workspace (three are left to apps)
+hl.gesture({ fingers = 4, direction = "horizontal", action = "workspace" })
 
 ---------------------------------------------------------------------------
 -- Keybinds

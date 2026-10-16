@@ -128,6 +128,7 @@ rice-shot region     screenshot (also: screen, window, edit)
 | Super+H/J/K/L (+Shift) | focus (move) |
 | Super+1…9 (+Shift) | workspace (move to it) |
 | Super+S (+Shift) | scratchpad (send to it) |
+| 4-finger swipe left/right | previous / next workspace |
 
 ## How a switch works
 
