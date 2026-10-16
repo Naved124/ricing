@@ -4,3 +4,4 @@ node_modules/
 @girs/
 rices/.config/rices/*/build/
 __pycache__/
+.qmlls.ini

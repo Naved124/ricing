@@ -1,0 +1,170 @@
+#!/usr/bin/env python3
+"""A stand-in for Hyprland's IPC sockets, for previewing a rice's shell
+where Hyprland itself can't run (CI, containers without a GPU).
+
+    tools/fake-hyprland SIGNATURE [MONITOR ...]
+
+Serves $XDG_RUNTIME_DIR/hypr/SIGNATURE/.socket.sock (requests) and
+.socket2.sock (events), with three workspaces and a few windows on the first
+monitor. Run the shell with HYPRLAND_INSTANCE_SIGNATURE=SIGNATURE.
+
+A third socket, .ctl.sock, scripts the session. Send one line per command:
+    event NAME>>DATA        broadcast a raw event (e.g. "event urgent>>a3")
+    focus N                 switch the first monitor to workspace N
+    move ADDR N             move a window to workspace N (fires movewindowv2)
+    fullscreen 0|1          toggle fullscreen on the active workspace
+Dispatches from the shell (`hl.dsp.focus({ workspace = N })`) are honoured.
+"""
+
+import json
+import os
+import re
+import socket
+import sys
+import threading
+
+SIG = sys.argv[1] if len(sys.argv) > 1 else "fake"
+MONITORS = sys.argv[2:] or ["HEADLESS-1"]
+DIR = os.path.join(os.environ.get("XDG_RUNTIME_DIR", "/tmp"), "hypr", SIG)
+
+lock = threading.Lock()
+listeners: list[socket.socket] = []
+
+state = {
+    "active": 2,
+    "fullscreen": False,
+    "workspaces": {1: "a1", 2: "a2", 3: "a3"},
+    "clients": [
+        {"address": "0xa1", "title": "Inbox — Thunderbird", "class": "thunderbird", "ws": 1},
+        {"address": "0xa2", "title": "kitty: ~/ricing — nvim palette.toml", "class": "kitty", "ws": 2},
+        {"address": "0xa3", "title": "Nacre — a light desktop, like the inside of a shell", "class": "firefox", "ws": 2},
+        {"address": "0xa4", "title": "Spotify Premium", "class": "spotify", "ws": 3},
+    ],
+    "focused": "0xa3",
+}
+
+
+def ws_obj(i: int) -> dict:
+    count = sum(1 for c in state["clients"] if c["ws"] == i)
+    return {"id": i, "name": str(i), "monitor": MONITORS[0], "monitorID": 0, "windows": count,
+            "hasfullscreen": state["fullscreen"] and i == state["active"], "lastwindow": "0x0"}
+
+
+def reply(req: str) -> str:
+    req = req.strip()
+    if req.startswith("[[BATCH]]"):
+        return "\n\n".join(reply(r) for r in req[9:].split(";"))
+    if req == "j/status":
+        return json.dumps({"configProvider": "lua"})
+    if req == "j/monitors":
+        return json.dumps([
+            {"id": i, "name": m, "description": "headless", "x": i * 1600, "y": 0,
+             "width": 1600, "height": 1000, "scale": 1.0, "focused": i == 0,
+             "activeWorkspace": {"id": state["active"] if i == 0 else 10 + i,
+                                 "name": str(state["active"] if i == 0 else 10 + i)}}
+            for i, m in enumerate(MONITORS)])
+    if req == "j/workspaces":
+        with lock:
+            ids = sorted({1, 2, 3, state["active"]} | {c["ws"] for c in state["clients"]})
+            return json.dumps([ws_obj(i) for i in ids])
+    if req == "j/clients":
+        with lock:
+            return json.dumps([
+                {"address": c["address"], "title": c["title"], "class": c["class"],
+                 "workspace": {"id": c["ws"], "name": str(c["ws"])}, "monitor": 0,
+                 "focusHistoryID": 0 if c["address"] == state["focused"] else 1}
+                for c in state["clients"]])
+    if req == "j/activewindow":
+        return json.dumps({"address": state["focused"]})
+    if req.startswith("dispatch"):
+        m = re.search(r"workspace\s*=?\s*\"?(\d+)", req) or re.search(r"workspace (\d+)", req)
+        if m:
+            focus(int(m.group(1)))
+        return "ok"
+    return "unknown request"
+
+
+def broadcast(line: str) -> None:
+    data = (line + "\n").encode()
+    with lock:
+        for s in listeners[:]:
+            try:
+                s.sendall(data)
+            except OSError:
+                listeners.remove(s)
+
+
+def focus(n: int) -> None:
+    with lock:
+        state["active"] = n
+        on_ws = [c for c in state["clients"] if c["ws"] == n]
+        if on_ws:
+            state["focused"] = on_ws[-1]["address"]
+    broadcast(f"workspacev2>>{n},{n}")
+    if on_ws:
+        broadcast(f"activewindowv2>>{on_ws[-1]['address'][2:]}")
+
+
+def serve(path: str, handler) -> None:
+    try:
+        os.unlink(path)
+    except FileNotFoundError:
+        pass
+    srv = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    srv.bind(path)
+    srv.listen(16)
+
+    def loop():
+        while True:
+            conn, _ = srv.accept()
+            threading.Thread(target=handler, args=(conn,), daemon=True).start()
+
+    threading.Thread(target=loop, daemon=True).start()
+
+
+def handle_request(conn: socket.socket) -> None:
+    with conn:
+        data = conn.recv(65536).decode(errors="replace")
+        conn.sendall(reply(data).encode())
+
+
+def handle_events(conn: socket.socket) -> None:
+    with lock:
+        listeners.append(conn)
+
+
+def handle_ctl(conn: socket.socket) -> None:
+    with conn:
+        buf = b""
+        while chunk := conn.recv(4096):
+            buf += chunk
+        for line in buf.decode().splitlines():
+            cmd, _, arg = line.strip().partition(" ")
+            if cmd == "event":
+                broadcast(arg)
+            elif cmd == "focus":
+                focus(int(arg))
+            elif cmd == "move":
+                addr, n = arg.split()
+                with lock:
+                    for c in state["clients"]:
+                        if c["address"] == addr:
+                            c["ws"] = int(n)
+                broadcast(f"movewindowv2>>{addr[2:]},{n},{n}")
+            elif cmd == "fullscreen":
+                with lock:
+                    state["fullscreen"] = arg == "1"
+                broadcast(f"fullscreen>>{arg}")
+
+
+def main() -> None:
+    os.makedirs(DIR, exist_ok=True)
+    serve(os.path.join(DIR, ".socket.sock"), handle_request)
+    serve(os.path.join(DIR, ".socket2.sock"), handle_events)
+    serve(os.path.join(DIR, ".ctl.sock"), handle_ctl)
+    print(f"fake hyprland on {DIR}", flush=True)
+    threading.Event().wait()
+
+
+if __name__ == "__main__":
+    main()

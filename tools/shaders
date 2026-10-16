@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# Recompile every Quickshell shader (*.frag → *.frag.qsb) after editing one.
+# Needs qsb from Qt Shader Tools (Arch: qt6-shadertools, at /usr/lib/qt6/bin/qsb).
+set -euo pipefail
+repo="$(cd "$(dirname "$0")/.." && pwd)"
+qsb="${QSB:-$(command -v qsb || echo /usr/lib/qt6/bin/qsb)}"
+[ -x "$qsb" ] || { echo "shaders: qsb not found (install qt6-shadertools or set QSB)" >&2; exit 1; }
+find "$repo/quickshell" "$repo/rices" -name '*.frag' -print0 | while IFS= read -r -d '' f; do
+    "$qsb" --qt6 -o "$f.qsb" "$f"
+    echo "  ${f#$repo/}.qsb"
+done
