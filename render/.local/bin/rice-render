@@ -269,7 +269,7 @@ class Filters:
         return f"{self.need_color(v)}{alpha_hex(a)}"
 
     def argb(self, v, a):
-        """#aarrggbb (Qt, QML, Kvantum)."""
+        """#aarrggbb (Qt, QML)."""
         return f"#{alpha_hex(a)}{self.need_color(v)[1:]}"
 
     def mix(self, v, other, t):
@@ -586,7 +586,6 @@ LINKS = [
     (".config/gtk-3.0/gtk.css", "gtk/gtk.css"),
     (".config/gtk-4.0/gtk.css", "gtk/gtk.css"),
     (".config/qt6ct/colors/rice.conf", "qt/qt6ct.conf"),
-    (".config/Kvantum/Rice", "qt/kvantum"),
     (".config/starship.toml", "starship.toml"),
     (".config/fastfetch/config.jsonc", "fastfetch/config.jsonc"),
     (".config/btop/themes/rice.theme", "btop.theme"),
@@ -699,11 +698,14 @@ def configure_apps() -> None:
     """One-time settings that point apps at the rice's files."""
     # mpv reads the rice's OSD colours through an include
     ensure_line(INSTALL_ROOT / ".config/mpv/mpv.conf", 'include="~~/rice.conf"', "the rice include")
-    # Qt apps: qt6ct with the rice palette, drawn by Kvantum when it's installed
+    # Qt apps: qt6ct with the rice palette, drawn by Fusion, which paints every
+    # part from that palette (Kvantum drew toolbars and headers from its own dark
+    # artwork, which left dark text on dark bars in the light rices)
     qt = INSTALL_ROOT / ".config/qt6ct/qt6ct.conf"
     appearance = {
         "color_scheme_path": str(INSTALL_ROOT / ".config/qt6ct/colors/rice.conf"),
         "custom_palette": "true",
+        "style": "Fusion",
     }
     # fonts, in QFont's string form: family, point size, -1, hint, weight, then defaults
     ctx = load_palette(CURRENT.parent) if (CURRENT.parent / "palette.toml").exists() else None
@@ -712,9 +714,6 @@ def configure_apps() -> None:
         qfont = lambda family, size: f'"{family},{size},-1,5,{f["weight"]},0,0,0,0,0,0,0,0,0,0,1"'
         ini_set(qt, "Fonts", {"general": qfont(f["ui"], f["ui_size"]),
                               "fixed": qfont(f["mono"], f["mono_size"])})
-    if shutil.which("kvantummanager") or Path("/usr/lib/qt6/plugins/styles/libkvantum.so").exists():
-        appearance["style"] = "kvantum"
-        ini_set(INSTALL_ROOT / ".config/Kvantum/kvantum.kvconfig", "General", {"theme": "Rice"})
     ini_set(qt, "Appearance", appearance)
     spicetify()
 

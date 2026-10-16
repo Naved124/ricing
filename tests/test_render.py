@@ -223,6 +223,8 @@ class EndToEnd(unittest.TestCase):
         self.assertTrue((self.home / ".config/mpv/script-opts/osc.conf").is_symlink())
         text = qt.read_text()
         self.assertIn("custom_palette=true", text)
+        self.assertIn("style=Fusion", text)
+        self.assertFalse((self.home / ".config/Kvantum/Rice").exists())
         self.assertIn("icon_theme=Papirus", text)
         self.assertIn('fixed="IBM Plex Mono,13.5,-1,5,600,', text)   # fonts follow the rice
         self.assertIn('general="Manrope,12,-1,5,600,', text)

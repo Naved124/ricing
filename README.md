@@ -95,7 +95,7 @@ How each app follows the rice:
 | App | How | When a switch shows up |
 | --- | --- | --- |
 | GTK apps | `gsettings` theme, icons, cursor and fonts, plus a linked `gtk.css` | at once (open GTK 3 apps on restart) |
-| Qt apps | qt6ct with the rice palette, Kvantum for the style (`QT_QPA_PLATFORMTHEME=qt6ct` is set in `base.lua`) | on restart |
+| Qt apps | qt6ct with the rice palette, drawn by Qt's Fusion style (`QT_QPA_PLATFORMTHEME=qt6ct` is set in `base.lua`) | on restart |
 | Firefox, Zen, LibreWolf | `userChrome.css` / `userContent.css` linked into every profile, with the pref turned on in `user.js` | on restart; websites keep their own colours |
 | Spotify | Spicetify's Rice theme (installed and applied for you if `spicetify` is there) | next time Spotify starts |
 | mpv | `include="~~/rice.conf"` in `mpv.conf` for the on-screen text, `osc.conf` for the built-in controls, `uosc.conf` if you use uosc | next file opened |
@@ -197,7 +197,7 @@ Switches are serialised with `flock`, so pressing the key repeatedly just queues
 `rice-render` reads `palette.toml` and writes every app's theme into the rice's `build/`
 folder. Templates live in `render/.local/share/rice/templates/`, and a rice's own
 `templates/` folder overrides any of them. It writes themes for kitty, nvim (with
-lualine), starship, btop, yazi, fastfetch, GTK 3 and 4, qt6ct, Kvantum, Firefox (chrome
+lualine), starship, btop, yazi, fastfetch, GTK 3 and 4, qt6ct, Firefox (chrome
 and a start page), Vesktop, Spicetify, mpv/uosc, imv, zathura, ReGreet and Hyprland's
 visual layer. A theme for an app you don't use is just an unused file.
 

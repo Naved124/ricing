@@ -103,7 +103,7 @@ optional=(
     satty:satty fd:fd cava:cava hyprpicker:hyprpicker magick:imagemagick
     powerprofilesctl:power-profiles-daemon bluetoothctl:bluez-utils
     hyprlock:hyprlock swaync:swaync swww:swww nvim:neovim
-    qt6ct:qt6ct kvantummanager:kvantum spicetify:spicetify-cli
+    qt6ct:qt6ct spicetify:spicetify-cli
     hyprshutdown:hyprshutdown
 )
 # themes the palettes name (checked by folder, since they aren't commands)
@@ -332,7 +332,7 @@ step "Rendering themes"
 run rice-render --all --quiet
 ok "every rice rendered"
 # links every app theme, turns on Firefox's userChrome in each profile it
-# finds, points qt6ct/Kvantum/mpv at the rice and applies Spicetify
+# finds, points qt6ct/mpv at the rice and applies Spicetify
 link_args=(--link --backup "$backup")
 [ "$firefox" = 1 ] && link_args+=(--firefox)
 run rice-render "${link_args[@]}"

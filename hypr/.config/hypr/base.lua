@@ -28,7 +28,7 @@ if not (":" .. path .. ":"):find(":" .. localbin .. ":", 1, true) then
 end
 
 -- Qt apps take their colours from qt6ct, which the installer points at the
--- rice's palette (and at Kvantum for the widget style)
+-- rice's palette (drawn by the Fusion style)
 hl.env("QT_QPA_PLATFORMTHEME", "qt6ct")
 
 ---------------------------------------------------------------------------
