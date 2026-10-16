@@ -158,13 +158,13 @@ rice-shot region     screenshot (also: screen, window, edit)
 | Super+V | clipboard history (the launcher in `!` mode) |
 | Super+N | control centre |
 | Super+Escape | power menu |
-| Super+Ctrl+L | lock |
+| Super+L | lock |
 | Super+Shift+T / Super+Ctrl+T | rice chooser / next rice |
 | Print, Shift+Print, Super+Print, Ctrl+Print | screenshot a region, the screen, the window, or into satty |
 | Super+Shift+C | colour picker |
 | Super+Q, F, Shift+F, P, G, Tab | close, fullscreen, float, pseudo, group, next in group |
 | Super+M | dwindle ⇄ master |
-| Super+H/J/K/L (+Shift) | focus (move) |
+| Super+H/J/K/arrows (+Shift, also L) | focus (move) |
 | Super+1…9 (+Shift) | workspace (move to it) |
 | Super+S (+Shift) | scratchpad (send to it) |
 | 4-finger swipe left/right | previous / next workspace |

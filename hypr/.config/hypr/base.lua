@@ -108,7 +108,7 @@ bind(key("V"),      hl.dsp.global("quickshell:clipboard"), "Shell · Clipboard h
 bind(key("N"),      hl.dsp.global("quickshell:center"),    "Shell · Control centre")
 bind(key("slash"),  hl.dsp.global("quickshell:keybinds"),  "Shell · This key sheet")
 bind(key("Escape"), hl.dsp.global("quickshell:power"),     "Shell · Power menu")
-bind(key("CTRL + L"), hl.dsp.exec_cmd("rice lock"),        "Shell · Lock")
+bind(key("L"),      hl.dsp.exec_cmd("rice lock"),         "Shell · Lock")
 
 -- windows
 bind(key("Q"),         hl.dsp.window.close(),                         "Windows · Close")
@@ -122,12 +122,15 @@ bind(key("M"), function()
     hl.config({ general = { layout = (layout == "master") and "dwindle" or "master" } })
 end, "Windows · Dwindle ⇄ master")
 
--- focus and move: Super+HJKL / arrows, + Shift moves the window
+-- focus and move: Super+HJK / arrows, + Shift moves the window. Super+L
+-- locks, so focusing right is the arrow alone (Super+Shift+L still moves).
 local dirs = { { "h", "left" }, { "left", "left" }, { "j", "down" }, { "down", "down" },
                { "k", "up" }, { "up", "up" }, { "l", "right" }, { "right", "right" } }
 for _, d in ipairs(dirs) do
     local k, dir = d[1], d[2]
-    bind(key(k),              hl.dsp.focus({ direction = dir }),       "Windows · Focus " .. dir)
+    if k ~= "l" then
+        bind(key(k), hl.dsp.focus({ direction = dir }), "Windows · Focus " .. dir)
+    end
     bind(key("SHIFT + " .. k), hl.dsp.window.move({ direction = dir }), "Windows · Move " .. dir)
 end
 
