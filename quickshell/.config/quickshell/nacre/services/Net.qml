@@ -51,43 +51,47 @@ Singleton {
         return (v >= 10 || i === 0 ? Math.round(v) : v.toFixed(1)) + " " + units[i];
     }
 
-    Timer {
-        interval: 1000
-        running: true
-        repeat: true
-        triggeredOnStart: true
-        onTriggered: if (!links.running) links.running = true
+    function sample(line) {
+        const f = line.trim().split(/\s+/);
+        if (f.length < 3) return;
+        const rx = Number(f[0]), tx = Number(f[1]), now = Date.now();
+        root.linkWired = f[2] === "1";
+        if (root.last && now > root.last.t) {
+            const dt = (now - root.last.t) / 1000;
+            root.down = Math.max(0, (rx - root.last.rx) / dt);
+            root.up = Math.max(0, (tx - root.last.tx) / dt);
+        }
+        root.last = { t: now, rx: rx, tx: tx };
     }
 
-    // one line per physical interface: name, wireless?, operstate, rx, tx
+    // One long-lived sampler: every second, the byte counters summed over the
+    // physical interfaces (a link that's down just doesn't add anything), and
+    // whether a non-wireless one is up. Restarted if it ever exits.
     Process {
-        id: links
+        id: sampler
+        running: true
         command: ["sh", "-c", `
-            for d in /sys/class/net/*; do
-                [ -e "$d/device" ] || continue
-                w=0; { [ -d "$d/wireless" ] || [ -e "$d/phy80211" ]; } && w=1
-                printf '%s %s %s %s %s\\n' "\${d##*/}" "$w" "$(cat "$d/operstate")" \\
-                    "$(cat "$d/statistics/rx_bytes")" "$(cat "$d/statistics/tx_bytes")"
+            while :; do
+                rx=0 tx=0 wired=0
+                for d in /sys/class/net/*; do
+                    [ -e "$d/device" ] || continue
+                    read -r r < "$d/statistics/rx_bytes" || r=0
+                    read -r t < "$d/statistics/tx_bytes" || t=0
+                    rx=$((rx + r)) tx=$((tx + t))
+                    if [ ! -d "$d/wireless" ] && [ ! -e "$d/phy80211" ] \
+                        && [ "$(cat "$d/operstate")" = up ]; then wired=1; fi
+                done
+                echo "$rx $tx $wired"
+                sleep 1
             done`]
-        stdout: StdioCollector {
-            onStreamFinished: {
-                let rx = 0, tx = 0, wiredUp = false;
-                for (const line of text.split("\n")) {
-                    const f = line.trim().split(/\s+/);
-                    if (f.length < 5 || f[2] !== "up") continue;
-                    if (f[1] === "0") wiredUp = true;
-                    rx += Number(f[3]);
-                    tx += Number(f[4]);
-                }
-                root.linkWired = wiredUp;
-                const now = Date.now();
-                if (root.last && now > root.last.t) {
-                    const dt = (now - root.last.t) / 1000;
-                    root.down = Math.max(0, (rx - root.last.rx) / dt);
-                    root.up = Math.max(0, (tx - root.last.tx) / dt);
-                }
-                root.last = { t: now, rx: rx, tx: tx };
-            }
+        stdout: SplitParser {
+            onRead: data => root.sample(data)
         }
+        onExited: restart.start()
+    }
+    Timer {
+        id: restart
+        interval: 2000
+        onTriggered: sampler.running = true
     }
 }
