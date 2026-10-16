@@ -1,0 +1,292 @@
+#!/usr/bin/env bash
+# One-shot installer: packages, fonts, dotfiles, themes, and the session.
+#
+#   ./install                 install everything, starting on Nacre
+#   ./install --rice paper    start on another rice
+#   ./install --dry-run       show what would happen, change nothing
+#   ./install --uninstall     remove the links (your backed-up files stay put)
+#
+# Options:
+#   --rice NAME     the rice to make active (default: keep the current one, else nacre)
+#   --no-deps       don't install packages (just report what's missing)
+#   --no-fonts      don't download Italiana, Manrope and IBM Plex Mono
+#   --no-firefox    don't touch Firefox profiles
+#   --auto          enable the time-of-day timer (see ~/.config/rices/auto.conf)
+#   --greetd        also install the ReGreet login screen (asks for sudo)
+#   -y, --yes       don't ask before installing packages
+#   -n, --dry-run   print the steps instead of running them
+#
+# Files the dotfiles would replace are moved to ~/.local/state/rice/backup/<time>/
+# first, never deleted. Running it again is safe: it only fixes what's missing.
+set -euo pipefail
+
+repo=$(cd "$(dirname "$0")" && pwd)
+packages=(switcher render rices hypr quickshell systemd)
+backup="${XDG_STATE_HOME:-$HOME/.local/state}/rice/backup/$(date +%Y%m%d-%H%M%S)"
+fontdir="${XDG_DATA_HOME:-$HOME/.local/share}/fonts/rice"
+fonts_url="https://raw.githubusercontent.com/google/fonts/main/ofl"
+
+rice="" deps=1 fonts=1 firefox=1 auto=0 greetd=0 yes=0 dry=0 uninstall=0
+
+# ── output ──────────────────────────────────────────────────────────────
+if [ -t 1 ]; then b=$'\e[1m' dim=$'\e[2m' red=$'\e[31m' grn=$'\e[32m' ylw=$'\e[33m' off=$'\e[0m'
+else b="" dim="" red="" grn="" ylw="" off=""; fi
+step() { printf '\n%s==> %s%s\n' "$b" "$*" "$off"; }
+ok()   { printf '  %s✓%s %s\n' "$grn" "$off" "$*"; }
+warn() { printf '  %s!%s %s\n' "$ylw" "$off" "$*" >&2; }
+die()  { printf '%serror:%s %s\n' "$red" "$off" "$*" >&2; exit 1; }
+# run a command, or just show it under --dry-run
+run() {
+    if [ "$dry" = 1 ]; then printf '  %s$ %s%s\n' "$dim" "$*" "$off"; else "$@"; fi
+}
+have() { command -v "$1" >/dev/null 2>&1; }
+ask() {
+    [ "$yes" = 1 ] && return 0
+    [ -t 0 ] || return 0
+    read -r -p "  $1 [Y/n] " reply
+    [[ ! $reply =~ ^[Nn] ]]
+}
+
+usage() { sed -n '2,/^set -euo/{/^set -euo/d;s/^# \{0,1\}//;p}' "$0"; }
+
+while [ $# -gt 0 ]; do
+    case $1 in
+        --rice) rice=${2:?--rice needs a name}; shift ;;
+        --rice=*) rice=${1#*=} ;;
+        --no-deps) deps=0 ;;
+        --no-fonts) fonts=0 ;;
+        --no-firefox) firefox=0 ;;
+        --auto) auto=1 ;;
+        --greetd) greetd=1 ;;
+        -y|--yes) yes=1 ;;
+        -n|--dry-run) dry=1 ;;
+        --uninstall) uninstall=1 ;;
+        -h|--help) usage; exit 0 ;;
+        *) die "unknown option $1 (see --help)" ;;
+    esac
+    shift
+done
+
+[ "$(id -u)" -ne 0 ] || die "run this as yourself, not root; it asks for sudo when it needs it"
+
+# ── uninstall ───────────────────────────────────────────────────────────
+if [ "$uninstall" = 1 ]; then
+    have stow || die "stow is needed to remove the links"
+    step "Removing the links"
+    run systemctl --user disable --now rice-auto.timer 2>/dev/null || true
+    run stow -D -d "$repo" -t "$HOME" "${packages[@]}"
+    ok "done. Rendered themes stay in ~/.config/rices/*/build; earlier backups are in"
+    printf '    %s\n' "${backup%/*}"
+    exit 0
+fi
+
+# ── packages ────────────────────────────────────────────────────────────
+# command → Arch package. Other distros: install these by hand.
+required=(
+    hyprland:hyprland qs:quickshell stow:stow python3:python jq:jq
+    grim:grim slurp:slurp wl-copy:wl-clipboard cliphist:cliphist
+    brightnessctl:brightnessctl hypridle:hypridle hyprsunset:hyprsunset
+    playerctl:playerctl wpctl:wireplumber notify-send:libnotify
+    xdg-open:xdg-utils flock:util-linux fc-list:fontconfig curl:curl kitty:kitty
+)
+optional=(
+    satty:satty fd:fd cava:cava hyprpicker:hyprpicker magick:imagemagick
+    powerprofilesctl:power-profiles-daemon bluetoothctl:bluez-utils
+    hyprlock:hyprlock swaync:swaync swww:swww nvim:neovim
+)
+
+missing_pkgs() {
+    local entry
+    for entry in "$@"; do have "${entry%%:*}" || printf '%s\n' "${entry#*:}"; done
+}
+
+step "Packages"
+mapfile -t need < <(missing_pkgs "${required[@]}")
+mapfile -t want < <(missing_pkgs "${optional[@]}")
+if [ ${#need[@]} -eq 0 ] && [ ${#want[@]} -eq 0 ]; then
+    ok "everything is installed"
+elif [ "$deps" = 0 ] || ! have pacman; then
+    [ ${#need[@]} -gt 0 ] && warn "missing (required): ${need[*]}"
+    [ ${#want[@]} -gt 0 ] && warn "missing (optional): ${want[*]}"
+    have pacman || [ "$deps" = 0 ] || warn "automatic install only knows pacman; install these yourself"
+else
+    all=("${need[@]}" "${want[@]}")
+    echo "  to install: ${all[*]}"
+    if ask "Install them?"; then
+        # official repos through pacman, the rest through an AUR helper if there is one
+        repo_pkgs=() aur_pkgs=()
+        for p in "${all[@]}"; do
+            if pacman -Si "$p" >/dev/null 2>&1; then repo_pkgs+=("$p"); else aur_pkgs+=("$p"); fi
+        done
+        [ ${#repo_pkgs[@]} -gt 0 ] && run sudo pacman -S --needed --noconfirm "${repo_pkgs[@]}"
+        if [ ${#aur_pkgs[@]} -gt 0 ]; then
+            helper=""
+            for h in paru yay; do have "$h" && { helper=$h; break; }; done
+            if [ -n "$helper" ]; then
+                run "$helper" -S --needed --noconfirm "${aur_pkgs[@]}"
+            else
+                warn "not in the repos and no AUR helper (paru/yay): ${aur_pkgs[*]}"
+            fi
+        fi
+    fi
+    mapfile -t need < <(missing_pkgs "${required[@]}")
+    [ "$dry" = 1 ] || [ ${#need[@]} -eq 0 ] || warn "still missing: ${need[*]}"
+fi
+
+have stow || die "stow is required to link the dotfiles"
+have python3 || die "python3 is required for rice-render"
+python3 -c 'import sys; sys.exit(sys.version_info < (3, 11))' \
+    || die "rice-render needs Python 3.11 or newer"
+
+# ── fonts ───────────────────────────────────────────────────────────────
+font_files=(
+    "Italiana|italiana/Italiana-Regular.ttf"
+    "Manrope|manrope/Manrope%5Bwght%5D.ttf"
+    "IBM Plex Mono|ibmplexmono/IBMPlexMono-Regular.ttf ibmplexmono/IBMPlexMono-Italic.ttf ibmplexmono/IBMPlexMono-Medium.ttf ibmplexmono/IBMPlexMono-Bold.ttf"
+)
+
+step "Fonts"
+fetched=0
+for entry in "${font_files[@]}"; do
+    family=${entry%%|*}
+    if have fc-list && fc-list : family | tr ',' '\n' | grep -qx "$family"; then
+        ok "$family"
+        continue
+    fi
+    if [ "$fonts" = 0 ] || ! have curl; then
+        warn "$family is not installed"
+        continue
+    fi
+    for f in ${entry#*|}; do
+        name=$(basename "$f" | sed 's/%5B/[/; s/%5D/]/')
+        run mkdir -p "$fontdir"
+        run curl -fsSL -o "$fontdir/$name" "$fonts_url/$f" || warn "couldn't download $name"
+    done
+    ok "$family (downloaded)"
+    fetched=1
+done
+[ "$fetched" = 1 ] && have fc-cache && run fc-cache -f "$fontdir" >/dev/null
+
+# ── dotfiles ────────────────────────────────────────────────────────────
+step "Linking the dotfiles"
+# Move aside anything stow would refuse to overwrite: real files, and links
+# that point somewhere other than this repo.
+moved=0
+move_aside() {
+    local target=$1 rel=${1#"$HOME"/}
+    run mkdir -p "$(dirname "$backup/$rel")"
+    run mv "$target" "$backup/$rel"
+    warn "moved ~/$rel to the backup"
+    moved=1
+}
+for pkg in "${packages[@]}"; do
+    while IFS= read -r -d '' src; do
+        rel=${src#"$repo/$pkg/"}
+        target="$HOME/$rel"
+        if [ -L "$target" ]; then
+            [ "$(readlink -f "$target")" = "$(readlink -f "$src")" ] || move_aside "$target"
+        elif [ -e "$target" ]; then
+            move_aside "$target"
+        fi
+    done < <(find "$repo/$pkg" \( -name __pycache__ -o -name build -o -name current \) -prune \
+                 -o \( -type f -o -type l \) -print0)
+done
+# an old hyprland.conf next to the Lua entry point would compete with it
+[ -e "$HOME/.config/hypr/hyprland.conf" ] && move_aside "$HOME/.config/hypr/hyprland.conf"
+
+run stow --no-folding --ignore='__pycache__' --ignore='^build$' -d "$repo" -t "$HOME" -R "${packages[@]}"
+ok "linked: ${packages[*]}"
+if [ "$moved" = 1 ]; then
+    echo "  your old files are in $backup"
+    echo "  machine-specific Hyprland bits (monitors, keyboard) go in ~/.config/hypr/local.lua"
+fi
+if [ ! -e "$HOME/.config/hypr/local.lua" ]; then
+    run cp "$repo/hypr/.config/hypr/local.example.lua" "$HOME/.config/hypr/local.lua"
+    ok "created ~/.config/hypr/local.lua (set your monitors there)"
+fi
+
+case ":$PATH:" in
+    *":$HOME/.local/bin:"*) ;;
+    *) warn "$HOME/.local/bin is not on your PATH; add it in your shell profile"
+       export PATH="$HOME/.local/bin:$PATH" ;;
+esac
+
+# ── the active rice ─────────────────────────────────────────────────────
+rices="$HOME/.config/rices"
+step "Choosing the rice"
+if [ -z "$rice" ]; then
+    if [ -L "$rices/current" ]; then rice=$(basename "$(readlink "$rices/current")"); else rice=nacre; fi
+fi
+[ -f "$repo/rices/.config/rices/$rice/palette.toml" ] || die "no rice called $rice (try: $(cd "$repo/rices/.config/rices" && ls -d */ | tr -d / | tr '\n' ' '))"
+run ln -sfn "$rice" "$rices/current"
+ok "$rice"
+
+# ── themes ──────────────────────────────────────────────────────────────
+step "Rendering themes"
+run rice-render --all --quiet
+ok "every rice rendered"
+link_args=(--link)
+if [ "$firefox" = 1 ] && [ -f "$HOME/.mozilla/firefox/profiles.ini" ]; then
+    link_args+=(--firefox)
+fi
+run rice-render "${link_args[@]}"
+
+# kitty includes the active rice's colours (and reloads them on SIGUSR1)
+kitty_conf="$HOME/.config/kitty/kitty.conf"
+include="include ~/.config/rices/current/build/kitty.conf"
+if ! grep -qsxF "$include" "$kitty_conf"; then
+    run mkdir -p "$(dirname "$kitty_conf")"
+    if [ "$dry" = 1 ]; then run echo "$include" '>>' "$kitty_conf"; else printf '\n%s\n' "$include" >> "$kitty_conf"; fi
+    ok "kitty.conf now includes the rice"
+fi
+
+# Firefox only reads userChrome.css with this pref on
+if [ "$firefox" = 1 ] && [ -f "$HOME/.mozilla/firefox/profiles.ini" ]; then
+    pref='user_pref("toolkit.legacyUserProfileCustomizations.stylesheets", true);'
+    while IFS= read -r prof; do
+        [ -d "$prof" ] || continue
+        if ! grep -qsF "$pref" "$prof/user.js"; then
+            if [ "$dry" = 1 ]; then run echo "$pref" '>>' "$prof/user.js"; else echo "$pref" >> "$prof/user.js"; fi
+            ok "Firefox userChrome enabled in $(basename "$prof") (restart Firefox)"
+        fi
+    done < <(awk -F= -v dir="$HOME/.mozilla/firefox" '
+        /^\[/ { if (p != "") print (rel == "0" ? p : dir "/" p); p = ""; rel = "1" }
+        $1 == "Path" { p = $2 } $1 == "IsRelative" { rel = $2 }
+        END { if (p != "") print (rel == "0" ? p : dir "/" p) }' "$HOME/.mozilla/firefox/profiles.ini")
+fi
+
+# ── services ────────────────────────────────────────────────────────────
+step "Services"
+if have systemctl && systemctl --user show-environment >/dev/null 2>&1; then
+    run systemctl --user daemon-reload
+    if [ "$auto" = 1 ]; then
+        run systemctl --user enable --now rice-auto.timer
+        ok "auto mode on"
+    else
+        ok "auto mode off (turn it on later with: rice auto on)"
+    fi
+else
+    warn "no systemd user session; skipping the auto-mode timer"
+fi
+
+if [ "$greetd" = 1 ]; then
+    step "Login screen"
+    run sudo "$repo/system/greetd/install"
+    echo "  then switch display managers yourself, e.g.:"
+    echo "    sudo systemctl disable sddm gdm lightdm 2>/dev/null; sudo systemctl enable greetd"
+fi
+
+# ── start it ────────────────────────────────────────────────────────────
+step "Starting"
+if [ -n "${HYPRLAND_INSTANCE_SIGNATURE:-}" ]; then
+    run hyprctl reload >/dev/null
+    # the shared chooser/overlay shell; base.lua starts it at login, so only needed now
+    if have qs && ! qs -c rice ipc call rice ping >/dev/null 2>&1; then run qs -n -c rice -d >/dev/null 2>&1 || true; fi
+    run rice session
+    ok "live now. Super+Space for the launcher, Super+T for the rice chooser"
+else
+    ok "log into Hyprland and it all starts by itself"
+fi
+
+[ "$dry" = 1 ] && printf '\n%sdry run: nothing was changed%s\n' "$dim" "$off"
+exit 0

@@ -41,35 +41,59 @@ Install with [GNU Stow](https://www.gnu.org/software/stow/). Each folder is a pa
 | `systemd` | `~/.config/systemd/user/rice-auto.*` | the timer for auto mode |
 | `system/greetd` | (not stowed) | the login screen, installed with sudo, see below |
 
+`./install` at the top level sets all of this up; see below.
+
 ## Install
 
 ```sh
 git clone https://github.com/Naved124/ricing ~/ricing
 cd ~/ricing
-# stow refuses to overwrite files: move your own hyprland.lua/.conf aside first
-# (machine-specific bits go in ~/.config/hypr/local.lua; see local.example.lua)
-stow --no-folding -t ~ switcher render rices hypr quickshell systemd
-ln -sfn nacre ~/.config/rices/current
-rice-render --all            # write every rice's theme files
-rice-render --link --firefox # one-time links for apps that need fixed paths
+./install
 ```
 
-`--no-folding` matters: it keeps `~/.config/rices` a real directory, so `current` and each
-rice's `build/` are created there and not inside the repo.
+That one script:
 
-`rice-render --link` prints the few lines you add once to apps that include a theme
-rather than replace it (kitty, btop, zathura, nvim, Kvantum, qt6ct, Spicetify). For
-Firefox, also set `toolkit.legacyUserProfileCustomizations.stylesheets` to `true` in
-`about:config`.
+- installs the packages that are missing (pacman, plus `paru`/`yay` for AUR ones; on
+  other distros it lists what to install);
+- downloads Italiana, Manrope and IBM Plex Mono into `~/.local/share/fonts/rice` if you
+  don't have them;
+- moves any file the dotfiles would replace (your old `hyprland.conf`, for instance) to
+  `~/.local/state/rice/backup/<time>/`, then links everything with stow;
+- creates `~/.config/hypr/local.lua` for your monitors and keyboard layout;
+- makes Nacre the active rice, renders every theme, links the app themes, adds the
+  include to `kitty.conf` and turns on Firefox's `userChrome.css`;
+- reloads Hyprland if you're in it; otherwise log in and it starts by itself.
 
-**Requirements:** `hyprland` ≥ 0.55, `quickshell` 0.3, Python 3.11 or newer, `grim`, `slurp`,
-`jq`, `wl-clipboard`, `cliphist`, `brightnessctl`, `hypridle`, `hyprsunset`, `playerctl`,
-and the fonts Italiana, Manrope and IBM Plex Mono.
+It's safe to run again. Useful options: `--rice paper` to start on another rice,
+`--dry-run` to see what it would do, `--no-deps`, `--auto` for time-of-day switching,
+`--greetd` for the login screen, and `--uninstall` to remove the links. `./install --help`
+lists them all.
+
+A few apps include the theme rather than having it replaced; the installer prints the one
+line to add for each of them (btop, zathura, nvim, Kvantum, qt6ct, Spicetify).
+
+**Requirements:** `hyprland` ≥ 0.55, `quickshell` 0.3, Python 3.11 or newer, `stow`,
+`grim`, `slurp`, `jq`, `wl-clipboard`, `cliphist`, `brightnessctl`, `hypridle`,
+`hyprsunset`, `playerctl`, `wireplumber`, `kitty`, and the three fonts above.
 
 **Optional, used if present:** `satty` (screenshot editing), `fd` (launcher file search),
 `cava` (control-centre visualiser), `hyprpicker`, `imagemagick` (blurred lock
 backdrop), `swaync`, `swww`/`mpvpaper` and `hyprlock` (for rices without their own shell),
-`kitty`, `nvim`, `gsettings`, `power-profiles-daemon`, `bluez`.
+`nvim`, `gsettings`, `power-profiles-daemon`, `bluez`.
+
+<details><summary>By hand, without the installer</summary>
+
+```sh
+# stow refuses to overwrite files: move your own hyprland.lua/.conf aside first
+stow --no-folding -t ~ switcher render rices hypr quickshell systemd
+ln -sfn nacre ~/.config/rices/current
+rice-render --all
+rice-render --link --firefox
+```
+
+`--no-folding` matters: it keeps `~/.config/rices` a real directory, so `current` and each
+rice's `build/` are created there and not inside the repo.
+</details>
 
 ## Usage
 
@@ -146,7 +170,8 @@ Templates use `{{ roles.accent }}`-style placeholders with filters, for example
 
 ## The login screen
 
-ReGreet under greetd, themed by the active rice. This touches `/etc`, so run it yourself:
+ReGreet under greetd, themed by the active rice. This touches `/etc`, so it's opt-in:
+`./install --greetd`, or by hand:
 
 ```sh
 sudo system/greetd/install            # uses the shell's wallpaper still, or pass an image
