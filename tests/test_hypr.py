@@ -49,7 +49,7 @@ class VerifyConfig(unittest.TestCase):
         return out.split("Config parsing result:", 1)[-1].strip()
 
     def test_each_rice(self):
-        for rice in ("nacre", "urushi", "paper"):
+        for rice in ("nacre", "paper"):
             with self.subTest(rice):
                 self.assertEqual(self.verify(rice), "config ok")
 
@@ -109,7 +109,7 @@ class LuaSmoke(unittest.TestCase):
             stub = Path(d) / "stub.lua"
             stub.write_text(HL_STUB)
             files = [REPO / "hypr/.config/hypr/base.lua"] + sorted(rices.glob("*/build/hypr.lua"))
-            self.assertGreaterEqual(len(files), 4)
+            self.assertGreaterEqual(len(files), 3)   # base.lua and each rice
             for f in files:
                 with self.subTest(f.parent.parent.name):
                     r = subprocess.run([LUA, str(stub), str(f)], capture_output=True, text=True, env=env)

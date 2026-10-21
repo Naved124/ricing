@@ -12,17 +12,16 @@ The config has two layers:
 
 ```
 ~/.config/rices/
-  nacre/  urushi/  paper/   ← palette.toml, templates/, card.qml, transition.frag
+  nacre/  paper/           ← palette.toml, templates/, card.qml, transition.frag
   auto.conf                 ← schedule for auto mode
   current -> nacre/         ← the active rice
 ```
 
-Three rices ship today:
+Two rices ship today:
 
 | Rice | Look | Shell |
 | --- | --- | --- |
 | **Nacre** | pearl glass, colour only at the edges and in motion | its own Quickshell config: bar, launcher, control centre, notifications, OSDs, lock, power menu, live wallpaper |
-| **Urushi** | black lacquer, vermilion, gold | Hyprland visuals and app themes; bring your own bar (swaync, hyprlock, wallpaper files) |
 | **Paper** | sheets on a desk, typewriter and pencil | its own Quickshell config: a taped bar, tear-off calendar, wastebasket, sticky-note notifications, index-card launcher, envelope lock, rubber-stamp power menu, and a paper grain over the screen |
 
 ### Paper
@@ -232,8 +231,8 @@ rice-rec toggle      record the screen to ~/Videos, again to stop (also: region)
    switch carries on, so a broken step never leaves the screen frozen. The overlay also
    lets go by itself after 8 s.
 4. The overlay dissolves through the incoming rice's `transition.frag`: Nacre's ripple
-   with an iridescent wavefront, Urushi's lacquer lid that darkens and lifts away on a
-   gold edge, and Paper's page peeled from the corner. A rice without one fades.
+   with an iridescent wavefront, and Paper's page peeled from the corner. A rice without
+   one fades.
 
 Switches are serialised with `flock`, so pressing the key repeatedly just queues them.
 

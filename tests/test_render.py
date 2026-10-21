@@ -3,6 +3,7 @@
 import importlib.machinery
 import importlib.util
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -98,7 +99,7 @@ class Filters(unittest.TestCase):
 
 class Palettes(unittest.TestCase):
     def test_every_rice_loads(self):
-        for name in ("nacre", "urushi", "paper"):
+        for name in ("nacre", "paper"):
             with self.subTest(name):
                 ctx = ctx_for(name)
                 for role in rr.ROLES:
@@ -108,7 +109,7 @@ class Palettes(unittest.TestCase):
         # yazi 25.5+ refuses filetype rules without `url`/`mime` (`name` is gone)
         # and silently ignores the old [mgr] hovered/tab_* keys
         shared = REPO / "render/.local/share/rice/templates/yazi/theme.toml"
-        for name in ("nacre", "urushi", "paper"):
+        for name in ("nacre", "paper"):
             with self.subTest(name):
                 own = RICES / name / "templates/yazi/theme.toml"
                 src = (own if own.exists() else shared).read_text()
@@ -123,7 +124,15 @@ class Palettes(unittest.TestCase):
 
     def test_variant(self):
         self.assertEqual(ctx_for("nacre")["derived"]["variant"], "light")
-        self.assertEqual(ctx_for("urushi")["derived"]["variant"], "dark")
+        self.assertEqual(ctx_for("paper")["derived"]["variant"], "light")
+        with tempfile.TemporaryDirectory() as d:
+            rice = Path(d) / "night"
+            shutil.copytree(RICES / "nacre", rice, ignore=shutil.ignore_patterns("build"))
+            text = (rice / "palette.toml").read_text()
+            text = text.replace("[colors]\n", '[colors]\nnight    = "#141110"\n', 1)
+            text = re.sub(r'(?m)^bg(\s*)= "pearl"', r'bg\1= "night"', text)
+            (rice / "palette.toml").write_text(text)
+            self.assertEqual(rr.load_palette(rice)["derived"]["variant"], "dark")
 
     def test_bad_palettes_are_explained(self):
         with tempfile.TemporaryDirectory() as d:
@@ -158,7 +167,7 @@ class EndToEnd(unittest.TestCase):
     def test_renders_every_rice_and_check_is_clean_after(self):
         p = self.run_render("--all", "-q")
         self.assertEqual(p.returncode, 0, p.stderr)
-        for name in ("nacre", "urushi", "paper"):
+        for name in ("nacre", "paper"):
             build = self.rices / name / "build"
             for f in ("kitty.conf", "nvim/rice.lua", "gtk/gtk.css", "meta.json", "fastfetch/logo.png",
                       "limine/theme.conf", "plymouth/rice.script", "plymouth/rice.plymouth",
@@ -177,7 +186,7 @@ class EndToEnd(unittest.TestCase):
 
     def test_zsh_colours_and_prompt_glyphs(self):
         self.assertEqual(self.run_render("--all", "-q").returncode, 0)
-        for name in ("nacre", "urushi", "paper"):
+        for name in ("nacre", "paper"):
             build = self.rices / name / "build"
             zsh = (build / "zsh.zsh").read_text()
             self.assertNotIn("{{", zsh, name)

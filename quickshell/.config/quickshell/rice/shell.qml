@@ -15,7 +15,7 @@ ShellRoot {
     id: root
 
     // how long each transition shader runs, by meta.transition
-    readonly property var durations: ({ ripple: 900, lacquer: 1000, peel: 950, fade: 450 })
+    readonly property var durations: ({ ripple: 900, peel: 950, fade: 450 })
 
     Chooser { id: chooser }
 

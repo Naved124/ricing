@@ -7,6 +7,7 @@ a failing step never leaves the screen frozen.
 
 import json
 import os
+import re
 import shutil
 import stat
 import subprocess
@@ -53,7 +54,16 @@ class Switch(unittest.TestCase):
         self.rices = root / "rices"
         shutil.copytree(REPO / "rices/.config/rices", self.rices,
                         ignore=shutil.ignore_patterns("build", "current"))
-        (self.rices / "current").symlink_to(self.rices / "urushi")
+        # "plain": a rice with no shell of its own (swaync, hyprlock, wallpaper files)
+        plain = self.rices / "plain"
+        shutil.copytree(self.rices / "nacre", plain)
+        meta = {"name": "plain", "shell": "", "notifications": "swaync",
+                "wallpaper": "files", "lock": "hyprlock"}
+        text = (plain / "palette.toml").read_text()
+        for key, value in meta.items():
+            text = re.sub(rf'(?m)^{key}(\s*)= "[^"]*"', rf'{key}\1= "{value}"', text, count=1)
+        (plain / "palette.toml").write_text(text)
+        (self.rices / "current").symlink_to(plain)
 
         bin_ = root / "bin"
         bin_.mkdir()
@@ -145,12 +155,12 @@ class Switch(unittest.TestCase):
         self.rice("nacre")
         shell = self.running_shell()
         self.log.unlink()
-        r = self.rice("urushi")
+        r = self.rice("plain")
         self.assertEqual(r.returncode, 0, r.stderr)
         calls = self.calls()
         self.assertStopped(shell)
-        self.assertFalse(any(c.startswith("qs -n -c urushi") for c in calls))
-        self.index(calls, "qs -c rice ipc call rice dissolve urushi")
+        self.assertFalse(any(c.startswith("qs -n -c plain") for c in calls))
+        self.index(calls, "qs -c rice ipc call rice dissolve plain")
 
     def test_shell_to_shell(self):
         self.rice("nacre")
@@ -241,7 +251,7 @@ class Switch(unittest.TestCase):
             holder.wait()
 
     def test_already_active_is_a_no_op(self):
-        r = self.rice("urushi")
+        r = self.rice("plain")
         self.assertEqual(r.returncode, 0)
         self.assertIn("already active", r.stderr)
         self.assertEqual(self.calls(), [])
@@ -255,8 +265,8 @@ class Switch(unittest.TestCase):
         r = self.rice("json")
         self.assertEqual(r.returncode, 0, r.stderr)
         d = json.loads(r.stdout)
-        self.assertEqual(d["current"], "urushi")
-        self.assertEqual([x["name"] for x in d["rices"]], ["nacre", "paper", "urushi"])
+        self.assertEqual(d["current"], "plain")
+        self.assertEqual([x["name"] for x in d["rices"]], ["nacre", "paper", "plain"])
         self.assertTrue(all(x["card"] for x in d["rices"]))
         nacre = d["rices"][0]["meta"]
         self.assertEqual(nacre["transition"], "ripple")
