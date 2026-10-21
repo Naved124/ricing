@@ -1,3 +1,4 @@
+
 # Nacre — a light desktop, like the inside of a shell.
 # Colour only at the edges and in motion, never as flat fills.
 #   · no pure white surfaces: everything is frosted glass
@@ -16,69 +17,6 @@ shell         = "nacre"       # Quickshell config: qs -c nacre
 notifications = "shell"       # the shell is the notification daemon (no swaync)
 wallpaper     = "shell"       # the shell draws the wallpaper (no mpvpaper/swww)
 lock          = "shell"       # the shell is the lock screen (no hyprlock)
-
-[colors]
-pearl    = "#f4f1f6"   # base surfaces
-shell    = "#e7e2ec"   # secondary surfaces, inactive chips
-lilac    = "#c9bfd8"   # inactive borders, dividers
-ink      = "#3b3548"   # main text
-ink_soft = "#7a7189"   # labels, secondary text
-rose     = "#f2c3d6"   # gradient stop, urgent
-sky      = "#c3dff3"   # gradient stop, selection, links
-mint     = "#cdeedb"   # gradient stop, success
-sun      = "#f3e2b0"   # gradient stop, warning
-orchid   = "#dcc6f2"   # gradient stop, cursor
-mist     = "#f7f4f9"   # pale panel tint
-plum     = "#7d6a9a"   # deep lilac, for the odd accent line
-frost    = "#eef2f8"   # terminal glass (used at 58% over the blur)
-ink_deep = "#2e2a3d"   # terminal text: darker, so it reads on lighter glass
-steel    = "#6e82b4"   # window and panel shadows: cool, never black
-glaze    = "#f4f6fb"   # Quickshell glass fill (used at 55%)
-rim      = "#a0aad2"   # glass hairline (used at 45%)
-
-# Roles name a colour above; templates shared by every rice only use roles.
-[roles]
-bg        = "pearl"
-surface   = "shell"
-overlay   = "lilac"
-border    = "lilac"
-fg        = "ink"
-muted     = "ink_soft"
-accent    = "orchid"
-urgent    = "rose"
-selection = "sky"
-success   = "mint"
-warning   = "sun"
-cursor    = "orchid"
-link      = "sky"
-shadow    = "steel"
-term_bg   = "frost"
-term_fg   = "ink_deep"
-
-[gradient]
-# rose → sky → mint → sun → orchid → rose, rotating conically
-stops = ["rose", "sky", "mint", "sun", "orchid"]
-angle = 45
-
-[ansi]
-# normal colours hold at least 4.5:1 (checked at 4.6) against the terminal
-# glass: #eef2f8 at 58% over the blurred wallpaper, wherever the window sits
-color0  = "#3b3548"
-color1  = "#91284f"
-color2  = "#355744"
-color3  = "#644d21"
-color4  = "#2f546f"
-color5  = "#674277"
-color6  = "#2f5757"
-color7  = "#534e5b"
-color8  = "#7a7189"
-color9  = "#e891b0"
-color10 = "#86bf9c"
-color11 = "#dcbb73"
-color12 = "#8bb7d8"
-color13 = "#bf97d0"
-color14 = "#7cc2c0"
-color15 = "#f4f1f6"
 
 [fonts]
 display   = "Italiana"        # clock, lock screen, greetings, big numbers
@@ -103,20 +41,6 @@ border         = 2
 gaps_in        = 6
 gaps_out       = 16
 
-[opacity]
-terminal = 0.72    # kitty: frosted, but solid enough to read at a glance
-active   = 0.97    # glassy windows (terminals, files, music, tools)
-inactive = 0.90
-glass    = 0.55    # Quickshell panel fill over Hyprland blur
-
-# The live wallpaper (shaders/wallpaper.frag): a cold steel-to-lilac ground,
-# vivid blooms (the gradient stops at 70% saturation) and deeper ice/orchid
-# accents, so the blur has real shapes to smear.
-[wallpaper]
-ground  = ["#c9d3e6", "#d8cde6"]
-blooms  = ["#ed97ba", "#8ec4eb", "#8eebb6", "#ead086", "#c49bed"]
-accents = ["#9fb8e0", "#c7a8e0", "#9fb8e0"]
-
 [motion]
 # cubic-bezier control points
 bloom  = [0.2, 0.9, 0.2, 1.0]
@@ -134,12 +58,10 @@ panel_in    = 350
 panel_out   = 250
 stagger     = 30
 
+# the cursor is the same in both modes; the GTK theme and icons are per mode
 [gtk]
-theme        = "adw-gtk3"
-icons        = "Colloid-Light"
 cursor       = "Bibata-Modern-Ice"
 cursor_size  = 24
-color_scheme = "prefer-light"
 
 [nvim]
 colorscheme = "rice"   # build/nvim/rice.lua, linked into ~/.config/nvim/colors
@@ -147,3 +69,90 @@ colorscheme = "rice"   # build/nvim/rice.lua, linked into ~/.config/nvim/colors
 # Generated files that live outside build/ (path relative to $HOME).
 [install]
 "quickshell/Theme.qml" = ".config/quickshell/nacre/Theme.qml"
+
+# ── light ───────────────────────────────────────────────────────────────────
+# What changes with the mode lives under [modes.<mode>.*]. Templates see the
+# active mode's tables as colors, roles, ansi, … and its meta merged into
+# [meta], exactly as before.
+
+[modes.light.meta]
+gtk_theme     = "adw-gtk3"
+icon_theme    = "Colloid-Light"
+color_scheme  = "prefer-light"
+
+[modes.light.colors]
+pearl    = "#f4f1f6"   # base surfaces
+shell    = "#e7e2ec"   # secondary surfaces, inactive chips
+lilac    = "#c9bfd8"   # inactive borders, dividers
+ink      = "#3b3548"   # main text
+ink_soft = "#7a7189"   # labels, secondary text
+rose     = "#f2c3d6"   # gradient stop, urgent
+sky      = "#c3dff3"   # gradient stop, selection, links
+mint     = "#cdeedb"   # gradient stop, success
+sun      = "#f3e2b0"   # gradient stop, warning
+orchid   = "#dcc6f2"   # gradient stop, cursor
+mist     = "#f7f4f9"   # pale panel tint
+plum     = "#7d6a9a"   # deep lilac, for the odd accent line
+frost    = "#eef2f8"   # terminal glass (used at 58% over the blur)
+ink_deep = "#2e2a3d"   # terminal text: darker, so it reads on lighter glass
+steel    = "#6e82b4"   # window and panel shadows: cool, never black
+glaze    = "#f4f6fb"   # Quickshell glass fill (used at 55%)
+rim      = "#a0aad2"   # glass hairline (used at 45%)
+
+# Roles name a colour above; templates shared by every rice only use roles.
+[modes.light.roles]
+bg        = "pearl"
+surface   = "shell"
+overlay   = "lilac"
+border    = "lilac"
+fg        = "ink"
+muted     = "ink_soft"
+accent    = "orchid"
+urgent    = "rose"
+selection = "sky"
+success   = "mint"
+warning   = "sun"
+cursor    = "orchid"
+link      = "sky"
+shadow    = "steel"
+term_bg   = "frost"
+term_fg   = "ink_deep"
+
+[modes.light.gradient]
+# rose → sky → mint → sun → orchid → rose, rotating conically
+stops = ["rose", "sky", "mint", "sun", "orchid"]
+angle = 45
+
+[modes.light.ansi]
+# normal colours hold at least 4.5:1 (checked at 4.6) against the terminal
+# glass: #eef2f8 at 58% over the blurred wallpaper, wherever the window sits
+color0  = "#3b3548"
+color1  = "#91284f"
+color2  = "#355744"
+color3  = "#644d21"
+color4  = "#2f546f"
+color5  = "#674277"
+color6  = "#2f5757"
+color7  = "#534e5b"
+color8  = "#7a7189"
+color9  = "#e891b0"
+color10 = "#86bf9c"
+color11 = "#dcbb73"
+color12 = "#8bb7d8"
+color13 = "#bf97d0"
+color14 = "#7cc2c0"
+color15 = "#f4f1f6"
+
+[modes.light.opacity]
+terminal = 0.72    # kitty: frosted, but solid enough to read at a glance
+active   = 0.97    # glassy windows (terminals, files, music, tools)
+inactive = 0.90
+glass    = 0.55    # Quickshell panel fill over Hyprland blur
+
+# The live wallpaper (shaders/wallpaper.frag): a cold steel-to-lilac ground,
+# vivid blooms (the gradient stops at 70% saturation) and deeper ice/orchid
+# accents, so the blur has real shapes to smear.
+[modes.light.wallpaper]
+ground  = ["#c9d3e6", "#d8cde6"]
+blooms  = ["#ed97ba", "#8ec4eb", "#8eebb6", "#ead086", "#c49bed"]
+accents = ["#9fb8e0", "#c7a8e0", "#9fb8e0"]

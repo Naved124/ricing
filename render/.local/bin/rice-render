@@ -115,7 +115,36 @@ def contrast(a: str, b: str) -> float:
 
 # ── palette loading ──────────────────────────────────────────────────────────
 
-def load_palette(rice: Path) -> dict:
+# tables that live under [modes.<mode>.*]; the rest of the palette is shared
+MODE_TABLES = ("colors", "roles", "gradient", "ansi", "opacity", "wallpaper")
+# [modes.<mode>.meta] keys that templates and `rice` know by their old [gtk] names
+GTK_KEYS = {"gtk_theme": "theme", "icon_theme": "icons", "color_scheme": "color_scheme"}
+
+
+def flatten_mode(data: dict, mode: str, path: Path) -> dict:
+    """One mode of a schema-v2 palette, in the shape templates read: the mode's
+    tables at the top level, its meta merged into [meta] and its GTK keys
+    into [gtk]."""
+    modes = data.pop("modes", None)
+    if not isinstance(modes, dict) or "light" not in modes:
+        raise RenderError(f"{path}: no [modes.light.*] tables (palette schema v2; see CLAUDE.md)")
+    stray = [t for t in MODE_TABLES if t in data]
+    if stray:
+        raise RenderError(f"{path}: [{stray[0]}] belongs under [modes.<mode>.{stray[0]}]")
+    if mode not in modes:
+        raise RenderError(f"{path}: no [modes.{mode}.*] tables")
+    m = modes[mode]
+    for t in MODE_TABLES:
+        if t in m:
+            data[t] = m[t]
+    look = m.get("meta", {})
+    data["meta"] = {**data.get("meta", {}), **look}
+    data["gtk"] = {**data.get("gtk", {}), **{GTK_KEYS[k]: v for k, v in look.items() if k in GTK_KEYS}}
+    data["mode"] = mode
+    return data
+
+
+def load_palette(rice: Path, mode: str = "light") -> dict:
     path = rice / "palette.toml"
     try:
         data = tomllib.loads(path.read_text())
@@ -123,6 +152,7 @@ def load_palette(rice: Path) -> dict:
         raise RenderError(f"{path}: not found")
     except tomllib.TOMLDecodeError as e:
         raise RenderError(f"{path}: {e}")
+    data = flatten_mode(data, mode, path)
 
     colors = data.get("colors", {})
     for k, v in colors.items():

@@ -88,35 +88,50 @@ get lost.
 
 ## palette.toml: the one file a rice is made of
 
-Copy an existing one; every section below is read by shared code.
+Copy an existing one; every section below is read by shared code. Schema v2: what
+belongs to the rice is shared at the top level, what changes with the light is under
+`[modes.<mode>.*]` (only `light` so far). `rice-render` flattens one mode back into the
+old shape, so templates keep writing `{{ roles.bg }}`, `{{ colors.ink }}`,
+`{{ gtk.theme }}` and `{{ meta.screen_shader }}`. Top-level `[colors]`, `[roles]` etc.
+are an error.
+
+Shared:
 
 - `[meta]` `name`, `title`, `tagline`, `transition` (shader name), and who does what:
   - `shell = "<qs config>"` or `""` for none
   - `notifications = "shell" | "swaync"`
   - `wallpaper = "shell" | "files"` (`files` = `wallpaper/` folder via mpvpaper/swww)
   - `lock = "shell" | "hyprlock"`
-  - `screen_shader = "<file in the rice folder>"`, optional: Hyprland's
-    `decoration:screen_shader`, set by `rice` on every switch (and cleared for rices
-    without one); `rice grain off` keeps it off. No `time` uniform: it must not redraw
-    every frame.
-- `[colors]` named colours; `[roles]` maps role → colour name. Shared templates use
-  **only** roles: `bg surface overlay border fg muted accent urgent selection success
-  warning cursor link shadow term_bg term_fg`. Every role must exist.
-- `[gradient]` `stops` (colour names), `angle`.
-- `[ansi]` `color0`–`color15`; keep normal colours ≥ 4.5:1 against the terminal background.
 - `[fonts]` `display`, `ui`, `mono`, `ui_size = 14`, `mono_size = 15`–`15.5`,
   `weight`, `weight_strong`, `display_weight`. Sizes were raised 2pt at scale 1; keep
   new rices at these sizes. Any new font family must be added to the font list in
   `install`.
 - `[shape]` `window rounding_power panel popup chip border gaps_in gaps_out`.
-- `[opacity]` `terminal active inactive glass`.
 - `[motion]` bezier `bloom settle sink` and durations `open close move workspace
   scratchpad focus border_loop panel_in panel_out stagger`.
-- `[gtk]` `theme icons cursor cursor_size color_scheme`. Packages for these go in
-  `install`'s theme list.
+- `[gtk]` `cursor cursor_size`.
 - `[nvim]` `colorscheme = "rice"`.
 - `[install]` generated files that live outside `build/`, e.g. the shell's `Theme.qml`.
-- `[wallpaper]` only when the shell draws the wallpaper.
+
+Per mode (`[modes.light.*]`):
+
+- `meta`: `gtk_theme`, `icon_theme`, `color_scheme` (templates and `rice` see them as
+  `gtk.theme`, `gtk.icons`, `gtk.color_scheme`; packages go in `install`'s theme list),
+  and optionally `screen_shader = "<file in the rice folder>"`: Hyprland's
+  `decoration:screen_shader`, set by `rice` on every switch (and cleared for rices
+  without one); `rice grain off` keeps it off. No `time` uniform: it must not redraw
+  every frame. Merged into `[meta]` for templates.
+- `colors` named colours; `roles` maps role → colour name. Shared templates use
+  **only** roles: `bg surface overlay border fg muted accent urgent selection success
+  warning cursor link shadow term_bg term_fg`. Every role must exist.
+- `gradient` `stops` (colour names), `angle`.
+- `ansi` `color0`–`color15`; keep normal colours ≥ 4.5:1 against the terminal background.
+- `opacity` `terminal active inactive glass`.
+- `wallpaper` only when the shell draws the wallpaper.
+
+`tests/snapshots/light.sha256` pins every light-mode output; refresh it
+(`RICE_SNAPSHOT_UPDATE=1 python3 -m unittest tests.test_snapshot`) only when a change
+is meant to alter light mode, and say so in the commit.
 
 ## How a switch hooks in
 

@@ -280,7 +280,8 @@ Templates use `{{ roles.accent }}`-style placeholders with filters, for example
 `{{ gradient.stops | join(", ") }}`, `{{ shape.window | add(4) }}` or
 `{{ roles.accent | readable }}` (the rice's text colour, or its background when the text
 wouldn't read on that colour, as on Paper's ink blue). The palette's
-`[roles]` name colours from `[colors]`, so shared templates work for every rice.
+`[modes.light.roles]` name colours from `[modes.light.colors]`, so shared templates work
+for every rice; templates see them as `roles` and `colors`.
 
 ## Boot and login
 

@@ -62,6 +62,8 @@ toml_get() {
 }
 
 palette() { toml_get "$RICE_DIR/$1/palette.toml" "$2" "$3"; }
+# look RICE KEY: a key from the rice's [modes.light.meta] (GTK theme, icons, screen shader)
+look() { palette "$1" modes.light.meta "$2"; }
 
 rices() {
     local d
@@ -128,7 +130,7 @@ apply_hypr() {
 # doesn't rely on it.
 screen_shader_for() {
     local s
-    s="$(palette "$1" meta screen_shader)"
+    s="$(look "$1" screen_shader)"
     [[ -n "$s" && ! -e "$STATE_DIR/grain-off" && -f "$RICE_DIR/$1/$s" ]] || return 0
     printf '%s\n' "$RICE_DIR/$1/$s"
 }
@@ -266,11 +268,11 @@ weight_name() {
 apply_gtk() {
     have gsettings || return 0
     local s=org.gnome.desktop.interface v
-    v="$(palette "$1" gtk theme)";        [[ -n "$v" ]] && gsettings set $s gtk-theme "$v"
-    v="$(palette "$1" gtk icons)";        [[ -n "$v" ]] && gsettings set $s icon-theme "$v"
-    v="$(palette "$1" gtk cursor)";       [[ -n "$v" ]] && gsettings set $s cursor-theme "$v"
-    v="$(palette "$1" gtk cursor_size)";  [[ -n "$v" ]] && gsettings set $s cursor-size "$v"
-    v="$(palette "$1" gtk color_scheme)"; [[ -n "$v" ]] && gsettings set $s color-scheme "$v"
+    v="$(look "$1" gtk_theme)";          [[ -n "$v" ]] && gsettings set $s gtk-theme "$v"
+    v="$(look "$1" icon_theme)";         [[ -n "$v" ]] && gsettings set $s icon-theme "$v"
+    v="$(palette "$1" gtk cursor)";      [[ -n "$v" ]] && gsettings set $s cursor-theme "$v"
+    v="$(palette "$1" gtk cursor_size)"; [[ -n "$v" ]] && gsettings set $s cursor-size "$v"
+    v="$(look "$1" color_scheme)";       [[ -n "$v" ]] && gsettings set $s color-scheme "$v"
     local ui mono size msize style
     ui="$(palette "$1" fonts ui)"; size="$(palette "$1" fonts ui_size)"
     mono="$(palette "$1" fonts mono)"; msize="$(palette "$1" fonts mono_size)"
@@ -542,7 +544,7 @@ case "${1:-}" in
     current) current || die "no active rice" ;;
     get)
         [[ -n "${2:-}" && "$2" == *.* ]] || die "usage: rice get section.key"
-        toml_get "$RICE_DIR/current/palette.toml" "${2%%.*}" "${2#*.}" ;;
+        toml_get "$RICE_DIR/current/palette.toml" "${2%.*}" "${2##*.}" ;;
     next) cycle 1 ;;
     prev) cycle -1 ;;
     auto) shift; auto "$@" ;;

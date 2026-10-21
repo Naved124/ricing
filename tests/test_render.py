@@ -129,7 +129,7 @@ class Palettes(unittest.TestCase):
             rice = Path(d) / "night"
             shutil.copytree(RICES / "nacre", rice, ignore=shutil.ignore_patterns("build"))
             text = (rice / "palette.toml").read_text()
-            text = text.replace("[colors]\n", '[colors]\nnight    = "#141110"\n', 1)
+            text = text.replace("[modes.light.colors]\n", '[modes.light.colors]\nnight    = "#141110"\n', 1)
             text = re.sub(r'(?m)^bg(\s*)= "pearl"', r'bg\1= "night"', text)
             (rice / "palette.toml").write_text(text)
             self.assertEqual(rr.load_palette(rice)["derived"]["variant"], "dark")
@@ -145,6 +145,16 @@ class Palettes(unittest.TestCase):
             (rice / "palette.toml").write_text(text.replace('pearl    = "#f4f1f6"', 'pearl    = "f4f1f6"'))
             with self.assertRaisesRegex(rr.RenderError, "colors.pearl .* is not #rrggbb"):
                 rr.load_palette(rice)
+            # a schema-v1 palette, with its colours at the top level
+            (rice / "palette.toml").write_text(re.sub(r"(?m)^\[modes\.light\.(?!meta)", "[", text))
+            with self.assertRaisesRegex(rr.RenderError, r"\[colors\] belongs under \[modes.<mode>.colors\]"):
+                rr.load_palette(rice)
+            (rice / "palette.toml").write_text(text + '\n[colors]\nextra = "#000000"\n')
+            with self.assertRaisesRegex(rr.RenderError, r"\[colors\] belongs under \[modes.<mode>.colors\]"):
+                rr.load_palette(rice)
+            (rice / "palette.toml").write_text(text)
+            with self.assertRaisesRegex(rr.RenderError, r"no \[modes.dark.\*\] tables"):
+                rr.load_palette(rice, "dark")
 
 
 class EndToEnd(unittest.TestCase):

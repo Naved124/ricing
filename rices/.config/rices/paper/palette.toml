@@ -1,3 +1,4 @@
+
 # Paper — a desk in daylight. Windows are sheets, the terminal is a
 # typewriter, notifications are sticky notes, and closing a window crumples
 # it into the bin.
@@ -17,80 +18,6 @@ shell         = "paper"       # Quickshell config: qs -c paper
 notifications = "shell"       # sticky notes from the shell (no swaync)
 wallpaper     = "shell"       # the shell shows assets/wall.png (no swww)
 lock          = "shell"       # the torn envelope (no hyprlock)
-mood          = "light"       # no blur, no transparency
-# Hyprland's decoration:screen_shader while this rice is active (relative to
-# the rice folder). `rice` clears it when switching to a rice without one,
-# and `rice grain off` turns it off without leaving Paper.
-screen_shader = "grain.frag"
-
-[colors]
-desk     = "#d9d6cc"   # the desk under everything
-wall     = "#ebe8df"   # the drafting sheet on the desk (wallpaper)
-paper    = "#f7f5ef"   # windows, the terminal
-card     = "#fbfaf6"   # index cards: bar, launcher, panels
-kraft    = "#d8b98a"   # manila folders, the envelope's desk
-ink      = "#1c2a6e"   # fountain-pen blue: active, accent
-pencil   = "#4b4a46"   # body text
-graphite = "#8d8a82"   # secondary text, outlines
-red      = "#c8372d"   # the typewriter ribbon: alerts, the clock, ticks
-rule     = "#a8c3e4"   # ruled lines
-margin   = "#e3958f"   # the red margin line
-sticky   = "#f6e15f"   # yellow notes, the highlighter
-pink     = "#ffb6c8"   # urgent notes, washi tape
-mint     = "#b8e5c8"   # quiet notes
-carbon   = "#24231f"   # typewriter type
-fern     = "#2f6b3d"   # green ink
-ochre    = "#946617"   # yellow ochre (darkened from #a8741a to read on paper)
-plum     = "#8a3b7a"
-teal     = "#2d6f78"
-umber    = "#3c2d14"   # shadow colour: warm brown
-crease   = "#d9d4c6"   # hairlines and dividers
-manila   = "#3a2c14"   # text on kraft
-envelope = "#f3ead6"   # the lock screen's envelope
-
-# Roles name a colour above; templates shared by every rice only use roles.
-[roles]
-bg        = "paper"
-surface   = "card"
-overlay   = "desk"
-border    = "crease"
-fg        = "pencil"
-muted     = "graphite"
-accent    = "ink"
-urgent    = "red"
-selection = "sticky"    # a highlighter stroke, with carbon text on it
-success   = "fern"
-warning   = "ochre"
-cursor    = "carbon"
-link      = "ink"
-shadow    = "umber"
-term_bg   = "paper"
-term_fg   = "carbon"
-
-[gradient]
-stops = ["ink", "red", "sticky"]
-angle = 0
-
-[ansi]
-# A typewriter's ribbon on paper. Every normal colour holds at least 4.5:1
-# against #f7f5ef (tests/test_render.py checks it): color3 and color7 are
-# darkened from the preview's #a8741a and #8d8a82, which read at 3.7 and 3.2.
-color0  = "#24231f"
-color1  = "#c8372d"
-color2  = "#2f6b3d"
-color3  = "#946617"
-color4  = "#1c2a6e"
-color5  = "#8a3b7a"
-color6  = "#2d6f78"
-color7  = "#716f67"
-color8  = "#4b4a46"
-color9  = "#e0503f"
-color10 = "#3f8a52"
-color11 = "#c48e2a"
-color12 = "#3348a0"
-color13 = "#a65596"
-color14 = "#3c8a94"
-color15 = "#d9d6cc"
 
 [fonts]
 display   = "Newsreader"      # clocks, the calendar's day, song titles
@@ -118,18 +45,6 @@ border         = 0      # no borders: shadows only
 gaps_in        = 10
 gaps_out       = 22
 
-[opacity]
-terminal = 1.0
-active   = 1.0
-inactive = 1.0
-glass    = 1.0
-
-# The wallpaper is a still image (assets/wall.png); boot screens shade from
-# the wall into the desk.
-[wallpaper]
-image  = "assets/wall.png"
-ground = ["wall", "desk"]
-
 [motion]
 # cubic-bezier control points, shared by Hyprland and the shell
 bloom  = [0.2, 1.3, 0.4, 1.0]    # "drop": a sheet dropped onto the desk
@@ -148,12 +63,10 @@ panel_in    = 400
 panel_out   = 300
 stagger     = 30
 
+# the cursor is the same in both modes; the GTK theme and icons are per mode
 [gtk]
-theme        = "adw-gtk3"
-icons        = "Papirus-Light"
 cursor       = "Bibata-Modern-Classic"
 cursor_size  = 24
-color_scheme = "prefer-light"
 
 [nvim]
 colorscheme = "rice"   # build/nvim/rice.lua (Paper's own scheme), linked into ~/.config/nvim/colors
@@ -161,3 +74,98 @@ colorscheme = "rice"   # build/nvim/rice.lua (Paper's own scheme), linked into ~
 # Generated files that live outside build/ (path relative to $HOME).
 [install]
 "quickshell/Theme.qml" = ".config/quickshell/paper/common/Theme.qml"
+
+# ── light ───────────────────────────────────────────────────────────────────
+# What changes with the mode lives under [modes.<mode>.*]. Templates see the
+# active mode's tables as colors, roles, ansi, … and its meta merged into
+# [meta], exactly as before.
+
+[modes.light.meta]
+gtk_theme     = "adw-gtk3"
+icon_theme    = "Papirus-Light"
+color_scheme  = "prefer-light"
+# Hyprland's decoration:screen_shader while this rice is active (relative to
+# the rice folder). `rice` clears it when switching to a rice without one,
+# and `rice grain off` turns it off without leaving Paper.
+screen_shader = "grain.frag"
+
+[modes.light.colors]
+desk     = "#d9d6cc"   # the desk under everything
+wall     = "#ebe8df"   # the drafting sheet on the desk (wallpaper)
+paper    = "#f7f5ef"   # windows, the terminal
+card     = "#fbfaf6"   # index cards: bar, launcher, panels
+kraft    = "#d8b98a"   # manila folders, the envelope's desk
+ink      = "#1c2a6e"   # fountain-pen blue: active, accent
+pencil   = "#4b4a46"   # body text
+graphite = "#8d8a82"   # secondary text, outlines
+red      = "#c8372d"   # the typewriter ribbon: alerts, the clock, ticks
+rule     = "#a8c3e4"   # ruled lines
+margin   = "#e3958f"   # the red margin line
+sticky   = "#f6e15f"   # yellow notes, the highlighter
+pink     = "#ffb6c8"   # urgent notes, washi tape
+mint     = "#b8e5c8"   # quiet notes
+carbon   = "#24231f"   # typewriter type
+fern     = "#2f6b3d"   # green ink
+ochre    = "#946617"   # yellow ochre (darkened from #a8741a to read on paper)
+plum     = "#8a3b7a"
+teal     = "#2d6f78"
+umber    = "#3c2d14"   # shadow colour: warm brown
+crease   = "#d9d4c6"   # hairlines and dividers
+manila   = "#3a2c14"   # text on kraft
+envelope = "#f3ead6"   # the lock screen's envelope
+
+# Roles name a colour above; templates shared by every rice only use roles.
+[modes.light.roles]
+bg        = "paper"
+surface   = "card"
+overlay   = "desk"
+border    = "crease"
+fg        = "pencil"
+muted     = "graphite"
+accent    = "ink"
+urgent    = "red"
+selection = "sticky"    # a highlighter stroke, with carbon text on it
+success   = "fern"
+warning   = "ochre"
+cursor    = "carbon"
+link      = "ink"
+shadow    = "umber"
+term_bg   = "paper"
+term_fg   = "carbon"
+
+[modes.light.gradient]
+stops = ["ink", "red", "sticky"]
+angle = 0
+
+[modes.light.ansi]
+# A typewriter's ribbon on paper. Every normal colour holds at least 4.5:1
+# against #f7f5ef (tests/test_render.py checks it): color3 and color7 are
+# darkened from the preview's #a8741a and #8d8a82, which read at 3.7 and 3.2.
+color0  = "#24231f"
+color1  = "#c8372d"
+color2  = "#2f6b3d"
+color3  = "#946617"
+color4  = "#1c2a6e"
+color5  = "#8a3b7a"
+color6  = "#2d6f78"
+color7  = "#716f67"
+color8  = "#4b4a46"
+color9  = "#e0503f"
+color10 = "#3f8a52"
+color11 = "#c48e2a"
+color12 = "#3348a0"
+color13 = "#a65596"
+color14 = "#3c8a94"
+color15 = "#d9d6cc"
+
+[modes.light.opacity]
+terminal = 1.0
+active   = 1.0
+inactive = 1.0
+glass    = 1.0
+
+# The wallpaper is a still image (assets/wall.png); boot screens shade from
+# the wall into the desk.
+[modes.light.wallpaper]
+image  = "assets/wall.png"
+ground = ["wall", "desk"]
