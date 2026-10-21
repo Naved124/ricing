@@ -1,13 +1,12 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
-import Quickshell.Io
 import qs.common
 import qs.services
 
 // What's playing, on an index card: the track in italic Newsreader, the
 // artist and album in Kalam, a strip of pencil-hatched bars that dance to
-// the sound (cava, only while something plays and the card is showing),
+// the sound (the shell's one cava, services/Beat.qml, while something plays),
 // and ⏮ ⏸ ⏭ written in Kalam.
 Sheet {
     id: root
@@ -57,37 +56,11 @@ Sheet {
             id: bars
             width: parent.width
             height: 46
-            visible: levels.length > 0
+            visible: root.active && Beat.live
 
-            property var levels: []
-            readonly property int count: 26
-
-            Process {
-                running: root.active && Media.playing
-                command: ["sh", "-c", `
-                    command -v cava >/dev/null || exit 0
-                    dir="\${XDG_CACHE_HOME:-$HOME/.cache}/rice"; mkdir -p "$dir"
-                    cat > "$dir/cava-paper.conf" <<CONF
-[general]
-bars = ${bars.count}
-framerate = 24
-[input]
-method = pipewire
-[output]
-method = raw
-raw_target = /dev/stdout
-data_format = ascii
-ascii_max_range = 100
-bar_delimiter = 59
-[smoothing]
-noise_reduction = 70
-CONF
-                    exec cava -p "$dir/cava-paper.conf"`]
-                stdout: SplitParser {
-                    onRead: line => bars.levels = line.split(";").filter(v => v !== "").map(v => parseInt(v) / 100)
-                }
-                onRunningChanged: if (!running) bars.levels = []
-            }
+            // the shell's one cava (services/Beat.qml)
+            readonly property var levels: Beat.levels
+            readonly property int count: Beat.bars
 
             Row {
                 anchors.bottom: parent.bottom

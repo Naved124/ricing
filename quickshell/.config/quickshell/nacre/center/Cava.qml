@@ -2,49 +2,20 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import Quickshell
-import Quickshell.Io
 import qs
+import qs.services
 
-// A row of soft bars dancing to whatever is playing, from cava's raw
-// output. Runs only while visible and something plays; quietly absent when
-// cava isn't installed.
+// A row of soft bars dancing to whatever is playing, from the shell's one
+// cava (services/Beat.qml); quietly absent when cava isn't installed.
 Item {
     id: root
 
     property bool active: false
-    property int bars: 28
-    property var levels: []
+    readonly property int bars: Beat.bars
+    readonly property var levels: active ? Beat.levels : []
 
     implicitHeight: 34
     visible: levels.length > 0
-
-    Process {
-        id: cava
-        running: root.active
-        command: ["sh", "-c", `
-            command -v cava >/dev/null || exit 0
-            dir="\${XDG_CACHE_HOME:-$HOME/.cache}/rice"; mkdir -p "$dir"
-            cat > "$dir/cava.conf" <<CONF
-[general]
-bars = ${root.bars}
-framerate = 30
-[input]
-method = pipewire
-[output]
-method = raw
-raw_target = /dev/stdout
-data_format = ascii
-ascii_max_range = 100
-bar_delimiter = 59
-[smoothing]
-noise_reduction = 70
-CONF
-            exec cava -p "$dir/cava.conf"`]
-        stdout: SplitParser {
-            onRead: line => root.levels = line.split(";").filter(v => v !== "").map(v => parseInt(v) / 100)
-        }
-        onRunningChanged: if (!running) root.levels = []
-    }
 
     Row {
         anchors.bottom: parent.bottom
