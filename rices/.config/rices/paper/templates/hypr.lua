@@ -6,22 +6,15 @@
 -- desk. (Hyprland has one shadow range for every window, and no window rule
 -- for it, so only the colour differs between active and inactive.)
 
--- the grain: a screen shader of paper fibres, unless `rice grain off` left
--- its marker (it blocks direct scanout, so games and video may want it off)
-local state = (os.getenv("XDG_STATE_HOME") or (os.getenv("HOME") .. "/.local/state")) .. "/rice/grain-off"
-local marker = io.open(state, "r")
-if marker then marker:close() end
-local grain = marker and "" or "{{ derived.rice_dir }}/{{ meta.screen_shader }}"
+-- Everything that changes with light and dark (colours, shadows, the grain)
+-- is in hypr-mode.lua beside this file, loaded at the end, so this file is
+-- the same in both modes.
 
 hl.config({
     general = {
         gaps_in     = {{ shape.gaps_in }},
         gaps_out    = {{ shape.gaps_out }},
         border_size = {{ shape.border }},
-        col = {
-            active_border   = "{{ roles.accent | hypr(ff) }}",
-            inactive_border = "{{ roles.border | hypr(ff) }}",
-        },
     },
 
     decoration = {
@@ -30,27 +23,17 @@ hl.config({
         active_opacity   = 1.0,
         inactive_opacity = 1.0,
         dim_inactive     = false,
-        screen_shader    = grain,
 
         -- paper isn't glass
         blur = { enabled = false },
 
-        -- light from the top left; warm brown, never black
         shadow = {
-            enabled        = true,
-            range          = 18,
-            render_power   = 3,
-            offset         = { 3, 8 },
-            color          = "{{ roles.shadow | hypr(38) }}",
-            color_inactive = "{{ roles.shadow | hypr(20) }}",
+            enabled      = true,
+            render_power = 3,
         },
     },
 
     group = {
-        col = {
-            border_active   = "{{ roles.accent | hypr(ff) }}",
-            border_inactive = "{{ roles.border | hypr(ff) }}",
-        },
         groupbar = {
             enabled              = true,
             height               = 18,
@@ -62,12 +45,6 @@ hl.config({
             font_size            = 13,
             font_weight_active   = {{ fonts.weight_strong }},
             font_weight_inactive = {{ fonts.weight }},
-            text_color           = "{{ colors.ink | hypr(ff) }}",
-            text_color_inactive  = "{{ roles.muted | hypr(ff) }}",
-            col = {
-                active   = "{{ colors.sticky | hypr(ff) }}",
-                inactive = "{{ roles.surface | hypr(ff) }}",
-            },
         },
     },
 
@@ -120,3 +97,10 @@ hl.window_rule({
 ---------------------------------------------------------------------------
 hl.layer_rule({ name = "paper-wallpaper", match = { namespace = "^paper-wallpaper$" }, no_anim = true })
 hl.layer_rule({ name = "paper-still", match = { namespace = "^paper-(bar|desk|notes|osd|turn)$" }, no_anim = true })
+
+---------------------------------------------------------------------------
+-- The mode's colours, shadows and grain (beside this file in build/<mode>/)
+---------------------------------------------------------------------------
+local here = debug.getinfo(1, "S").source:match("^@(.*/)") or
+    ((os.getenv("XDG_DATA_HOME") or (os.getenv("HOME") .. "/.local/share")) .. "/rice/active/")
+dofile(here .. "hypr-mode.lua")

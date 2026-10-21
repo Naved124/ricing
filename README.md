@@ -177,6 +177,8 @@ rice choose          toggle the chooser (Super+Shift+T)
 rice list            list rices, * marks the active one
 rice get roles.bg    read a value from the active palette
 rice auto on|off     time-of-day switching (see auto.conf)
+rice mode dark       light or dark, for every rice (also: light, toggle; --instant)
+rice mode status -v  the mode, and how long the last switch took
 rice reapply         run every apply step again, restarting the rice's shell
 rice session         bring the active rice up at login (Hyprland runs this)
 rice lock            lock with the rice's own lock screen, or hyprlock
@@ -235,6 +237,36 @@ rice-rec toggle      record the screen to ~/Videos, again to stop (also: region)
    one fades.
 
 Switches are serialised with `flock`, so pressing the key repeatedly just queues them.
+
+## Light and dark
+
+Every rice is rendered in both modes, into `build/light/` and `build/dark/`, and
+`~/.local/share/rice/active` points at the active rice's build in the active mode. Every
+app's theme links through it. The mode is global: `rice paper` while dark opens Paper in
+dark. `rice mode dark` changes the light without reloading anything:
+
+1. freezes the screen as a switch does (skipped with `--instant`, when animations are off,
+   or on a battery under 20%; the shells then crossfade over 200 ms instead);
+2. writes `~/.local/state/rice/mode` and re-points `active`;
+3. sends Hyprland the mode's `hypr-mode.lua` (borders, shadows, blur, background, the
+   screen shader) with one `hyprctl eval`;
+4. sets GTK's colour scheme, theme and icons with `gsettings`;
+5. signals kitty and cava, re-applies nvim's colourscheme, and switches Spotify's scheme;
+6. tells the shells, which crossfade every colour (they also watch the state file);
+7. lets the frozen frame go.
+
+What follows the change, and when:
+
+| App | When |
+| --- | --- |
+| Quickshell, Hyprland, kitty, nvim, cava | at once |
+| Firefox (chrome, its own pages, and sites with a dark mode), libadwaita/GTK4 and other portal-aware apps (Chromium, Electron) | at once, through the desktop's colour scheme |
+| Spotify | after Spicetify's refresh, a moment later |
+| yazi | new windows (it picks a flavour from the terminal's background when it starts) |
+| btop, fastfetch, zathura | the next time they start |
+| GTK3 and Qt apps that are already open | only fully when restarted |
+| Telegram | when you open its theme file again |
+| the boot menu, the splash and the login screen | never: they run before anyone logs in, so they stay light |
 
 ## Shell
 

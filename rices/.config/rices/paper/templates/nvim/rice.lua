@@ -154,3 +154,6 @@ for i = 1, 4 do hl("RiceBorder" .. i, { fg = c.graphite, bg = c.card }) end
 function _G.RiceBorder()
   return { "┌", "─", "┐", "│", "┘", "─", "└", "│" }
 end
+
+-- follow `rice mode` (nvim/mode.lua, started once per nvim)
+pcall(function() require("rice.mode").watch() end)

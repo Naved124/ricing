@@ -112,10 +112,10 @@ class LuaSmoke(unittest.TestCase):
             subprocess.run([str(REPO / "render/.local/bin/rice-render"), "--all", "-q"], env=env, check=True)
             stub = Path(d) / "stub.lua"
             stub.write_text(HL_STUB)
-            files = [REPO / "hypr/.config/hypr/base.lua"] + sorted(rices.glob("*/build/*/hypr.lua"))
-            self.assertGreaterEqual(len(files), 5)   # base.lua and each rice in both modes
+            files = [REPO / "hypr/.config/hypr/base.lua"] + sorted(rices.glob("*/build/*/hypr*.lua"))
+            self.assertGreaterEqual(len(files), 9)   # base.lua; each rice's hypr.lua and hypr-mode.lua (what `rice mode` evals), both modes
             for f in files:
-                with self.subTest(f"{f.parent.parent.parent.name} {f.parent.name}"):
+                with self.subTest(f"{f.parent.parent.parent.name} {f.parent.name} {f.name}"):
                     r = subprocess.run([LUA, str(stub), str(f)], capture_output=True, text=True, env=env)
                     self.assertEqual(r.returncode, 0, r.stderr)
 

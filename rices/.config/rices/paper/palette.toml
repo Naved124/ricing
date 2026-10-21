@@ -88,6 +88,9 @@ color_scheme  = "prefer-light"
 # the rice folder). `rice` clears it when switching to a rice without one,
 # and `rice grain off` turns it off without leaving Paper.
 screen_shader = "grain.frag"
+# Hyprland's shadow under every window (hypr-mode.lua)
+hypr_shadow_range  = 18
+hypr_shadow_offset = [3, 8]
 
 [modes.light.colors]
 desk     = "#d9d6cc"   # the desk under everything

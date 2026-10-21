@@ -35,7 +35,9 @@ case "$(basename "$0") $*" in
         fi ;;
     # a daemon outlives the switch, keeping whatever files it inherited
     "qs -n -c "*" -d") if [ -n "$RICE_TEST_DAEMON" ]; then sleep 4 >/dev/null 2>&1 & fi ;;
+    "gsettings get org.gnome.desktop.interface enable-animations") echo "${RICE_TEST_ANIMATIONS:-true}" ;;
     gsettings*) [ -n "$RICE_TEST_FAIL_GSETTINGS" ] && exit 1 ;;
+    grim*) [ -n "$RICE_TEST_FAIL_GRIM" ] && exit 1 ;;
     "uwsm check is-active") [ -n "$RICE_TEST_UWSM" ] || exit 1 ;;
     "pgrep -x Hyprland") [ -n "$RICE_TEST_HYPR_ALIVE" ] || exit 1 ;;
 esac
@@ -139,6 +141,88 @@ class Switch(unittest.TestCase):
         self.assertEqual(Path(os.readlink(active)), self.rices / "current/build/dark")
         self.assertIn("paper", (active / "kitty.conf").resolve().as_posix())
 
+    # ── rice mode ─────────────────────────────────────────────────────────
+    def to_nacre(self):
+        self.assertEqual(self.rice("nacre").returncode, 0)
+        self.log.unlink(missing_ok=True)
+
+    def test_mode_order(self):
+        self.to_nacre()
+        r = self.rice("mode", "dark")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        state = Path(self.env["XDG_STATE_HOME"]) / "rice"
+        self.assertEqual((state / "mode").read_text(), "dark\n")
+        self.assertEqual((state / "mode-source").read_text(), "manual\n")
+        self.assertEqual([p.name for p in state.iterdir() if p.name.startswith(".")], [], "no temp files left")
+        active = Path(self.env["HOME"]) / ".local/share/rice/active"
+        self.assertEqual(Path(os.readlink(active)), self.rices / "current/build/dark")
+
+        calls = self.calls()
+        steps = [self.index(calls, p) for p in (
+            "grim", "qs -c rice ipc call rice freeze",
+            "hyprctl eval -- Nacre (dark)",          # the dark build's hypr-mode.lua, no reload
+            "gsettings set org.gnome.desktop.interface color-scheme",
+            "pkill -USR1 -x kitty", "pkill -USR1 -x cava",
+            "qs -c nacre ipc call mode jump dark", "qs -c rice ipc call mode jump dark",
+            "qs -c rice ipc call rice reveal dark")]
+        self.assertEqual(steps, sorted(steps), "\n".join(calls))
+        self.assertEqual(steps[-1], len(calls) - 1, "the reveal comes last")
+        self.assertFalse(any(c.startswith("hyprctl reload") for c in calls), "a mode switch never reloads")
+        timing = Path(self.env["XDG_RUNTIME_DIR"]) / "rice/mode-timing"
+        self.assertRegex(timing.read_text(), r"^\d+\n$")
+        self.assertIn("dark · manual", self.rice("mode", "status").stdout)
+        self.assertIn("last switch:", self.rice("mode", "status", "-v").stdout)
+
+    def test_mode_does_nothing_twice(self):
+        self.to_nacre()
+        self.rice("mode", "dark")
+        self.log.unlink(missing_ok=True)
+        self.assertEqual(self.rice("mode", "dark").returncode, 0)
+        self.assertFalse(any(c.startswith(("grim", "hyprctl")) for c in self.calls()))
+
+    def test_toggle_and_a_rice_switch_keep_the_mode(self):
+        self.to_nacre()
+        self.rice("mode", "toggle", "--instant")
+        self.assertEqual(self.rice("mode", "status").stdout.split()[0], "dark")
+        self.assertEqual(self.rice("paper").returncode, 0)
+        active = Path(self.env["HOME"]) / ".local/share/rice/active"
+        self.assertEqual(Path(os.readlink(active)), self.rices / "current/build/dark")
+        self.rice("mode", "toggle", "--instant")
+        self.assertEqual(self.rice("mode", "status").stdout.split()[0], "light")
+
+    def test_instant_jumps_without_a_transition(self):
+        self.to_nacre()
+        self.rice("mode", "dark", "--instant")
+        calls = self.calls()
+        self.assertFalse(any(c.startswith("grim") for c in calls))
+        self.assertIn("qs -c nacre ipc call mode jump dark", calls)
+        self.assertFalse(any("rice reveal" in c for c in calls))
+
+    def test_no_overlay_crossfades_instead(self):
+        battery = Path(self.tmp.name) / "power/BAT0"
+        battery.mkdir(parents=True)
+        (battery / "capacity").write_text("15\n")
+        (battery / "status").write_text("Discharging\n")
+        for why, env in (("low battery", {"RICE_POWER_SUPPLY": str(battery.parent)}),
+                         ("animations off", {"RICE_TEST_ANIMATIONS": "false"}),
+                         ("grim failed", {"RICE_TEST_FAIL_GRIM": "1"})):
+            with self.subTest(why):
+                self.to_nacre()
+                self.rice("mode", "light", "--instant")
+                self.log.unlink(missing_ok=True)
+                self.assertEqual(self.rice("mode", "dark", **env).returncode, 0)
+                calls = self.calls()
+                self.assertIn("qs -c nacre ipc call mode fade dark 200", calls)
+                self.assertFalse(any("ipc call rice freeze" in c or "rice reveal" in c for c in calls))
+                if why != "grim failed":
+                    self.assertFalse(any(c.startswith("grim") for c in calls))
+        (battery / "status").write_text("Charging\n")
+        self.to_nacre()
+        self.rice("mode", "light", "--instant")
+        self.log.unlink(missing_ok=True)
+        self.rice("mode", "dark", RICE_POWER_SUPPLY=str(battery.parent))
+        self.assertIn("qs -c rice ipc call rice reveal dark", self.calls())
+
     def test_shell_rice_stops_swaync_and_wallpaper_daemons(self):
         self.rice("nacre")
         calls = self.calls()
@@ -165,7 +249,7 @@ class Switch(unittest.TestCase):
     def test_leaving_a_shell_kills_it(self):
         self.rice("nacre")
         shell = self.running_shell()
-        self.log.unlink()
+        self.log.unlink(missing_ok=True)
         r = self.rice("plain")
         self.assertEqual(r.returncode, 0, r.stderr)
         calls = self.calls()
@@ -176,7 +260,7 @@ class Switch(unittest.TestCase):
     def test_shell_to_shell(self):
         self.rice("nacre")
         shell = self.running_shell()
-        self.log.unlink()
+        self.log.unlink(missing_ok=True)
         r = self.rice("paper")
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertStopped(shell)
@@ -203,29 +287,29 @@ class Switch(unittest.TestCase):
                          [f'hyprctl eval hl.config({{ decoration = {{ screen_shader = "{grain}" }} }})'])
         calls = self.calls()
         self.assertLess(self.index(calls, "hyprctl reload"), self.index(calls, "hyprctl eval"))
-        self.log.unlink()
+        self.log.unlink(missing_ok=True)
         self.rice("nacre")   # leaving Paper clears it explicitly
         self.assertEqual(self.shader_calls(), ['hyprctl eval hl.config({ decoration = { screen_shader = "" } })'])
 
     def test_grain_off_is_remembered(self):
         self.rice("paper")
-        self.log.unlink()
+        self.log.unlink(missing_ok=True)
         self.assertEqual(self.rice("grain", "status").stdout, "on\n")
         self.rice("grain", "toggle")
         self.assertEqual(self.rice("grain", "status").stdout, "off\n")
         self.assertEqual(self.shader_calls(), ['hyprctl eval hl.config({ decoration = { screen_shader = "" } })'])
-        self.log.unlink()
+        self.log.unlink(missing_ok=True)
         r = self.rice("reapply")
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertEqual(self.shader_calls(), ['hyprctl eval hl.config({ decoration = { screen_shader = "" } })'])
-        self.log.unlink()
+        self.log.unlink(missing_ok=True)
         self.rice("grain", "on")
         self.assertIn("grain.frag", self.shader_calls()[0])
 
     def test_reapply_restarts_a_running_shell(self):
         self.rice("paper")
         shell = self.running_shell()
-        self.log.unlink()
+        self.log.unlink(missing_ok=True)
         r = self.rice("reapply")
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertStopped(shell)
@@ -234,7 +318,7 @@ class Switch(unittest.TestCase):
     def test_reapply_starts_a_shell_that_isnt_running(self):
         # `qs list` says "No running instances" on stdout: that isn't a shell
         self.rice("paper")
-        self.log.unlink()
+        self.log.unlink(missing_ok=True)
         r = self.rice("reapply")
         self.assertEqual(r.returncode, 0, r.stderr)
         self.index(self.calls(), "qs -n -c paper -d")
@@ -285,7 +369,7 @@ class Switch(unittest.TestCase):
 
     def test_lock_uses_the_shell(self):
         self.rice("nacre")
-        self.log.unlink()
+        self.log.unlink(missing_ok=True)
         self.rice("lock")
         self.assertEqual(self.calls(), ["qs -c nacre ipc call lock lock"])
 
@@ -315,7 +399,7 @@ class Switch(unittest.TestCase):
         calls = self.logout()
         self.assertIn("hyprctl dispatch hl.dsp.exit()", calls)
         self.assertNotIn("loginctl terminate-session 7", calls)       # Hyprland went away
-        self.log.unlink()
+        self.log.unlink(missing_ok=True)
         calls = self.logout(RICE_TEST_HYPR_ALIVE="1")
         self.assertEqual(calls[-1], "loginctl terminate-session 7")
 

@@ -179,6 +179,15 @@ Text on a coloured fill (accent buttons, active tabs, mode pills) uses
 `{{ roles.X | readable }}`, never a fixed role: it picks `fg`, or `bg` when `fg` falls
 under 3:1 on that fill and `bg` reads better.
 
+`rice mode light|dark|toggle [--instant]`: freeze (unless instant, animations off, or a
+battery under 20%: then the shells crossfade for 200 ms) → write `~/.local/state/rice/mode`
+(atomically) → re-point `active` → `hyprctl eval` of `active/hypr-mode.lua` (no reload) →
+gsettings colour scheme, GTK theme, icons → SIGUSR1 to kitty and cava, nvim's
+colourscheme, Spicetify's `rice-<mode>` scheme → `qs ipc call mode jump|fade` to the
+rice's shell and the shared one → `rice ipc call rice reveal`. So **everything that
+changes with the mode in Hyprland goes in `templates/hypr-mode.lua`**; `hypr.lua` loads it
+and must render the same in both modes (a test checks), window rules included.
+
 ## Checklist for a new rice
 
 1. `rices/.config/rices/<name>/palette.toml` with every section above.

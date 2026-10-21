@@ -156,3 +156,6 @@ if not vim.g.rice_float_patched then
     return open(contents, syntax, opts, ...)
   end
 end
+
+-- follow `rice mode` (nvim/mode.lua, started once per nvim)
+pcall(function() require("rice.mode").watch() end)

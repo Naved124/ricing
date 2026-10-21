@@ -746,8 +746,28 @@ LINKS = [
     (".config/spicetify/Themes/Rice", "spicetify"),
     (".config/nvim/colors/rice.lua", "nvim/rice.lua"),
     (".config/nvim/lua/lualine/themes/rice.lua", "nvim/lualine.lua"),
+    (".config/nvim/lua/rice/mode.lua", "nvim/mode.lua"),
     (".config/cava/config", "cava/config"),
 ]
+
+# one link per mode, into that mode's build: apps that pick light or dark
+# themselves, by the terminal's background or the desktop's colour scheme
+MODE_LINKS = [
+    (".config/yazi/flavors/rice-{mode}.yazi/flavor.toml", "yazi/flavor.toml"),
+]
+# kitty 0.38 and later switch between these by the desktop's colour scheme
+KITTY_AUTO = (".config/kitty/{mode}-theme.auto.conf", "kitty-colors.conf")
+
+
+def kitty_auto_themes() -> bool:
+    """Whether the installed kitty follows the colour scheme (0.38+)."""
+    try:
+        out = subprocess.run(["kitty", "--version"], capture_output=True, text=True, timeout=5).stdout
+    except (OSError, subprocess.TimeoutExpired):
+        return False
+    m = re.search(r"(\d+)\.(\d+)", out)
+    return bool(m) and (int(m[1]), int(m[2])) >= (0, 38)
+
 
 HINTS = """
 Add these once (they include the active rice instead of being replaced):
@@ -874,11 +894,13 @@ def spicetify() -> None:
         return
     run = lambda *a: subprocess.run([exe, *a], capture_output=True, text=True)
     theme = run("config", "current_theme").stdout.strip()
+    scheme = f"rice-{current_mode()}"   # color.ini has one scheme per mode
     if theme == "Rice":
         # Spotify keeps a copy of the theme, so a new render has to be pushed in
+        run("config", "color_scheme", scheme)
         run("refresh")
         return
-    run("config", "current_theme", "Rice", "color_scheme", "rice")
+    run("config", "current_theme", "Rice", "color_scheme", scheme)
     # the first time Spicetify needs a backup of Spotify before it can apply
     done = run("apply")
     if done.returncode != 0:
@@ -894,6 +916,8 @@ def spicetify() -> None:
 def link(firefox: bool, backup: Path | None = None) -> None:
     ensure_active()
     pairs = [(INSTALL_ROOT / l, ACTIVE / t) for l, t in LINKS]
+    per_mode = MODE_LINKS + ([KITTY_AUTO] if kitty_auto_themes() else [])
+    pairs += [(INSTALL_ROOT / l.format(mode=m), CURRENT / m / t) for l, t in per_mode for m in MODES]
     if firefox:
         for prof in firefox_profiles():
             # Firefox ignores userChrome.css unless this is on

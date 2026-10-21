@@ -9,6 +9,10 @@
 #   rice auto on|off     enable or disable time-of-day switching (systemd timer)
 #   rice auto status     print whether auto mode is on
 #   rice auto apply      switch to the rice scheduled for now (used by the timer)
+#   rice mode light|dark|toggle [--instant]
+#                        switch every rice between light and dark, live (no reload);
+#                        --instant skips the transition. The mode stays across rice switches
+#   rice mode status [-v] print the mode (and with -v how long the last switch took)
 #   rice choose          toggle the chooser (Super+Shift+T)
 #   rice reapply         run every apply step again for the active rice (restarts its shell)
 #   rice session         start the active rice at login (no freeze, no transition)
@@ -107,20 +111,23 @@ ensure_rice_shell() {
 }
 
 # ── freeze: screenshot every output and pin it above everything ─────────────
+# fails (and pins nothing) when there's no grim, no shared shell, or a shot failed
 freeze() {
-    have grim || return 0
-    rice_running || return 0
-    local dir="$RUN_DIR/freeze" out
+    have grim || return 1
+    rice_running || return 1
+    local dir="$RUN_DIR/freeze" out ok=0
     rm -rf "$dir"; mkdir -p "$dir"
     if have hyprctl && have jq; then
+        local pids=()
         for out in $(hyprctl monitors -j | jq -r '.[].name'); do
-            grim -l 0 -o "$out" "$dir/$out.png" &
+            grim -l 0 -o "$out" "$dir/$out.png" & pids+=("$!")
         done
-        wait
+        for out in "${pids[@]}"; do wait "$out" || ok=1; done
     else
-        grim -l 0 "$dir/all.png"
+        grim -l 0 "$dir/all.png" || ok=1
     fi
-    rice_ipc freeze "$dir" || true
+    (( ok == 0 )) || return 1
+    rice_ipc freeze "$dir" || return 1
     sleep "${RICE_FREEZE_SETTLE:-0.12}"     # let the frames reach the screen
 }
 
@@ -366,6 +373,14 @@ point_active() {
     mv -T "${ACTIVE%/*}/.active.tmp" "$ACTIVE"
 }
 
+# one switch (of rice or mode) at a time; a second press just waits its turn.
+# fd 9 holds the lock: everything started here that outlives the switch
+# (shells, daemons) gets `9>&-`, or the next `rice` would wait for it to exit
+take_lock() {
+    exec 9>"$RUN_DIR/lock"
+    flock -w "${RICE_LOCK_WAIT:-20}" 9 || die "another switch still holds $RUN_DIR/lock (see: fuser -v $RUN_DIR/lock; deleting the file frees it)"
+}
+
 switch_to() {
     local target="$1" from
     [[ -f "$RICE_DIR/$target/palette.toml" ]] || die "no such rice: $target (try: rice list)"
@@ -374,17 +389,13 @@ switch_to() {
         log "$target is already active"; return 0
     fi
 
-    # one switch at a time; a second Super+Ctrl+T spam just waits its turn
-    # fd 9 holds the lock: everything started here that outlives the switch
-    # (shells, daemons) gets `9>&-`, or the next `rice` would wait for it to exit
-    exec 9>"$RUN_DIR/lock"
-    flock -w "${RICE_LOCK_WAIT:-20}" 9 || die "another switch still holds $RUN_DIR/lock (see: fuser -v $RUN_DIR/lock; deleting the file frees it)"
+    take_lock
 
     log "${from:-none} → $target"
     # themes first, while the old desktop is still live: the freeze stays short
     step render "$target"
     ensure_rice_shell || true
-    freeze
+    freeze || true
 
     swap_link "$target"
     apply_all "$target" "$from"
@@ -526,6 +537,143 @@ on_battery() {
     compgen -G '/sys/class/power_supply/BAT*' >/dev/null    # a battery, and no mains
 }
 
+# ── light and dark ───────────────────────────────────────────────────────
+# `rice mode` changes the light without a reload: every rice is rendered in
+# both modes, so it only re-points `active`, hands Hyprland the mode's
+# hypr-mode.lua, and tells the desktop and the running apps.
+
+now_ms() { date +%s%3N; }
+
+# write_state NAME VALUE: atomically, so nothing ever reads half a file
+write_state() {
+    local tmp
+    tmp="$(mktemp "$STATE_DIR/.$1.XXXXXX")"
+    printf '%s\n' "$2" > "$tmp"
+    mv -f "$tmp" "$STATE_DIR/$1"
+}
+
+# skip the transition when animations are off, or on a battery under 20%
+reduced_motion() {
+    [[ "${RICE_REDUCED_MOTION:-0}" == 1 ]] && return 0
+    have gsettings && [[ "$(gsettings get org.gnome.desktop.interface enable-animations 2>/dev/null)" == false ]]
+}
+low_battery() {
+    local b
+    for b in "${RICE_POWER_SUPPLY:-/sys/class/power_supply}"/BAT*; do
+        [[ -r "$b/capacity" && "$(cat "$b/status" 2>/dev/null)" == Discharging ]] || continue
+        (( $(cat "$b/capacity") < 20 )) && return 0
+    done
+    return 1
+}
+
+# Hyprland: the mode's colours, shadows and screen shader in one eval
+apply_mode_hypr() {
+    have hyprctl || return 0
+    [[ -f "$ACTIVE/hypr-mode.lua" ]] || return 0
+    hyprctl eval "$(cat "$ACTIVE/hypr-mode.lua")" >/dev/null
+}
+
+# GTK and portal-aware apps (Firefox, libadwaita, kitty's auto themes)
+apply_mode_gtk() {
+    have gsettings || return 0
+    local s=org.gnome.desktop.interface v
+    v="$(look "$1" color_scheme)"; [[ -n "$v" ]] && gsettings set $s color-scheme "$v"
+    v="$(look "$1" gtk_theme)";    [[ -n "$v" ]] && gsettings set $s gtk-theme "$v"
+    v="$(look "$1" icon_theme)";   [[ -n "$v" ]] && gsettings set $s icon-theme "$v"
+    return 0
+}
+
+# apps that re-read their theme on a signal; Spotify takes its time, so it
+# goes in the background
+apply_mode_apps() {
+    pkill -USR1 -x kitty 2>/dev/null || true
+    pkill -USR1 -x cava 2>/dev/null || true
+    apply_nvim "$1"
+    if have spicetify && [[ "$(spicetify config current_theme 2>/dev/null)" == Rice ]]; then
+        { spicetify config color_scheme "rice-$2" && spicetify refresh -n; } >/dev/null 2>&1 9>&- &
+    fi
+    return 0
+}
+
+# mode_ipc HOW MODE [MS]: tell the rice's shell and the shared shell
+# (jump: under the overlay; fade: crossfade with no overlay)
+mode_ipc() {
+    have qs || return 0
+    local shell
+    shell="$(palette "$(current)" meta shell)"
+    for s in $shell "$SHARED_SHELL"; do
+        qs -c "$s" ipc call mode "$@" >/dev/null 2>&1 || true
+    done
+}
+
+# mode_set MODE SOURCE INSTANT
+mode_set() {
+    local target="$1" source="$2" instant="$3" cur how=(jump "$1") frozen=0 t0
+    cur="$(current)" || die "no active rice"
+    if [[ "$target" == "$(mode)" && "${RICE_FORCE:-0}" != 1 ]]; then
+        write_state mode-source "$source"
+        log "already $target"; return 0
+    fi
+    take_lock
+    [[ -d "$RICE_DIR/$cur/build/$target" ]] || step render "$cur"
+
+    if [[ "$instant" == 1 ]]; then
+        :                                    # straight there
+    elif reduced_motion || low_battery; then
+        how=(fade "$target" 200)
+    else
+        ensure_rice_shell || true
+        if freeze; then frozen=1; else how=(fade "$target" 200); fi
+    fi
+
+    t0="$(now_ms)"
+    write_state mode "$target"
+    write_state mode-source "$source"
+    point_active
+    step apply_mode_hypr
+    step apply_mode_gtk "$cur"
+    step apply_mode_apps "$cur" "$target"
+    step mode_ipc "${how[@]}"
+    printf '%s\n' "$(( $(now_ms) - t0 ))" > "$RUN_DIR/mode-timing"
+
+    if (( frozen )); then
+        sleep "${RICE_SETTLE:-0.45}"         # a frame for the shells to redraw
+        rice_ipc reveal "$target" || true
+    fi
+    log "$target"
+}
+
+mode_status() {
+    local src
+    src="$(cat "$STATE_DIR/mode-source" 2>/dev/null || echo manual)"
+    printf '%s · %s\n' "$(mode)" "$src"
+    if [[ "${1:-}" == -v ]]; then
+        [[ -f "$RUN_DIR/mode-timing" ]] && printf 'last switch: %s ms before the reveal\n' "$(cat "$RUN_DIR/mode-timing")"
+        if [[ -L "$HOME/.config/kitty/dark-theme.auto.conf" ]]; then
+            echo "kitty: automatic light/dark themes (plus SIGUSR1 for the rest of kitty.conf)"
+        else
+            echo "kitty: re-reads kitty.conf on SIGUSR1"
+        fi
+    fi
+}
+
+mode_cmd() {
+    local instant=0 source=manual args=() a
+    for a in "$@"; do
+        case "$a" in
+            --instant) instant=1 ;;
+            --from-auto) source=auto ;;
+            *) args+=("$a") ;;
+        esac
+    done
+    case "${args[0]:-status}" in
+        light|dark) mode_set "${args[0]}" "$source" "$instant" ;;
+        toggle) mode_set "$([[ "$(mode)" == dark ]] && echo light || echo dark)" "$source" "$instant" ;;
+        status) mode_status "${args[1]:-}" ;;
+        *) die "usage: rice mode light|dark|toggle|status [--instant]" ;;
+    esac
+}
+
 json_str() {
     local s="$1"
     s="${s//\\/\\\\}"; s="${s//\"/\\\"}"
@@ -560,7 +708,7 @@ json() {
     printf ']}\n'
 }
 
-usage() { sed -n '2,23p' "$0" | sed 's/^# \{0,1\}//'; }
+usage() { sed -n '2,27p' "$0" | sed 's/^# \{0,1\}//'; }
 
 case "${1:-}" in
     ""|-h|--help|help) usage ;;
@@ -576,6 +724,7 @@ case "${1:-}" in
     next) cycle 1 ;;
     prev) cycle -1 ;;
     auto) shift; auto "$@" ;;
+    mode) shift; mode_cmd "$@" ;;
     choose) choose ;;
     reapply) RICE_FORCE=1 switch_to "$(current)" ;;
     session) session ;;

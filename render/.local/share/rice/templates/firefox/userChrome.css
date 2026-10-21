@@ -2,15 +2,37 @@
    chrome/ by `rice-render --link --firefox`. Needs, in about:config:
      toolkit.legacyUserProfileCustomizations.stylesheets = true          */
 
+/* The rice's colours in both modes: light here, dark under the media query,
+   which follows the desktop's colour scheme (`rice mode` sets it), so Firefox
+   switches live. The rules below only use these variables. */
 :root {
-    --rice-bg: {{ roles.bg }};
-    --rice-surface: {{ roles.surface }};
-    --rice-border: {{ roles.border }};
-    --rice-fg: {{ roles.fg }};
-    --rice-muted: {{ roles.muted }};
-    --rice-wash: linear-gradient(90deg, {{ roles.urgent | rgba(0.6) }}, {{ roles.selection | rgba(0.6) }});
-    --rice-gradient: linear-gradient(90deg, {{ gradient.stops | join(", ") }});
+    --rice-bg: {{ light.roles.bg }};
+    --rice-surface: {{ light.roles.surface }};
+    --rice-border: {{ light.roles.border }};
+    --rice-fg: {{ light.roles.fg }};
+    --rice-muted: {{ light.roles.muted }};
+    --rice-accent: {{ light.roles.accent }};
+    --rice-hover: {{ light.roles.bg | rgba(0.6) }};
+    --rice-focus-ring: {{ light.roles.accent | rgba(0.45) }};
+    --rice-wash: linear-gradient(90deg, {{ light.roles.urgent | rgba(0.6) }}, {{ light.roles.selection | rgba(0.6) }});
+    --rice-gradient: linear-gradient(90deg, {{ light.gradient.stops | join(", ") }});
+}
+@media (prefers-color-scheme: dark) {
+    :root {
+        --rice-bg: {{ dark.roles.bg }};
+        --rice-surface: {{ dark.roles.surface }};
+        --rice-border: {{ dark.roles.border }};
+        --rice-fg: {{ dark.roles.fg }};
+        --rice-muted: {{ dark.roles.muted }};
+        --rice-accent: {{ dark.roles.accent }};
+        --rice-hover: {{ dark.roles.bg | rgba(0.6) }};
+        --rice-focus-ring: {{ dark.roles.accent | rgba(0.45) }};
+        --rice-wash: linear-gradient(90deg, {{ dark.roles.urgent | rgba(0.6) }}, {{ dark.roles.selection | rgba(0.6) }});
+        --rice-gradient: linear-gradient(90deg, {{ dark.gradient.stops | join(", ") }});
+    }
+}
 
+:root {
     --toolbar-bgcolor: var(--rice-bg) !important;
     --toolbar-color: var(--rice-fg) !important;
     --toolbar-field-background-color: var(--rice-surface) !important;
@@ -18,7 +40,7 @@
     --toolbar-field-color: var(--rice-fg) !important;
     --toolbar-field-focus-color: var(--rice-fg) !important;
     --toolbar-field-border-color: transparent !important;
-    --toolbar-field-focus-border-color: {{ roles.accent }} !important;
+    --toolbar-field-focus-border-color: var(--rice-accent) !important;
     --lwt-accent-color: var(--rice-surface) !important;
     --lwt-text-color: var(--rice-fg) !important;
     --tab-selected-bgcolor: var(--rice-bg) !important;
@@ -30,7 +52,7 @@
     --sidebar-background-color: var(--rice-surface) !important;
     --sidebar-text-color: var(--rice-fg) !important;
     --urlbar-box-bgcolor: var(--rice-surface) !important;
-    --focus-outline-color: {{ roles.accent }} !important;
+    --focus-outline-color: var(--rice-accent) !important;
     --tab-border-radius: 999px !important;
     --toolbarbutton-border-radius: 999px !important;
     --tab-min-height: 30px !important;
@@ -51,7 +73,7 @@
     border: 1px solid transparent !important;
 }
 .tabbrowser-tab:hover:not([selected]) .tab-background {
-    background: {{ roles.bg | rgba(0.6) }} !important;
+    background: var(--rice-hover) !important;
 }
 .tabbrowser-tab[selected] .tab-background {
     background: var(--rice-wash) !important;
@@ -76,7 +98,7 @@
     box-shadow: none !important;
 }
 #urlbar[focused] > #urlbar-background {
-    box-shadow: 0 0 0 3px {{ roles.accent | rgba(0.45) }} !important;
+    box-shadow: 0 0 0 3px var(--rice-focus-ring) !important;
 }
 #urlbar[breakout][breakout-extend] > #urlbar-background {
     border-radius: {{ shape.popup }}px !important;

@@ -11,6 +11,7 @@ import sys
 import tempfile
 import tomllib
 import unittest
+import unittest.mock
 import zipfile
 from pathlib import Path
 
@@ -106,15 +107,64 @@ class Palettes(unittest.TestCase):
                 for role in rr.ROLES:
                     self.assertRegex(ctx["roles"][role], r"^#[0-9a-f]{6}$")
 
+    def test_yazi_picks_a_flavour_per_mode(self):
+        theme = tomllib.loads((REPO / "render/.local/share/rice/templates/yazi/theme.toml").read_text())
+        self.assertEqual(theme, {"flavor": {"light": "rice-light", "dark": "rice-dark"}})
+        self.assertIn((".config/yazi/flavors/rice-{mode}.yazi/flavor.toml", "yazi/flavor.toml"), rr.MODE_LINKS)
+
+    def test_kitty_colours_live_in_their_own_file(self):
+        # kitty.conf includes them; kitty also reads them as its automatic
+        # light/dark theme, which may hold colours only
+        for name in ("nacre", "paper"):
+            ctxs = rr.load_modes(RICES / name)
+            for mode in rr.MODES:
+                with self.subTest(f"{name} {mode}"), unittest.mock.patch.object(rr, "SHARED", TEMPLATES):
+                    files = rr.template_files(RICES / name, mode)
+                    conf = rr.render_text(files["kitty.conf"].read_text(), ctxs[mode], "kitty.conf")
+                    colours = rr.render_text(files["kitty-colors.conf"].read_text(), ctxs[mode], "kitty-colors.conf")
+                    self.assertIn(f"include {RICES / name}/build/{mode}/kitty-colors.conf", conf)
+                    self.assertNotRegex(conf, r"(?m)^(background|foreground|color\d+|cursor) ")
+                    keys = {l.split()[0] for l in colours.splitlines() if l.strip() and not l.startswith("#")}
+                    self.assertTrue({"background", "foreground", "cursor", "color0", "color15"} <= keys)
+                    self.assertFalse(keys & {"background_image", "font_family", "background_opacity"})
+
+    def test_kitty_version_check(self):
+        with tempfile.TemporaryDirectory() as d:
+            kitty = Path(d) / "kitty"
+            for out, want in (("kitty 0.39.1 created by Kovid Goyal", True), ("kitty 0.32.2", False), ("", False)):
+                kitty.write_text(f"#!/bin/sh\necho '{out}'\n")
+                kitty.chmod(0o755)
+                with self.subTest(out), unittest.mock.patch.dict(os.environ, {"PATH": d}):
+                    self.assertEqual(rr.kitty_auto_themes(), want)
+
+    def test_firefox_holds_both_modes(self):
+        ctxs = rr.load_modes(RICES / "nacre")
+        for css in ("userChrome.css", "userContent.css"):
+            with self.subTest(css):
+                src = TEMPLATES / "firefox" / css
+                text = rr.render_text(src.read_text(), ctxs["light"], css)
+                self.assertEqual(text, rr.render_text(src.read_text(), ctxs["dark"], css), "the same in both builds")
+                light, dark = text.split("@media (prefers-color-scheme: dark)")
+                self.assertIn("--rice-bg: #f4f1f6;", light)
+                self.assertIn("--rice-bg:", dark)
+                # outside the two variable blocks, nothing names a colour
+                rules = dark.split("\n}\n", 1)[1]
+                self.assertNotRegex(rules, r"#[0-9a-f]{6}")
+
+    def test_spicetify_has_a_scheme_per_mode(self):
+        text = rr.render_text((TEMPLATES / "spicetify/color.ini").read_text(), rr.load_modes(RICES / "paper")["light"], "c")
+        self.assertIn("[rice-light]", text)
+        self.assertIn("[rice-dark]", text)
+
     def test_yazi_theme_uses_current_keys(self):
         # yazi 25.5+ refuses filetype rules without `url`/`mime` (`name` is gone)
         # and silently ignores the old [mgr] hovered/tab_* keys
-        shared = REPO / "render/.local/share/rice/templates/yazi/theme.toml"
+        shared = REPO / "render/.local/share/rice/templates/yazi/flavor.toml"
         for name in ("nacre", "paper"):
             with self.subTest(name):
-                own = RICES / name / "templates/yazi/theme.toml"
+                own = RICES / name / "templates/yazi/flavor.toml"
                 src = (own if own.exists() else shared).read_text()
-                theme = tomllib.loads(rr.render_text(src, ctx_for(name), "yazi/theme.toml"))
+                theme = tomllib.loads(rr.render_text(src, ctx_for(name), "yazi/flavor.toml"))
                 for gone in ("hovered", "preview_hovered", "tab_active", "tab_inactive"):
                     self.assertNotIn(gone, theme["mgr"])
                 self.assertIn("current", theme["indicator"])
@@ -376,6 +426,18 @@ class ShellModes(unittest.TestCase):
 class Modes(unittest.TestCase):
     """Every rice renders in both modes, from the same templates."""
 
+    def test_hypr_lua_is_the_same_in_both_modes(self):
+        # everything mode-dependent sits in hypr-mode.lua, which `rice mode`
+        # sends with hyprctl eval; the rest (window rules too) never changes,
+        # so a mode switch never needs a reload
+        for name in ("nacre", "paper"):
+            with self.subTest(name):
+                out = self.outputs(name)
+                self.assertEqual(out["build/light/hypr.lua"], out["build/dark/hypr.lua"])
+                self.assertIn(b"hl.config({", out["build/dark/hypr-mode.lua"])
+                self.assertNotRegex(out["build/dark/hypr-mode.lua"].decode(),
+                                    r"hl\.(window_rule|layer_rule|bind|animation|curve)\b")
+
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         root = Path(self.tmp.name)
@@ -478,8 +540,11 @@ class Paper(unittest.TestCase):
 
     def test_hypr_layer(self):
         rendered = rr.render_text((RICES / "paper/templates/hypr.lua").read_text(), self.ctx, "hypr.lua")
-        for want in ('border_size = 0', 'blur = { enabled = false }', 'range          = 18',
-                     'offset         = { 3, 8 }', '"rgba(3c2d1438)"', '"rgba(3c2d1420)"',
+        mode = rr.render_text((RICES / "paper/templates/hypr-mode.lua").read_text(), self.ctx, "hypr-mode.lua")
+        for want in ('range          = 18', 'offset         = { 3, 8 }', '"rgba(3c2d1438)"', '"rgba(3c2d1420)"',
+                     'background_color = "rgba(d9d6ccff)"', '/grain.frag"'):
+            self.assertIn(want, mode)
+        for want in ('border_size = 0', 'blur = { enabled = false }', 'dofile(here .. "hypr-mode.lua")',
                      'gaps_in     = 10', 'gaps_out    = 22', 'rounding         = 3',
                      '{ { 0.2, 1.3 }, { 0.4, 1 } }', '{ { 0.5, 0 }, { 0.75, 0.4 } }',
                      'leaf = "windowsIn",   enabled = true, speed = 5,      bezier = "drop", style = "slide top"',

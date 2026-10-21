@@ -79,6 +79,10 @@ colorscheme = "rice"   # build/nvim/rice.lua, linked into ~/.config/nvim/colors
 gtk_theme     = "adw-gtk3"
 icon_theme    = "Colloid-Light"
 color_scheme  = "prefer-light"
+# Hyprland's frost and shadow (hypr-mode.lua)
+hypr_blur_brightness = 0.92
+hypr_blur_vibrancy   = 0.4
+hypr_shadow_range    = 34
 
 [modes.light.colors]
 pearl    = "#f4f1f6"   # base surfaces

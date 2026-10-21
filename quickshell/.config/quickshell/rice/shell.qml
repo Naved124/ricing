@@ -5,6 +5,7 @@
 //   qs -c rice ipc call rice freeze <dir>      pin <dir>/<monitor>.png on every output
 //   qs -c rice ipc call rice dissolve <rice>   reveal the new rice with its transition
 //   qs -c rice ipc call rice reload            re-read the rice list
+//   qs -c rice ipc call rice reveal <mode>     reveal the desktop after `rice mode`
 
 import QtQuick
 import Quickshell
@@ -16,6 +17,8 @@ ShellRoot {
 
     // how long each transition shader runs, by meta.transition
     readonly property var durations: ({ ripple: 900, peel: 950, fade: 450 })
+    // a mode change fades the frozen frame away (each rice's own reveal comes later)
+    readonly property int modeReveal: 600
 
     Chooser { id: chooser }
 
@@ -43,6 +46,11 @@ ShellRoot {
             const own = `file://${Rices.dir}/${name}/transition.frag.qsb`;
             const ms = root.durations[transition] ?? 700;
             for (const f of frames.instances) f.dissolve(own, ms);
+            Rices.refresh();
+        }
+
+        function reveal(mode: string): void {
+            for (const f of frames.instances) f.dissolve(Qt.resolvedUrl("shaders/fade.frag.qsb"), root.modeReveal);
             Rices.refresh();
         }
     }
