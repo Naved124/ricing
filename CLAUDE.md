@@ -65,6 +65,7 @@ reads them from `hyprctl binds -j`):
 | Super+Shift+R / Super+Alt+R | `rice-rec toggle screen` / `region`: record to `~/Videos`, again to stop |
 | Super+Shift+T / Super+Ctrl+T | rice chooser / next rice |
 | Super+Shift+G | `rice grain toggle`: the rice's screen shader (Paper's grain) on/off |
+| Super+Alt+D / Super+Alt+Shift+D | `rice mode toggle` / `rice mode auto` (light and dark by the sun) |
 | Media keys | `wpctl` (volume up to **150%**: `-l 1.5`), `brightnessctl`, `playerctl`; work while locked |
 
 **Monitor and scale**: `base.lua` only has the fallback

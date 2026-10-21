@@ -159,6 +159,9 @@ bind(key("CTRL + T"),  hl.dsp.exec_cmd("rice next"),   "Rice · Next rice")
 -- the rice's screen shader (Paper's grain) blocks direct scanout; games and
 -- video may want it off. Off is remembered; rices without one ignore it.
 bind(key("SHIFT + G"), hl.dsp.exec_cmd("rice grain toggle"), "Rice · Paper grain on/off")
+-- light and dark: the same everywhere (Paper's lamp, Nacre's black pearl)
+bind(key("ALT + D"),         hl.dsp.exec_cmd("rice mode toggle"), "Rice · Light/dark")
+bind(key("ALT + SHIFT + D"), hl.dsp.exec_cmd("rice mode auto"),   "Rice · Light and dark by the sun (auto)")
 
 -- mouse
 bind(key("mouse:272"), hl.dsp.window.drag(),   "Mouse · Move window",   { mouse = true })

@@ -200,6 +200,7 @@ rice-rec toggle      record the screen to ~/Videos, again to stop (also: region)
 | Super+Escape | power menu |
 | Super+L | lock |
 | Super+Shift+T / Super+Ctrl+T | rice chooser / next rice |
+| Super+Alt+D / Super+Alt+Shift+D | light ⇄ dark / auto (by the sun) |
 | Super+Shift+G | Paper's grain on or off (it stops games and video skipping the compositor) |
 | Print, Shift+Print, Super+Print, Ctrl+Print | screenshot a region, the screen, the window, or into satty |
 | Super+Shift+C | colour picker |
@@ -292,6 +293,18 @@ What follows the change, and when:
 | GTK3 and Qt apps that are already open | only fully when restarted |
 | Telegram | when you open its theme file again |
 | the boot menu, the splash and the login screen | never: they run before anyone logs in, so they stay light |
+
+Not covered, on purpose:
+
+- **Already-open GTK3 and Qt apps** that don't listen for theme changes only switch fully
+  when restarted; libadwaita/GTK4 and portal-aware apps (Firefox, Chromium, Electron)
+  switch live.
+- **The login screen** (ReGreet) stays on the light build: it runs before login and can't
+  know the mode. A clean way to darken it at night would be a small greetd pre-start
+  hook that compares the time with the last sunrise and sunset `rice-sun` cached and
+  copies `build/dark/regreet.css` over the light one; it isn't built.
+- **Websites** follow their own dark mode through Firefox's colour scheme; there's no
+  Dark Reader or other extension forcing it.
 
 ## Shell
 
