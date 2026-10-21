@@ -6,8 +6,9 @@
 
 Reads ~/.config/rice/mode.toml:
 
-    lat = 51.5              your latitude and longitude, in degrees
-    lon = -0.13             (north and east are positive)
+    lat = 22.12             your latitude and longitude, in degrees
+    lon = 78.10             (north and east are positive; blank or a missing
+                            file: the built-in location, DEFAULT_LAT/LON)
     offset_minutes_dark  = -20    dark this long before sunset (negative: before)
     offset_minutes_light = 20     light this long after sunrise
 
@@ -36,6 +37,9 @@ from pathlib import Path
 
 CONFIG = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / "rice/mode.toml"
 ZENITH = 90.833
+# the user's home, used when mode.toml leaves the location blank
+DEFAULT_LAT = 22.12232
+DEFAULT_LON = 78.10159
 
 
 class SunError(Exception):
@@ -163,10 +167,11 @@ def load_config(path: Path) -> dict:
     try:
         data = tomllib.loads(path.read_text())
     except FileNotFoundError:
-        raise SunError(f"{path} is missing (./install puts one there; set lat and lon in it)")
+        data = {}
     except tomllib.TOMLDecodeError as e:
         raise SunError(f"{path}: {e}")
-    cfg = {"offset_minutes_dark": -20, "offset_minutes_light": 20}
+    cfg = {"lat": DEFAULT_LAT, "lon": DEFAULT_LON,
+           "offset_minutes_dark": -20, "offset_minutes_light": 20}
     cfg.update({k: v for k, v in data.items() if v != ""})
     for key in ("lat", "lon"):
         if not isinstance(cfg.get(key), (int, float)) or isinstance(cfg.get(key), bool):

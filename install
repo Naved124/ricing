@@ -516,7 +516,7 @@ if have systemctl && systemctl --user show-environment >/dev/null 2>&1; then
     # the old time-of-day rice switching is gone; its timer may still be enabled
     run systemctl --user disable --now rice-auto.timer 2>/dev/null || true
     run systemctl --user daemon-reload
-    # it only acts once `rice mode auto` is on and mode.toml has a location
+    # it only acts once `rice mode auto` is on
     run systemctl --user enable --now rice-mode.timer
     ok "the auto-mode timer is enabled (turn auto mode on with: rice mode auto)"
 else
@@ -528,7 +528,7 @@ mode_toml="$HOME/.config/rice/mode.toml"
 if [ ! -e "$mode_toml" ]; then
     run mkdir -p "$(dirname "$mode_toml")"
     run cp "$repo/switcher/.local/share/rice/mode.toml" "$mode_toml"
-    ok "wrote $mode_toml: set lat and lon in it for auto mode"
+    ok "wrote $mode_toml (lat and lon are set for auto mode; change them if you move)"
 fi
 
 step "Boot and login"

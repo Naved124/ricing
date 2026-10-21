@@ -671,7 +671,7 @@ next_switch() {
     elif out="$(sun 2>/dev/null)"; then
         jq -r '"\(.next_mode) at \(.next_hhmm)"' <<<"$out"
     else
-        echo "auto: set lat and lon in ~/.config/rice/mode.toml"
+        echo "auto: check lat and lon in ~/.config/rice/mode.toml"
     fi
 }
 

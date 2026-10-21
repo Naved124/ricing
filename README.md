@@ -418,12 +418,13 @@ turn it off or the shell restarts; a cup in the bar shows while it's on.
 
 Light by day, dark by night, worked out offline: `rice-sun` computes sunrise and sunset
 for your place with NOAA's solar calculator. `./install` copies a settings file to
-`~/.config/rice/mode.toml`; fill in your latitude and longitude (rounded to a degree is
-plenty), then turn it on:
+`~/.config/rice/mode.toml`. Its latitude and longitude (rounded to a degree is plenty)
+default to a built-in location, 22.12° N 78.10° E, which is also used when they're left
+blank; change them if you move, then turn it on:
 
 ```toml
-lat = 51.51
-lon = -0.13
+lat = 22.12232
+lon = 78.10159
 offset_minutes_dark  = -20   # dark 20 minutes before sunset
 offset_minutes_light = 20    # light 20 minutes after sunrise
 ```

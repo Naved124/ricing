@@ -68,10 +68,12 @@ Scope {
         return { r: (n >> 16 & 255) / 255, g: (n >> 8 & 255) / 255, b: (n & 255) / 255, a: a };
     }
 
-    // light → dark → auto → light, for a control centre's tile
+    // light → dark → auto → light, for a control centre's tile; if auto
+    // can't start (a bad location in mode.toml), dark goes straight to light
+    // rather than sticking
     function cycle() {
         Quickshell.execDetached(["sh", "-c", auto ? "rice mode auto off && rice mode light"
-                                                  : dark ? "rice mode auto" : "rice mode dark"]);
+                                                  : dark ? "rice mode auto || rice mode light" : "rice mode dark"]);
     }
     function refreshStatus() { status.running = true; }
 

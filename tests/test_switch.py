@@ -252,11 +252,17 @@ class Switch(unittest.TestCase):
             return "light" if name == "mode" else None    # no file yet: light
         return p.read_text().strip()
 
-    def test_auto_needs_a_location(self):
+    def test_auto_without_a_location_uses_the_built_in_one(self):
         self.to_nacre()
-        r = self.sun("mode", "auto", at="2024-06-21T12:00", toml='lat = ""\nlon = ""\n')
+        r = self.sun("mode", "auto", "--instant", at="2024-06-21T23:00", toml='lat = ""\nlon = ""\n')
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual((self.state("mode"), self.state("mode-auto")), ("dark", ""))
+
+    def test_auto_with_a_bad_location_says_so(self):
+        self.to_nacre()
+        r = self.sun("mode", "auto", at="2024-06-21T12:00", toml="lat = 95\nlon = 0\n")
         self.assertEqual(r.returncode, 2)
-        self.assertIn("set lat in", r.stderr)
+        self.assertIn("lat must be", r.stderr)
         self.assertIsNone(self.state("mode-auto"))
 
     def test_auto_follows_the_sun(self):

@@ -133,18 +133,35 @@ class Command(unittest.TestCase):
         self.assertEqual(set(out), {"mode", "next", "next_epoch", "next_mode", "next_hhmm", "sunrise", "sunset"})
         self.assertGreater(out["next_epoch"], datetime(2024, 6, 21, 21, 5).timestamp())
 
-    def test_blank_location_is_explained(self):
-        p = self.run_sun('lat = ""\nlon = ""\n')
-        self.assertEqual(p.returncode, 2)
-        self.assertIn("set lat in", p.stderr)
+    def test_a_blank_location_is_the_built_in_one(self):
+        for toml in ('lat = ""\nlon = ""\n', ""):
+            with self.subTest(toml=toml):
+                p = self.run_sun(toml, RICE_NOW="2024-06-21T12:00")
+                self.assertEqual(p.returncode, 0, p.stderr)
+                self.assertEqual(json.loads(p.stdout), json.loads(
+                    self.run_sun(f"lat = {rs.DEFAULT_LAT}\nlon = {rs.DEFAULT_LON}\n",
+                                 RICE_NOW="2024-06-21T12:00").stdout))
         p = self.run_sun("lat = 95\nlon = 0\n")
         self.assertEqual(p.returncode, 2)
 
-    def test_the_shipped_settings_are_placeholders(self):
+    def test_a_missing_file_is_the_built_in_location(self):
+        cfg = rs.load_config(Path(tempfile.gettempdir()) / "no-such-rice-mode.toml")
+        self.assertEqual((cfg["lat"], cfg["lon"]), (rs.DEFAULT_LAT, rs.DEFAULT_LON))
+
+    def test_the_shipped_settings_are_the_built_in_location(self):
         shipped = REPO / "switcher/.local/share/rice/mode.toml"
-        p = subprocess.run([str(SCRIPT), "--config", str(shipped)], capture_output=True, text=True)
-        self.assertEqual(p.returncode, 2, "don't ship a location")
-        self.assertIn("set lat", p.stderr)
+        cfg = rs.load_config(shipped)
+        self.assertEqual((cfg["lat"], cfg["lon"]), (rs.DEFAULT_LAT, rs.DEFAULT_LON))
+
+    def test_the_built_in_location(self):
+        # central India (IST, no DST): the sun rises 05:30–07:00 and sets 17:30–19:30
+        tz = ZoneInfo("Asia/Kolkata")
+        for day in (date(2024, 6, 21), date(2024, 12, 21), date(2024, 3, 20)):
+            with self.subTest(day=day):
+                ev = rs.local_events(day, rs.DEFAULT_LAT, rs.DEFAULT_LON, tz)
+                rise, set_ = ev["sunrise"].strftime("%H:%M"), ev["sunset"].strftime("%H:%M")
+                self.assertTrue("05:30" <= rise <= "07:00", rise)
+                self.assertTrue("17:30" <= set_ <= "19:30", set_)
 
 
 if __name__ == "__main__":

@@ -2,13 +2,11 @@
 # `./install` copies this to ~/.config/rice/mode.toml once; edit that copy.
 # Nothing leaves the machine: rice-sun works the sun out offline.
 #
-# Your latitude and longitude, in degrees (north and east are positive), e.g.
-#   lat = 51.51
-#   lon = -0.13
-# Rounded to a degree is plenty. Until both are set, `rice mode auto` says so
-# and does nothing.
-lat = ""
-lon = ""
+# Your latitude and longitude, in degrees (north and east are positive).
+# Rounded to a degree is plenty. Left blank (""), rice-sun uses the same
+# built-in location (22.12232 N, 78.10159 E).
+lat = 22.12232
+lon = 78.10159
 
 # Minutes from the sun: go dark 20 minutes before sunset and light again 20
 # minutes after sunrise (negative is before)

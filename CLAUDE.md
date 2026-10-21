@@ -201,7 +201,7 @@ and must render the same in both modes (a test checks), window rules included.
 
 Auto mode: `rice mode auto [off]`; `rice-mode.timer` (and login, and hypridle's
 `after_sleep_cmd`) run `rice mode tick`, which asks `rice-sun` (stdlib Python, NOAA,
-offline; settings in `~/.config/rice/mode.toml`, shipped with a blank location in
+offline; settings in `~/.config/rice/mode.toml`, shipped with the user's location in
 `switcher/.local/share/rice/mode.toml`) and applies its mode, unless a manual choice
 holds (`$STATE_DIR/mode-hold-until`, the next sunrise or sunset). Rices are never
 switched by time.
