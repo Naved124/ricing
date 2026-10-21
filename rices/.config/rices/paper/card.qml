@@ -6,13 +6,16 @@ import QtQuick.Shapes
 // Paper's chooser card: a ruled sheet taped to the desk, tilted, its name
 // set in Newsreader with "desk" pencilled beside it in red, and the palette
 // as dabs of paint. Selected, it lifts off the desk: it straightens a
-// little, rises, and its shadow spreads.
+// little, rises, and its shadow spreads. At night it is a black card under
+// the lamp, its name in cream italic ink.
 Item {
     id: root
 
     property var rice: ({})
     property bool selected: false
     property bool active: false
+    property string mode: "light"
+    readonly property bool night: mode === "dark"
 
     readonly property var m: rice?.meta ?? {}
     readonly property var c: m.colors ?? {}
@@ -79,7 +82,8 @@ Item {
                 id: title
                 x: 46; y: 26
                 text: root.m.title ?? "Paper"
-                color: root.c.ink ?? "transparent"
+                color: (root.night ? root.c.carbon : root.c.ink) ?? "transparent"
+                font.italic: root.night
                 font.family: root.f.serif ?? "Newsreader"
                 font.weight: root.f.display_weight ?? 600
                 font.pixelSize: 38

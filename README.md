@@ -382,8 +382,9 @@ If the session is still up a few seconds later, it ends it with
 2. Add `templates/hypr.lua` for borders, rounding, blur and animations, plus any other
    template you want to override.
 3. Optionally add a `transition.frag` (compile it with `tools/shaders`), a `card.qml` to
-   dress its chooser card (it receives `rice`, `selected`, `active` and `base`, the
-   generic card to wrap), and a `preview.png`.
+   dress its chooser card (it receives `rice`, `selected`, `active`, and if it declares
+   them `base`, the generic card to wrap, and `mode`; `rice.meta`'s colours are the
+   current mode's, crossfading with it), and a `preview.png`.
 
 It shows up in `rice list` and the chooser right away.
 
@@ -424,8 +425,9 @@ The `rice-mode.timer` user timer runs `rice mode tick` every 5 minutes, at login
 after resume, and applies the sun's mode. A `rice mode light` or `dark` while auto is
 on holds until the next sunrise or sunset and then auto takes over again
 ("light · held until 18:02 (then auto)"). In polar day it stays light and in polar
-night dark. The chooser's auto switch (or `a` in it) turns auto mode on and off and
-shows the next switch; which rice you use is always your choice. The night light
+night dark. The chooser's footer is a `light · dark · auto` pill (or `d` and `a` in it)
+with the next switch beside it; its cards show each rice in the current mode, with a sun
+or moon in the corner. Which rice you use is always your choice. The night light
 (hyprsunset) is separate and isn't touched.
 
 ## Development

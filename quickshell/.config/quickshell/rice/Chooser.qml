@@ -8,10 +8,14 @@ import qs
 
 // The rice chooser (Super+Shift+T): every rice as a card, dressed in the active
 // rice's colours. Arrows/hjkl move, Enter applies, 1–9 pick directly, `a`
-// toggles auto mode (light and dark by the sun), Esc or a click outside closes.
+// toggles auto mode (light and dark by the sun), `d` light and dark, Esc or a
+// click outside closes. Cards show their rice in the current mode, crossfading
+// with it, and a sun or moon in the corner says which mode it opens in; the
+// footer's pill is light · dark · auto, with the next switch.
 // A rice can draw its own card: rices/<name>/card.qml. It receives `rice`,
 // `selected` and `active` like GenericCard.qml, plus `base` (GenericCard's
-// URL) if it declares it, so it can decorate the generic card.
+// URL) and `mode` ("light" or "dark") if it declares them. `rice.meta`'s
+// colors, roles and gradient are the current mode's, mixed live.
 PanelWindow {
     id: win
 
@@ -26,6 +30,26 @@ PanelWindow {
         Rices.refresh();
         selected = Rices.current || names[0] || "";
         open = true;
+    }
+
+    // a rice with its meta's colours, roles and gradient mixed between its two
+    // modes by Theme.k, so a card follows `rice mode` as the shells do
+    function dressed(r) {
+        const ms = r?.meta?.modes;
+        if (!ms?.light || !ms?.dark) return r;
+        const k = Theme.k;
+        const mixMap = (a, b) => {
+            const out = {};
+            for (const key of Object.keys(Object.assign({}, a, b)))
+                out[key] = Theme.mode.mix(a[key] ?? b[key], b[key] ?? a[key], k);
+            return out;
+        };
+        const meta = Object.assign({}, r.meta, {
+            colors: mixMap(ms.light.colors ?? {}, ms.dark.colors ?? {}),
+            roles: mixMap(ms.light.roles ?? {}, ms.dark.roles ?? {}),
+            gradient: (ms.light.gradient ?? []).map((c, i) => Theme.mode.mix(c, ms.dark.gradient?.[i] ?? c, k)),
+        });
+        return Object.assign({}, r, { meta: meta });
     }
 
     function move(step) {
@@ -86,6 +110,7 @@ PanelWindow {
             else if ([Qt.Key_Right, Qt.Key_Down, Qt.Key_L, Qt.Key_J, Qt.Key_Tab].includes(k)) win.move(1);
             else if ([Qt.Key_Return, Qt.Key_Enter, Qt.Key_Space].includes(k)) win.apply(win.selected);
             else if (k === Qt.Key_A) Rices.setAuto(!Rices.auto);
+            else if (k === Qt.Key_D) Rices.setMode(Theme.dark ? "light" : "dark");
             else if (k >= Qt.Key_1 && k <= Qt.Key_9 && win.names[k - Qt.Key_1]) win.apply(win.names[k - Qt.Key_1]);
             else return;
             event.accepted = true;
@@ -150,10 +175,31 @@ PanelWindow {
                         // a card.qml that fails to load falls back to the generic one
                         onStatusChanged: if (status === Loader.Error) source = "GenericCard.qml"
                     }
-                    Binding { target: loader.item; property: "rice"; value: slot.modelData; when: loader.status === Loader.Ready }
+                    Binding { target: loader.item; property: "rice"; value: win.dressed(slot.modelData); when: loader.status === Loader.Ready }
                     Binding { target: loader.item; property: "selected"; value: slot.isSelected; when: loader.status === Loader.Ready }
                     Binding { target: loader.item; property: "active"; value: slot.modelData.name === Rices.current; when: loader.status === Loader.Ready }
                     Binding { target: loader.item; property: "base"; value: Qt.resolvedUrl("GenericCard.qml"); when: loader.status === Loader.Ready && loader.item.hasOwnProperty("base") }
+                    Binding { target: loader.item; property: "mode"; value: Theme.dark ? "dark" : "light"; when: loader.status === Loader.Ready && loader.item.hasOwnProperty("mode") }
+
+                    // the mode it opens in: a sun or a moon in the corner
+                    Rectangle {
+                        anchors.right: parent.right
+                        anchors.top: parent.top
+                        anchors.margins: 6
+                        width: 28
+                        height: 28
+                        radius: 14
+                        z: 2
+                        color: Theme.role("surface")
+                        border.color: Theme.role("border")
+                        SunMoon {
+                            anchors.centerIn: parent
+                            width: 18
+                            height: 18
+                            moon: Theme.dark
+                            color: Theme.role("fg")
+                        }
+                    }
 
                     // the number key that picks it
                     Text {
@@ -187,43 +233,67 @@ PanelWindow {
                 anchors.verticalCenter: parent.verticalCenter
                 spacing: 12
 
-                // a small switch in the active rice's colours
+                // light · dark · auto, in the active rice's colours
                 Rectangle {
+                    id: pill
+                    readonly property string current: Rices.auto ? "auto" : Theme.dark ? "dark" : "light"
                     anchors.verticalCenter: parent.verticalCenter
-                    width: 44
-                    height: 24
-                    radius: 12
-                    color: Rices.auto ? Theme.role("accent") : Theme.role("surface")
+                    width: segments.width + 6
+                    height: 30
+                    radius: 15
+                    color: Theme.role("surface")
                     border.color: Theme.role("border")
-                    Behavior on color { ColorAnimation { duration: 200 } }
-                    Rectangle {
-                        y: 3
-                        x: Rices.auto ? parent.width - width - 3 : 3
-                        width: 18
-                        height: 18
-                        radius: 9
-                        color: Theme.role("bg")
-                        border.color: Theme.role("border")
-                        Behavior on x { NumberAnimation { duration: 220; easing.type: Easing.OutBack } }
-                    }
-                    MouseArea {
-                        anchors.fill: parent
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: Rices.setAuto(!Rices.auto)
+                    Row {
+                        id: segments
+                        x: 3
+                        anchors.verticalCenter: parent.verticalCenter
+                        Repeater {
+                            model: ["light", "dark", "auto"]
+                            delegate: Rectangle {
+                                id: seg
+                                required property string modelData
+                                readonly property bool on: pill.current === modelData
+                                width: label.implicitWidth + 24
+                                height: 24
+                                radius: 12
+                                // the selection role is made to carry fg text
+                                color: on ? Theme.role("selection") : "transparent"
+                                border.color: on ? Theme.role("accent") : "transparent"
+                                Behavior on color { ColorAnimation { duration: 200 } }
+                                Text {
+                                    id: label
+                                    anchors.centerIn: parent
+                                    text: seg.modelData
+                                    color: Theme.role("fg")
+                                    font.family: win.fontUi
+                                    font.pixelSize: 14
+                                    font.weight: Font.Bold
+                                }
+                                MouseArea {
+                                    anchors.fill: parent
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: Rices.setMode(seg.modelData)
+                                }
+                            }
+                        }
                     }
                 }
-                Column {
+                // when it next changes
+                Text {
                     anchors.verticalCenter: parent.verticalCenter
-                    Text { text: "auto mode"; color: Theme.role("fg"); font.family: win.fontUi; font.pixelSize: 14; font.weight: Font.Bold }
-                    // the mode now, and when it next changes
-                    Text { text: Rices.mode + (Rices.next ? " · " + Rices.next : ""); color: Theme.role("muted"); font.family: win.fontUi; font.pixelSize: 13; font.weight: Font.DemiBold }
+                    visible: text.length > 0
+                    text: Rices.next
+                    color: Theme.role("muted")
+                    font.family: win.fontUi
+                    font.pixelSize: 13
+                    font.weight: Font.DemiBold
                 }
             }
 
             Text {
                 anchors.right: parent.right
                 anchors.verticalCenter: parent.verticalCenter
-                text: "←→ move   ↵ apply   1–9 pick   a auto   esc close"
+                text: "←→ move   ↵ apply   1–9 pick   d dark   a auto   esc close"
                 color: Theme.role("muted")
                 font.family: win.fontUi
                 font.weight: Font.DemiBold

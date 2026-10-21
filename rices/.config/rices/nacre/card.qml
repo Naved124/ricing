@@ -1,7 +1,9 @@
 import QtQuick
+import QtQuick.Shapes
 
 // Nacre's chooser card: the generic card behind pearl glass. When selected
-// the glass shimmers, an iridescent sheen drifting across it.
+// the glass shimmers, an iridescent sheen drifting across it. At night it is
+// a dark pearl in a ring of the dark orient.
 Item {
     id: root
 
@@ -9,6 +11,7 @@ Item {
     property bool selected: false
     property bool active: false
     property url base
+    property string mode: "light"
 
     // the rice's gradient, from its rendered meta.json
     readonly property var stops: rice?.meta?.gradient ?? []
@@ -21,6 +24,38 @@ Item {
     Binding { target: inner.item; property: "rice"; value: root.rice; when: inner.status === Loader.Ready }
     Binding { target: inner.item; property: "selected"; value: root.selected; when: inner.status === Loader.Ready }
     Binding { target: inner.item; property: "active"; value: root.active; when: inner.status === Loader.Ready }
+
+    // at night a dark pearl: its border is the dark orient, a conic ring
+    Shape {
+        id: ring
+        readonly property real r: root.rice?.meta?.shape?.panel ?? 12
+        // a rounded rectangle inset by i, as SVG
+        function outline(i) {
+            const w = root.width - 2 * i, h = root.height - 2 * i, q = Math.max(0, r - i);
+            return `M ${i + q} ${i} H ${i + w - q} A ${q} ${q} 0 0 1 ${i + w} ${i + q} V ${i + h - q} `
+                 + `A ${q} ${q} 0 0 1 ${i + w - q} ${i + h} H ${i + q} A ${q} ${q} 0 0 1 ${i} ${i + h - q} `
+                 + `V ${i + q} A ${q} ${q} 0 0 1 ${i + q} ${i} Z`;
+        }
+        anchors.fill: parent
+        visible: root.mode === "dark"
+        preferredRendererType: Shape.CurveRenderer
+        ShapePath {
+            strokeWidth: -1
+            fillRule: ShapePath.OddEvenFill
+            fillGradient: ConicalGradient {
+                centerX: root.width / 2
+                centerY: root.height / 2
+                angle: 45
+                GradientStop { position: 0.0; color: root.stops[0] ?? "transparent" }
+                GradientStop { position: 0.2; color: root.stops[1] ?? "transparent" }
+                GradientStop { position: 0.4; color: root.stops[2] ?? "transparent" }
+                GradientStop { position: 0.6; color: root.stops[3] ?? "transparent" }
+                GradientStop { position: 0.8; color: root.stops[4] ?? "transparent" }
+                GradientStop { position: 1.0; color: root.stops[0] ?? "transparent" }
+            }
+            PathSvg { path: ring.outline(0) + " " + ring.outline(2) }
+        }
+    }
 
     // the shimmer: a wide soft band of the gradient sliding across
     Item {

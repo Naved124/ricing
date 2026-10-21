@@ -31,6 +31,14 @@ Singleton {
         Quickshell.execDetached(["rice", name]);
     }
 
+    // the footer's pill: light, dark (auto off), or auto
+    function setMode(m) {
+        if (m === "auto") { setAuto(true); return; }
+        auto = false;
+        mode = m;
+        Quickshell.execDetached(["sh", "-c", `rice mode auto off; rice mode ${m}; qs -c rice ipc call rice reload`]);
+    }
+
     function setAuto(on) {
         auto = on;      // optimistic; refresh() confirms
         Quickshell.execDetached(["sh", "-c", `rice mode auto${on ? "" : " off"}; qs -c rice ipc call rice reload`]);

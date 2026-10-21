@@ -111,7 +111,7 @@ Item {
             Repeater {
                 model: root.grad
                 delegate: Rectangle {
-                    required property string modelData
+                    required property var modelData       // a colour (mixed by the chooser) or "#rrggbb"
                     width: 18
                     height: 18
                     radius: 9
