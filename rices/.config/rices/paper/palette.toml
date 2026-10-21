@@ -34,8 +34,11 @@ mode_sound      = "assets/click.wav"
 display   = "Newsreader"      # clocks, the calendar's day, song titles
 ui        = "Newsreader"      # GTK, Qt and browser chrome: a book serif reads better than a hand
 mono      = "Courier Prime"   # the typewriter
-ui_size   = 14
+ui_size   = 14                # the shell (bar, control centre, launcher)
 mono_size = 15
+# apps' interface text (GTK, Electron, Firefox's chrome, Qt, zathura, imv):
+# Newsreader's small letters are short, so it needs ~2 pt more than a sans
+app_size  = 16
 # Paper's shell writes in three hands
 type      = "Courier Prime"
 hand      = "Kalam"           # 300, 400 and 700

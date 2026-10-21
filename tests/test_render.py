@@ -573,6 +573,18 @@ class Paper(unittest.TestCase):
         self.assertTrue(all(v == 1.0 for v in self.ctx["opacity"].values()), "Paper has no transparency")
         self.assertTrue((RICES / "paper" / m["screen_shader"]).is_file())
 
+    def test_apps_read_bigger_than_the_shell(self):
+        """Newsreader runs small: apps get app_size, the shell keeps ui_size."""
+        f = self.ctx["fonts"]
+        self.assertEqual((f["ui_size"], f["app_size"]), (14, 16))
+        shared = REPO / "render/.local/share/rice/templates"
+        z = rr.render_text((shared / "zathurarc").read_text(), self.ctx, "zathurarc")
+        self.assertIn('set font                    "Newsreader 17"', z)
+        theme = (REPO / "quickshell/.config/quickshell/paper/common/Theme.qml").read_text()
+        self.assertRegex(theme, r"uiSize:\s+14\b")
+        # a rice without app_size keeps one size for both
+        self.assertEqual(ctx_for("nacre")["fonts"]["app_size"], ctx_for("nacre")["fonts"]["ui_size"])
+
     def test_grain_never_redraws_on_its_own(self):
         """A `time` uniform would make Hyprland drop damage tracking and redraw every frame."""
         src = (RICES / "paper/grain.frag").read_text()

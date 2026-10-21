@@ -223,6 +223,12 @@ class Switch(unittest.TestCase):
         self.rice("mode", "dark", RICE_POWER_SUPPLY=str(battery.parent))
         self.assertIn("qs -c rice ipc call rice reveal dark", self.calls())
 
+    def test_apps_get_the_rice_app_size(self):
+        self.assertEqual(self.rice("paper").returncode, 0)
+        fonts = [c for c in self.calls() if "font-name" in c and "monospace" not in c]
+        self.assertTrue(fonts)
+        self.assertTrue(all(c.endswith("Newsreader Regular 16") for c in fonts), fonts)
+
     def test_paper_clicks_only_when_sound_is_on(self):
         self.assertEqual(self.rice("paper").returncode, 0)
         conf = Path(self.env["HOME"]) / ".config/rice/mode.toml"

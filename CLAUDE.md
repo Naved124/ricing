@@ -106,7 +106,8 @@ Shared:
   - `wallpaper = "shell" | "files"` (`files` = `wallpaper/` folder via mpvpaper/swww)
   - `lock = "shell" | "hyprlock"`
 - `[fonts]` `display`, `ui`, `mono`, `ui_size = 14`, `mono_size = 15`–`15.5`,
-  `weight`, `weight_strong`, `display_weight`. Sizes were raised 2pt at scale 1; keep
+  `weight`, `weight_strong`, `display_weight`; optionally `app_size`, the apps' interface
+  size (gsettings fonts, qt6ct, zathura, imv; defaults to `ui_size`, which the shell keeps). Sizes were raised 2pt at scale 1; keep
   new rices at these sizes. Any new font family must be added to the font list in
   `install`.
 - `[shape]` `window rounding_power panel popup chip border gaps_in gaps_out`.

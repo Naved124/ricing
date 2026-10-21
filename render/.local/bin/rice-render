@@ -166,6 +166,10 @@ def load_palette(rice: Path, mode: str = "light") -> dict:
     except tomllib.TOMLDecodeError as e:
         raise RenderError(f"{path}: {e}")
     data = flatten_mode(data, mode, path)
+    # apps' interface text (GTK, Qt, zathura, imv) may run bigger than the shell's
+    fonts = data.get("fonts")
+    if isinstance(fonts, dict) and "ui_size" in fonts:
+        fonts.setdefault("app_size", fonts["ui_size"])
 
     colors = data.get("colors", {})
     for k, v in colors.items():
@@ -898,7 +902,7 @@ def configure_apps() -> None:
     if ctx:
         f = ctx["fonts"]
         qfont = lambda family, size: f'"{family},{size},-1,5,{f["weight"]},0,0,0,0,0,0,0,0,0,0,1"'
-        ini_set(qt, "Fonts", {"general": qfont(f["ui"], f["ui_size"]),
+        ini_set(qt, "Fonts", {"general": qfont(f["ui"], f["app_size"]),
                               "fixed": qfont(f["mono"], f["mono_size"])})
     ini_set(qt, "Appearance", appearance)
     spicetify()
