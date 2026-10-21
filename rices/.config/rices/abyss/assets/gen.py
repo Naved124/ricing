@@ -20,6 +20,13 @@ and ../templates/fastfetch/logo.png, a jellyfish in teal and violet that
 rice-render copies to fastfetch and the Plymouth splash.
 
 Needs Pillow and numpy; --still also needs PySide6.
+
+No coral, fan, kelp or fish sprites: the reef grows those itself from its
+seed (reef.js), one reef per screen, so every screen's reef differs and the
+corals and fans can sway branch by branch in their vertex shaders. Each
+coral and fan is baked into a texture once, at start, in the reef's own
+Canvas (reef/Coral.qml, reef/Fan.qml), and the kelp is built on the GPU
+(reef/Kelp.qml). Only the glows are images.
 """
 
 from __future__ import annotations
@@ -130,7 +137,7 @@ def logo(size: int = 192) -> Image.Image:
 
     # halo
     d = np.hypot(x - cx, y - cy) / (r * 1.9)
-    add(np.clip(1 - d, 0, 1) ** 2, teal * 0.7 + violet * 0.3, 0.35)
+    add(np.clip(1 - d, 0, 1) ** 2, teal * 0.7 + violet * 0.3, 0.5)
     # tentacles: eight sine strands from the rim, violet toward their ends
     for k in range(8):
         x0 = cx - r * 0.85 + 1.7 * r * k / 7
@@ -138,8 +145,8 @@ def logo(size: int = 192) -> Image.Image:
             u = i / 139
             yy = cy + u * size * 0.5
             xx = x0 + math.sin(u * 5 + k) * r * 0.18 * u + (k - 3.5) * u * r * 0.08
-            m = np.clip(1.2 - np.hypot(x - xx, y - yy) / 0.9, 0, 1)
-            add(m, teal * (1 - u) + violet * u, 0.5 * (1 - u * 0.6))
+            m = np.clip(1.6 - np.hypot(x - xx, y - yy) / 0.9, 0, 1)
+            add(m, teal * (1 - u) + violet * u, 0.8 * (1 - u * 0.7))
     # the bell: a dome, brighter toward its top, its rim scalloped
     rel_x, rel_y = (x - cx) / r, (y - cy) / r
     scallop = 0.1 + 0.07 * np.abs(np.sin(rel_x * math.pi * 4))
