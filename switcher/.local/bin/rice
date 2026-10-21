@@ -604,7 +604,7 @@ mode_fixed() {
     shell="$(palette "$cur" meta shell)"
     title="$(palette "$cur" meta title)"
     if [[ "$source" == manual && -n "$shell" ]] && have qs; then
-        qs -c "$shell" ipc call shell toast "${title:-$cur} is always $fixed" >/dev/null 2>&1 || true
+        qs -c "$shell" ipc call shell toast "$fixed" "${title:-$cur} is always $fixed" >/dev/null 2>&1 || true
     fi
     log "$target (${title:-$cur} stays $fixed)"
 }

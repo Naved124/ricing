@@ -215,8 +215,8 @@ whatever the mode file says. Its own templates may be lone `name@dark.ext` files
 (shared ones still come in pairs), its `light.*` in templates is its `dark.*`, and its
 `meta.json` has `fixed_mode`. `rice mode` while it is active still writes the mode
 (the other rices open in it later) but changes nothing on screen: no freeze, Hyprland,
-GTK or app steps; a manual choice asks its shell for a toast (`shell.toast("Abyss is
-always dark")`), auto mode stays quiet. Its shell's `Mode` has `only: "dark"`, its
+GTK or app steps; a manual choice asks its shell for a toast (`shell.toast("dark", "Abyss is
+always dark")`, icon then text), auto mode stays quiet. Its shell's `Mode` has `only: "dark"`, its
 control centre has no mode toggle, and the chooser shows its card with no sun or moon.
 
 - Templates stay mode-agnostic: roles, colours, `gtk.*`, `meta.*` and `{{ mode }}`.

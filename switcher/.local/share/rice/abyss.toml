@@ -1,0 +1,24 @@
+# Abyss's reef: copy this to ~/.config/rice/abyss.toml and change what you
+# like. The shell re-reads it as soon as it changes. These are the defaults.
+
+# the reef's frame rate: 30, or 60 for a smoother (and busier) reef. Cut to
+# 15 when windows cover the screen or the battery is low
+fps = 30
+# what's drawn of the reef, against the screen's size (0.25–1). The water
+# itself is always full size; this is the creatures, corals and plankton
+scale = 0.55
+# at most this many plankton (a small screen gets fewer)
+plankton = 620
+fish = 24
+jellies = 5
+# the reef feels the pointer where no window covers it (Super+Ctrl+R toggles
+# it for now)
+interactive = true
+# plankton, coral tips and the light pulse to music (needs cava; without it
+# the reef breathes slowly while something plays)
+music_react = true
+# the shell touches the water: notification cards landing, the launcher
+# opening, clicks in the bar, the volume and brightness gauge
+ui_disturbances = true
+# on battery under 30%: 15 fps, half the plankton, no bloom
+reduce_on_battery = true

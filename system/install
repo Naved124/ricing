@@ -157,10 +157,11 @@ name=$(basename "$rice")
 build="$rice/build/light"
 [ -f "$build/meta.json" ] || die "$name isn't rendered; run 'rice-render' (as yourself) first"
 
-# the wallpaper's still frame: the shell saves one; else the rice's own image,
-# else a plain tile of its background colour
+# the wallpaper's still frame: a rice's own committed still (Abyss's reef at
+# rest, kept static on purpose), else the one its shell saves, else its own
+# image, else a plain tile of its background colour
 still=""
-for c in "$home/.cache/rice/$name/still.png" "$rice/wallpaper.png" "$rice/wallpaper.jpg" "$build/plymouth/field.png"; do
+for c in "$rice/assets/wall-static.png" "$home/.cache/rice/$name/still.png" "$rice/wallpaper.png" "$rice/wallpaper.jpg" "$build/plymouth/field.png"; do
     [ -f "$c" ] && { still=$c; break; }
 done
 

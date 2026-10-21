@@ -1,0 +1,182 @@
+# Abyss — a night dive on a reef. Dark only.
+# The desktop is deep water and the UI is glass floating in it. Everything
+# that glows is alive; every interaction is a disturbance in the water.
+#   · the water is near black; colour comes from the creatures, never fills
+#   · glass is dark and wet (70–86% over Hyprland's blur), edged by a faint
+#     teal line; text is pale sea-glass ink
+#   · teal is life and focus, violet is quiet, pink is alarm
+#
+# The values are the reef mock's tokens (docs/abyss/reef-mock.html). Abyss is
+# darker than the night rules allow (bg L* 1.5, ink 16.6:1); it is exempt
+# from those bands by choice (tests/test_night.py), not from readable ANSI.
+#
+# Single source of truth. `rice-render abyss` turns this file into Theme.qml
+# and every app theme; never hand-edit the generated files.
+
+[meta]
+name          = "abyss"
+title         = "Abyss"
+tagline       = "a night dive on a reef"
+modes         = ["dark"]      # dark only: `rice mode` leaves it alone
+transition    = "flood"       # switching in: the water rises from the bottom edge
+transition_out = "drain"      # switching away: the water drains down and away
+shell         = "abyss"       # Quickshell config: qs -c abyss
+notifications = "shell"       # the shell is the notification daemon (no swaync)
+wallpaper     = "shell"       # the shell draws the reef (no mpvpaper/swww)
+lock          = "shell"       # the shell is the lock screen, its own reef dimmed
+
+[fonts]
+display   = "Jura"            # the clock, the lock screen, big numbers
+ui        = "Jura"
+mono      = "JetBrains Mono"  # terminal, code, the stats
+ui_size   = 14
+mono_size = 15
+weight         = 500
+weight_strong  = 600
+display_weight = 600
+
+[shape]
+window         = 12
+rounding_power = 2.0
+panel          = 14
+popup          = 12
+chip           = 9
+border         = 1
+gaps_in        = 8
+gaps_out       = 18
+
+[motion]
+# cubic-bezier control points. `bloom` is the drift: everything's default
+bloom  = [0.2, 0.9, 0.2, 1.0]     # drift
+settle = [0.34, 1.3, 0.64, 1.0]   # arrivals
+sink   = [0.55, 0.0, 0.85, 0.4]   # dismissals: things sink, they don't slide away
+# milliseconds
+open        = 450
+close       = 320
+move        = 420
+workspace   = 650     # a slow fade-slide
+scratchpad  = 450
+focus       = 380
+border_loop = 60000
+panel_in    = 450
+panel_out   = 320
+stagger     = 30
+
+[gtk]
+cursor       = "Bibata-Modern-Ice"
+cursor_size  = 24
+
+[nvim]
+colorscheme = "rice"
+
+[install]
+"quickshell/Theme.qml" = ".config/quickshell/abyss/Theme.qml"
+
+# ── dark (the only mode) ───────────────────────────────────────────────────
+
+[modes.dark.meta]
+gtk_theme     = "adw-gtk3-dark"
+icon_theme    = "Colloid-Dark"
+color_scheme  = "prefer-dark"
+# Hyprland's wet glass (hypr-mode.lua)
+hypr_blur_brightness = 0.85
+hypr_blur_vibrancy   = 0.2
+
+[modes.dark.colors]
+# the mock's tokens
+abyss        = "#01060b"   # the water at depth; nothing is darker
+glass        = "#040f17b3" # panels: rgba(4,15,23,.70)
+glass_strong = "#040e15db" # cards, menus: rgba(4,14,21,.86)
+line         = "#78e8f026" # glass edges: rgba(120,232,240,.15)
+glow         = "#62f2e2"   # teal: life, focus, the active thing
+glow2        = "#b98cff"   # violet: quiet, low urgency, keys
+pink         = "#ff8fc0"   # alarm, critical
+ink          = "#cdeef0"   # text
+ink_dim      = "#7ea4ab"   # secondary text, idle icons
+# solid stand-ins where an app can't do glass
+deep         = "#061521"   # surfaces (the glass over the abyss, a shade up)
+shoal        = "#0b2330"   # raised surfaces, hover
+rim          = "#13282d"   # the line over the abyss, solid
+tide         = "#0e3a40"   # selection behind ink
+trench       = "#000308"   # shadows
+term         = "#040f17"   # the terminal's glass
+# the terminal's hues, for apps that colour code
+kelp_green   = "#5fe0a8"   # strings, success
+sand         = "#e8d27a"   # numbers, warnings
+sky          = "#82c3ff"   # types, links
+grey_ink     = "#2a4450"   # line numbers, the faintest text
+# the reef's own (reef/reef.js), CSS alpha where it's drawn translucent
+ridge        = "#02090f9e" # the distant ridge, a translucent silhouette
+kelp         = "#031016e0" # kelp, dark against the water
+floor_top    = "#030c12"   # the seafloor, at its edge
+floor_bottom = "#010407"   # and at the bottom of the screen
+floor_line   = "#46c8d712" # the floor's faint lit edge
+anemone_base = "#050f16"   # an anemone's body
+fish         = "#64e3f752" # the school's bodies
+photophore   = "#c2f5fff2" # their light organs
+plankton     = "#7af6ff"   # plankton, before its glow
+
+[modes.dark.roles]
+bg        = "abyss"
+surface   = "deep"
+overlay   = "shoal"
+border    = "rim"
+fg        = "ink"
+muted     = "ink_dim"
+accent    = "glow"
+urgent    = "pink"
+selection = "tide"
+success   = "kelp_green"
+warning   = "sand"
+cursor    = "glow"
+link      = "sky"
+shadow    = "trench"
+term_bg   = "term"
+term_fg   = "ink"
+
+[modes.dark.gradient]
+# teal → violet → pink, for focus rings and the active border
+stops = ["glow", "glow2", "pink", "glow2", "glow"]
+angle = 45
+
+[modes.dark.ansi]
+color0  = "#0a1a24"
+color1  = "#ff6f91"
+color2  = "#5fe0a8"
+color3  = "#e8d27a"
+color4  = "#5aa9f0"
+color5  = "#b98cff"
+color6  = "#62f2e2"
+color7  = "#b9d6da"
+color8  = "#2a4450"
+color9  = "#ff8fc0"
+color10 = "#86f0c0"
+color11 = "#f2e3a0"
+color12 = "#82c3ff"
+color13 = "#cdb0ff"
+color14 = "#8ff7ec"
+color15 = "#e6fbfc"
+
+[modes.dark.opacity]
+terminal = 0.80    # kitty: wet glass over the reef
+active   = 0.96
+inactive = 0.90
+glass    = 0.70
+glass_strong = 0.86
+
+# The reef (quickshell/.config/quickshell/abyss/reef): the water's colour at
+# the surface, half way and the floor, as the mock's shader has them (linear
+# 0–1), and the creatures' hues. Boot screens and the greeter shade from
+# `ground`.
+[modes.dark.wallpaper]
+ground       = ["#04161f", "#01060b"]
+water_top    = [0.016, 0.085, 0.125]
+water_mid    = [0.006, 0.034, 0.062]
+water_bottom = [0.002, 0.009, 0.018]
+creatures    = [168, 186, 205, 272, 312]   # corals take 168, 186, 272, 312
+back_shift   = 14                          # the back corals: the first three, a little bluer
+jellies      = [186, 272, 322, 166, 205]
+fans         = [312, 272]
+anemones     = [330, 166]
+sparkle      = 186
+plankton     = 184

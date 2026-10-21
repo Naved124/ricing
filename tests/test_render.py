@@ -384,7 +384,7 @@ class CommittedOutputs(unittest.TestCase):
     def test_committed_theme_qml_matches_palette(self):
         """Each shell's committed Theme.qml must be regenerated after palette edits,
         and serves both modes, so it renders the same from either."""
-        for name, rel in (("nacre", "nacre/Theme.qml"), ("paper", "paper/common/Theme.qml")):
+        for name, rel in (("nacre", "nacre/Theme.qml"), ("paper", "paper/common/Theme.qml"), ("abyss", "abyss/Theme.qml")):
             ctxs = rr.load_modes(RICES / name)
             committed = REPO / "quickshell/.config/quickshell" / rel
             # the [install] entry is what puts it there
@@ -400,7 +400,7 @@ class CommittedOutputs(unittest.TestCase):
 class ShellModes(unittest.TestCase):
     """Every shell follows the mode the same way."""
     SHELLS = REPO / "quickshell/.config/quickshell"
-    MODE = ["nacre/Mode.qml", "paper/common/Mode.qml", "rice/Mode.qml"]
+    MODE = ["nacre/Mode.qml", "paper/common/Mode.qml", "rice/Mode.qml", "abyss/Mode.qml"]
 
     def test_the_mode_copies_are_identical(self):
         first = (self.SHELLS / self.MODE[0]).read_text()
@@ -413,7 +413,7 @@ class ShellModes(unittest.TestCase):
             self.assertIn(needle, first)
 
     def test_every_theme_mixes_both_modes(self):
-        for rel in ("nacre/Theme.qml", "paper/common/Theme.qml", "rice/Theme.qml"):
+        for rel in ("nacre/Theme.qml", "paper/common/Theme.qml", "rice/Theme.qml", "abyss/Theme.qml"):
             with self.subTest(rel):
                 text = (self.SHELLS / rel).read_text()
                 self.assertIn("readonly property Mode mode: Mode", text)

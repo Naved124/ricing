@@ -13,6 +13,9 @@ its own checks in test_render.py.
   · the normal ANSI colours at least 4.5:1 on the terminal
   · the dark wallpaper's mean at or below L* 16, nothing above L* 45 but
     specks (the 99.9th percentile)
+
+A rice can be exempt from a rule by choice, listed in EXEMPT with why. The
+ANSI rule and the floors (muted and accents at least 4.5:1) are never exempt.
 """
 
 import importlib.machinery
@@ -34,11 +37,25 @@ loader.exec_module(rr)
 PANELS = {
     "paper": ["desk", "wall", "paper", "card", "kraft", "envelope"],
     "nacre": ["pearl", "shell", "mist", "frost", "glaze"],
+    "abyss": ["deep", "shoal", "term", "glass", "glass_strong"],
 }
 # the dark wallpaper the luminance check renders, relative to the rice
 WALLPAPERS = {
     "paper": "assets/wall-dark.png",
     "nacre": "assets/wall-static-dark.png",
+}
+# rules a rice keeps out of by choice, each with why
+EXEMPT = {
+    "abyss": {
+        # the reef mock's values, kept as they are: the abyss is near black
+        # (bg L* 1.5, the terminal's glass L* 3.9) and its ink 16.6:1 on it
+        "bands": "deep water is darker than L* 7; the mock's #01060b and #040f17",
+        "halation": "the mock's ink #cdeef0 on the abyss, 15–16.6:1",
+        # dark only: there's no day for its accents to be paler than
+        "saturation": "one mode; nothing to compare against",
+        # the reef's glow is meant to be bright points on near black
+        "wallpaper": "glowing creatures; the still's specks pass 45",
+    },
 }
 
 
@@ -66,8 +83,9 @@ def chroma(c: str) -> float:
     return math.hypot(a, b)
 
 
-def night_violations(light: dict, dark: dict, panels: list[str]) -> list[str]:
-    """Every night rule a dark palette breaks, as readable lines."""
+def night_violations(light: dict, dark: dict, panels: list[str], exempt=()) -> list[str]:
+    """Every night rule a dark palette breaks, as readable lines (minus the
+    ones in `exempt`: bands, halation, saturation)."""
     bad: list[str] = []
     r, c = dark["roles"], dark["colors"]
     every = {**{f"colors.{k}": v for k, v in c.items()},
@@ -82,9 +100,10 @@ def night_violations(light: dict, dark: dict, panels: list[str]) -> list[str]:
         if not lo <= L <= hi:
             bad.append(f"roles.{role} {r[role]} is L* {L:.1f}, wants {lo}–{hi}")
 
-    band("bg", 7, 12)
-    band("term_bg", 7, 12)
-    band("surface", 10, 16)
+    if "bands" not in exempt:
+        band("bg", 7, 12)
+        band("term_bg", 7, 12)
+        band("surface", 10, 16)
     for name in ["roles.bg", "roles.surface", "roles.overlay", "roles.term_bg"] + \
             [f"colors.{n}" for n in panels if n in c]:
         v = every[name]
@@ -97,13 +116,14 @@ def night_violations(light: dict, dark: dict, panels: list[str]) -> list[str]:
             want = f"{lo}–{hi}:1" if hi < 21 else f"at least {lo}:1"
             bad.append(f"roles.{fg} on roles.{bg} is {k:.2f}:1, wants {want}")
 
-    ratio("fg", "bg", 7, 14)
-    ratio("fg", "surface", 7, 14)
-    ratio("term_fg", "term_bg", 7, 14)
+    top = 21 if "halation" in exempt else 14
+    ratio("fg", "bg", 7, top)
+    ratio("fg", "surface", 7, top)
+    ratio("term_fg", "term_bg", 7, top)
     ratio("muted", "bg", 4.5)
     for role in ("accent", "link", "urgent", "success", "warning"):
         ratio(role, "bg", 4.5)
-    for role in ("accent", "urgent", "link"):
+    for role in ("accent", "urgent", "link") if "saturation" not in exempt else ():
         if chroma(r[role]) >= chroma(light["roles"][role]):
             bad.append(f"roles.{role} {r[role]} is no less saturated than light's "
                        f"{light['roles'][role]} (C* {chroma(r[role]):.0f} vs {chroma(light['roles'][role]):.0f})")
@@ -150,11 +170,13 @@ class NightRules(unittest.TestCase):
                 ctxs = rr.load_modes(RICES / name)
                 if not ctxs["dark"]["has_mode"]:
                     self.skipTest(f"{name} has no [modes.dark.*] yet")
-                self.assertEqual(night_violations(ctxs["light"], ctxs["dark"], panels), [])
+                self.assertEqual(night_violations(ctxs["light"], ctxs["dark"], panels, EXEMPT.get(name, ())), [])
 
     @unittest.skipUnless(has_pil(), "needs numpy and Pillow")
     def test_dark_wallpapers(self):
         for name, rel in WALLPAPERS.items():
+            if "wallpaper" in EXEMPT.get(name, {}):
+                continue
             with self.subTest(name):
                 path = RICES / name / rel
                 if not path.exists():
@@ -196,6 +218,20 @@ class TheRulesThemselves(unittest.TestCase):
             with self.subTest(want):
                 found = night_violations(LIGHT, dark, ["sheet"])
                 self.assertTrue(any(want in line for line in found), found)
+
+    def test_exemptions_reach_only_their_rules(self):
+        everything = {"bands", "halation", "saturation"}
+        abyss_like = fixture(bg="#01060b", term_bg="#040f17", surface="#061521", fg="#cdeef0")
+        self.assertEqual(night_violations(LIGHT, abyss_like, ["sheet"], everything), [])
+        # unreadable terminal colours and dim accents are never let off
+        bad = fixture(bg="#01060b", term_bg="#040f17", muted="#2a4450")
+        bad["ansi"]["color1"] = "#3a1a24"
+        found = night_violations(LIGHT, bad, ["sheet"], everything)
+        self.assertTrue(any("ansi.color1" in f for f in found), found)
+        self.assertTrue(any("muted on roles.bg" in f for f in found), found)
+        for name, rules in EXEMPT.items():
+            self.assertLessEqual(set(rules), everything | {"wallpaper"}, name)
+            self.assertTrue(all(why for why in rules.values()), f"{name}: every exemption says why")
 
     @unittest.skipUnless(has_pil(), "needs numpy and Pillow")
     def test_the_wallpaper_check(self):

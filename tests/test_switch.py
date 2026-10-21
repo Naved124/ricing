@@ -358,7 +358,7 @@ class Switch(unittest.TestCase):
                     self.assertFalse(any(c.startswith(prefix) for c in calls), f"{prefix}: {calls}")
                 # the chooser follows the choice; the rice says why it doesn't
                 self.assertIn(f"qs -c rice ipc call mode jump {want}", calls)
-                self.assertIn("qs -c nacre ipc call shell toast Deep is always dark", calls)
+                self.assertIn("qs -c nacre ipc call shell toast dark Deep is always dark", calls)
         active = Path(self.env["HOME"]) / ".local/share/rice/active"
         self.assertEqual(active.resolve(), (self.rices / "deep/build/dark").resolve())
         # Paper and Nacre open in the mode chosen meanwhile
@@ -524,9 +524,10 @@ class Switch(unittest.TestCase):
         self.assertEqual(r.returncode, 0, r.stderr)
         d = json.loads(r.stdout)
         self.assertEqual(d["current"], "plain")
-        self.assertEqual([x["name"] for x in d["rices"]], ["nacre", "paper", "plain"])
-        self.assertTrue(all(x["card"] for x in d["rices"]))
-        nacre = d["rices"][0]["meta"]
+        self.assertEqual([x["name"] for x in d["rices"]], ["abyss", "nacre", "paper", "plain"])
+        rices = {x["name"]: x for x in d["rices"]}
+        self.assertTrue(rices["nacre"]["card"] and rices["paper"]["card"])
+        nacre = rices["nacre"]["meta"]
         self.assertEqual(nacre["transition"], "ripple")
         self.assertEqual((d["mode"], d["mode_auto"], d["mode_next"]), ("light", False, ""))
 
