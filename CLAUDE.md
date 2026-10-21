@@ -68,10 +68,11 @@ reads them from `hyprctl binds -j`):
 | Super+Alt+D / Super+Alt+Shift+D | `rice mode toggle` / `rice mode auto` (light and dark by the sun) |
 | Media keys | `wpctl` (volume up to **150%**: `-l 1.5`), `brightnessctl`, `playerctl`; work while locked |
 
-**Monitor and scale**: `base.lua` only has the fallback
-`hl.monitor({ output = "", mode = "preferred", position = "auto", scale = "auto" })`.
-Real values go in `~/.config/hypr/local.lua`. The user's laptop is
+**Monitor and scale**: `base.lua` has the fallback
+`hl.monitor({ output = "", mode = "preferred", position = "auto", scale = 1 })` (never
+`scale = "auto"`: it enlarges a 1080p panel) and the user's laptop,
 `hl.monitor({ output = "eDP-1", mode = "1920x1080@60", position = "0x0", scale = 1 })`.
+Other machines' values go in `~/.config/hypr/local.lua`, which is loaded last.
 Never put monitor or scale settings in a rice.
 
 **Window tags** (`base.lua`): `opaque`, `glassy`, `dialog`, `pip`, `game`. Base sets

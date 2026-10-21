@@ -34,7 +34,10 @@ hl.env("QT_QPA_PLATFORMTHEME", "qt6ct")
 ---------------------------------------------------------------------------
 -- Monitors (override per machine in local.lua)
 ---------------------------------------------------------------------------
-hl.monitor({ output = "", mode = "preferred", position = "auto", scale = "auto" })
+-- any screen: its preferred mode at scale 1 (Hyprland's "auto" enlarges a
+-- 1080p laptop panel); the laptop's own panel at 1080p and 60 Hz
+hl.monitor({ output = "", mode = "preferred", position = "auto", scale = 1 })
+hl.monitor({ output = "eDP-1", mode = "1920x1080@60", position = "0x0", scale = 1 })
 
 ---------------------------------------------------------------------------
 -- Autostart
