@@ -533,6 +533,18 @@ class Island(unittest.TestCase):
         self.assertIn("|island|", (RICES / "nacre/templates/hypr.lua").read_text())
         self.assertIn("|island|", (RICES / "paper/templates/hypr.lua").read_text())
 
+    def test_title_follows_hyprland_events(self):
+        hypr = (self.SHELLS / "paper/services/Hypr.qml").read_text()
+        self.assertEqual((self.SHELLS / "nacre/services/Hypr.qml").read_text(), hypr,
+                         "copy paper/services/Hypr.qml to nacre/services/Hypr.qml")
+        for event in ('"activewindow"', '"activewindowv2"', '"windowtitlev2"'):
+            self.assertIn(event, hypr)
+        for shell in ("paper", "nacre"):
+            with self.subTest(shell):
+                title = (self.SHELLS / shell / "bar/Title.qml").read_text()
+                self.assertIn("Hypr.activeTitle", title)
+                self.assertNotIn("activeToplevel", title)
+
     def test_nacre_tray_is_always_out(self):
         tray = (self.SHELLS / "nacre/bar/Tray.qml").read_text()
         self.assertNotIn("Pearl", tray)

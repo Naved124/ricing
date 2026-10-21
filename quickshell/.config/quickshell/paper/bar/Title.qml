@@ -1,5 +1,4 @@
 import QtQuick
-import Quickshell.Hyprland
 import qs.common
 import qs.services
 
@@ -10,10 +9,8 @@ Item {
     id: root
 
     required property var monitor
-    readonly property var window: Hyprland.activeToplevel
-    readonly property bool here: !!monitor?.focused && !!window
-        && window.workspace?.id === monitor?.activeWorkspace?.id
-    readonly property string title: here ? (window.title || window.lastIpcObject?.class || "") : ""
+    // the focused window is on the focused monitor; other bars stay quiet
+    readonly property string title: monitor?.focused ? (Hypr.activeTitle || Hypr.activeClass) : ""
 
     implicitWidth: now.implicitWidth + 6 + line.implicitWidth
     implicitHeight: 34

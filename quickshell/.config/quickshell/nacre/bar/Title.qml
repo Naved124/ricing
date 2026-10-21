@@ -1,7 +1,7 @@
 import QtQuick
-import Quickshell.Hyprland
 import qs
 import qs.common
+import qs.services
 
 // The active window's title, just after the workspace pearls. A title too
 // long for the room it has scrolls past and comes round again (Marquee);
@@ -10,8 +10,8 @@ Item {
     id: root
 
     required property var monitor
-    readonly property var toplevel: Hyprland.activeToplevel
-    readonly property string title: toplevel && toplevel.monitor === monitor ? toplevel.title : ""
+    // the focused window is on the focused monitor; other bars stay quiet
+    readonly property string title: monitor?.focused ? (Hypr.activeTitle || Hypr.activeClass) : ""
 
     implicitWidth: line.implicitWidth
     implicitHeight: 26
