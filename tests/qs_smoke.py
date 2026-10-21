@@ -64,8 +64,8 @@ def prepare(shell: Path, root: Path) -> Path:
         name = ".".join(d.relative_to(root).parts)
         lines = [f"module {name}"]
         for f in qml:
-            head = f.read_text()[:400]
-            lines.append(("singleton " if "pragma Singleton" in head else "") + f"{f.stem} 1.0 {f.name}")
+            single = re.search(r"(?m)^pragma Singleton", f.read_text())
+            lines.append(("singleton " if single else "") + f"{f.stem} 1.0 {f.name}")
         (d / "qmldir").write_text("\n".join(lines) + "\n")
     return dst
 
