@@ -25,6 +25,10 @@ Singleton {
     readonly property string recordingTime: `${Math.floor(recordingSecs / 60)}:${String(recordingSecs % 60).padStart(2, "0")}`
     property bool dnd: saved.dnd
     property bool nightLight: saved.nightLight
+    // the system card on the desk: shown or not, and where it was left
+    // (fractions of the screen, so it lands in the same place at any size)
+    readonly property bool statsShown: saved.statsShown
+    readonly property point statsAt: Qt.point(saved.statsX, saved.statsY)
     readonly property int nightTemp: 4300  // kelvin, through hyprsunset's IPC
 
     // the grain's on/off lives in rice's state file; read it, flip it through rice
@@ -70,6 +74,14 @@ Singleton {
 
     function setDnd(on) {
         saved.dnd = on;
+    }
+
+    function setStatsShown(on) {
+        saved.statsShown = on;
+    }
+    function setStatsAt(x, y) {
+        saved.statsX = Math.max(0, Math.min(1, x));
+        saved.statsY = Math.max(0, Math.min(1, y));
     }
 
     function setNightLight(on) {
@@ -152,6 +164,9 @@ Singleton {
             id: saved
             property bool dnd: false
             property bool nightLight: false
+            property bool statsShown: true
+            property real statsX: 0.03
+            property real statsY: 0.09
         }
     }
 }

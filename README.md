@@ -281,6 +281,17 @@ Both control centres also have **performance** (power-profiles-daemon: click for
 performance or balanced, right-click for the power saver) and **microphone** (mute)
 toggles.
 
+### System card
+
+Both desktops carry a **system card** under the windows: CPU and memory as Material 3
+style dials, and the root disk as a bar with used, free and total sizes. Paper draws it
+as an index card taped to the desk (red pen for CPU, ink for memory, pencil hatching for
+the used disk); Nacre as a pane of pearl glass with the orient's colours. Both follow
+light and dark live. Drag it anywhere; it stays where you leave it (`shell.json` in the
+shell's state folder). Right-click puts it away, and the control centre's "system card"
+brings it back. It hides while a window is fullscreen. One reader samples `/proc/stat`
+and `/proc/meminfo` every 2 s and `df /` every 30 s (`services/Sys.qml`).
+
 What follows the change, and when:
 
 | App | When |

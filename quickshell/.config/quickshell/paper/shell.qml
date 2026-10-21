@@ -41,6 +41,8 @@ ShellRoot {
 
     // the calendar and the wastebasket, under the windows; the month card
     Desk {}
+    // the system card: cpu, memory and disk on a taped index card, draggable
+    Stats {}
     Month {}
 
     // notifications, as sticky notes

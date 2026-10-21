@@ -445,6 +445,38 @@ class ShellModes(unittest.TestCase):
                 self.assertGreaterEqual(qsb.stat().st_mtime, src.stat().st_mtime - 1, "recompile with tools/shaders")
 
 
+class SystemCard(unittest.TestCase):
+    """The draggable cpu / memory / disk card on both desktops."""
+    SHELLS = REPO / "quickshell/.config/quickshell"
+
+    def test_the_sys_copies_are_identical(self):
+        paper = (self.SHELLS / "paper/services/Sys.qml").read_text()
+        self.assertEqual((self.SHELLS / "nacre/services/Sys.qml").read_text(), paper,
+                         "copy paper/services/Sys.qml to nacre/services/Sys.qml")
+        # one long-lived reader, not a process per sample
+        self.assertEqual(paper.count("Process {"), 1)
+        self.assertIn("while :; do", paper)
+        for needle in ("/proc/stat", "MemAvailable", "df -B1 --output=size,used,avail /"):
+            self.assertIn(needle, paper)
+        # Paper's bar reads the same numbers
+        self.assertIn("Sys.cpu", (self.SHELLS / "paper/services/Cpu.qml").read_text())
+
+    def test_both_shells_put_it_on_the_desk(self):
+        for shell, ns in (("paper", "paper-stats"), ("nacre", "nacre-stats")):
+            with self.subTest(shell):
+                self.assertRegex((self.SHELLS / shell / "shell.qml").read_text(), r"\n\s*Stats \{\}")
+                card = (self.SHELLS / shell / "desk/Stats.qml").read_text()
+                for needle in ("WlrLayer.Bottom", f'"{ns}"', "DragHandler", "Shell.setStatsAt(",
+                               "Shell.statsShown", "Hypr.fullscreenOn", "mask: Region { item: card }"):
+                    self.assertIn(needle, card)
+                self.assertIn("Shell.setStatsShown(", (self.SHELLS / shell / "center/Center.qml").read_text())
+                saved = (self.SHELLS / shell / "services/Shell.qml").read_text()
+                for needle in ("property bool statsShown: true", "property real statsX", "property real statsY"):
+                    self.assertIn(needle, saved)
+        # Nacre's card is glass: Hyprland blurs its layer
+        self.assertIn("|stats)$", (RICES / "nacre/templates/hypr.lua").read_text())
+
+
 class BlackPearl(unittest.TestCase):
     """Nacre at night: the Hyprland half and the wallpaper's still."""
 

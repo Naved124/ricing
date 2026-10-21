@@ -261,6 +261,15 @@ PanelWindow {
                             Timer { id: recScreen; interval: 350; onTriggered: Shell.toggleRecording("screen") }
                             Timer { id: recRegion; interval: 350; onTriggered: Shell.toggleRecording("region") }
                         }
+                        // the draggable cpu / memory / disk card on the desktop
+                        Toggle {
+                            width: parent.tile
+                            icon: "gauge"
+                            name: "System card"
+                            detail: on ? "On desktop" : "Hidden"
+                            on: Shell.statsShown
+                            onToggled: Shell.setStatsShown(!Shell.statsShown)
+                        }
                     }
 
                     // levels

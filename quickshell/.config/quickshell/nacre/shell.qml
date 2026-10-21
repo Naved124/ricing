@@ -9,6 +9,7 @@ import Quickshell.Io
 import Quickshell.Hyprland
 import qs.bar
 import qs.center
+import qs.desk
 import qs.keys
 import qs.launcher
 import qs.lock
@@ -23,6 +24,9 @@ ShellRoot {
         model: Quickshell.screens
         Wallpaper {}
     }
+
+    // the system card: cpu, memory and disk on a pane of glass, draggable
+    Stats {}
 
     Variants {
         model: Quickshell.screens

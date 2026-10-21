@@ -227,6 +227,14 @@ PanelWindow {
                         onToggled: Theme.mode.cycle()
                         onSecondary: Quickshell.execDetached(["rice", "mode", "auto", Theme.mode.auto ? "off" : "on"])
                     }
+                    // the index card with cpu, memory and disk, on the desk
+                    Check {
+                        width: parent.width
+                        label: "system card"
+                        detail: on ? "on the desk" : "put away"
+                        on: Shell.statsShown
+                        onToggled: Shell.setStatsShown(!Shell.statsShown)
+                    }
                     // power-profiles-daemon: performance or balanced; right-click for the saver
                     Check {
                         readonly property int profile: PowerProfiles.profile
