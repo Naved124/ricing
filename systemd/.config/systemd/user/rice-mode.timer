@@ -1,5 +1,5 @@
 [Unit]
-Description=Check the rice schedule every 5 minutes
+Description=Check the sun for auto mode every 5 minutes
 PartOf=graphical-session.target
 
 [Timer]

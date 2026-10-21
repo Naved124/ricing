@@ -8,7 +8,7 @@ import qs
 
 // The rice chooser (Super+Shift+T): every rice as a card, dressed in the active
 // rice's colours. Arrows/hjkl move, Enter applies, 1–9 pick directly, `a`
-// toggles auto mode, Esc or a click outside closes.
+// toggles auto mode (light and dark by the sun), Esc or a click outside closes.
 // A rice can draw its own card: rices/<name>/card.qml. It receives `rice`,
 // `selected` and `active` like GenericCard.qml, plus `base` (GenericCard's
 // URL) if it declares it, so it can decorate the generic card.
@@ -215,7 +215,8 @@ PanelWindow {
                 Column {
                     anchors.verticalCenter: parent.verticalCenter
                     Text { text: "auto mode"; color: Theme.role("fg"); font.family: win.fontUi; font.pixelSize: 14; font.weight: Font.Bold }
-                    Text { text: Rices.schedule; color: Theme.role("muted"); font.family: win.fontUi; font.pixelSize: 13; font.weight: Font.DemiBold }
+                    // the mode now, and when it next changes
+                    Text { text: Rices.mode + (Rices.next ? " · " + Rices.next : ""); color: Theme.role("muted"); font.family: win.fontUi; font.pixelSize: 13; font.weight: Font.DemiBold }
                 }
             }
 

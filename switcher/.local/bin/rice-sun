@@ -1,0 +1,197 @@
+#!/usr/bin/env python3
+"""rice-sun — light or dark by the sun, offline.
+
+    rice-sun                        the mode for now, and when it next changes
+    rice-sun --at 2026-06-21T12:00  for another time (local, or with an offset)
+
+Reads ~/.config/rice/mode.toml:
+
+    lat = 51.5              your latitude and longitude, in degrees
+    lon = -0.13             (north and east are positive)
+    offset_minutes_dark  = -20    dark this long before sunset (negative: before)
+    offset_minutes_light = 20     light this long after sunrise
+
+and prints JSON: {"mode", "next", "next_epoch", "next_mode", "next_hhmm",
+"sunrise", "sunset"} (sunrise and sunset are today's, null when the sun
+doesn't rise or set). Days are the local time zone's (TZ, else the system's).
+In polar day the mode is light and in polar night dark; "next" is then the
+next boundary, however many days away (up to a year).
+
+Sunrise and sunset follow NOAA's solar calculator: the sun's centre 0.833°
+below the horizon (refraction plus its radius), with the equation of time
+and declination worked out for the moment of the event. Accurate to about a
+minute away from the poles. RICE_NOW (ISO time) stands in for the clock.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import math
+import os
+import sys
+import tomllib
+from datetime import date, datetime, time, timedelta, timezone
+from pathlib import Path
+
+CONFIG = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / "rice/mode.toml"
+ZENITH = 90.833
+
+
+class SunError(Exception):
+    pass
+
+
+# ── NOAA ─────────────────────────────────────────────────────────────────────
+
+def _sun(t: float) -> tuple[float, float]:
+    """Equation of time (minutes) and declination (degrees) at Julian century t."""
+    l0 = (280.46646 + t * (36000.76983 + t * 0.0003032)) % 360
+    m = 357.52911 + t * (35999.05029 - 0.0001537 * t)
+    e = 0.016708634 - t * (0.000042037 + 0.0000001267 * t)
+    rm = math.radians(m)
+    c = (math.sin(rm) * (1.914602 - t * (0.004817 + 0.000014 * t))
+         + math.sin(2 * rm) * (0.019993 - 0.000101 * t) + math.sin(3 * rm) * 0.000289)
+    omega = math.radians(125.04 - 1934.136 * t)
+    app_long = math.radians(l0 + c - 0.00569 - 0.00478 * math.sin(omega))
+    mean_obliq = 23 + (26 + (21.448 - t * (46.815 + t * (0.00059 - t * 0.001813))) / 60) / 60
+    obliq = math.radians(mean_obliq + 0.00256 * math.cos(omega))
+    decl = math.degrees(math.asin(math.sin(obliq) * math.sin(app_long)))
+    y = math.tan(obliq / 2) ** 2
+    rl0 = math.radians(l0)
+    eqtime = 4 * math.degrees(y * math.sin(2 * rl0) - 2 * e * math.sin(rm)
+                              + 4 * e * y * math.sin(rm) * math.cos(2 * rl0)
+                              - 0.5 * y * y * math.sin(4 * rl0) - 1.25 * e * e * math.sin(2 * rm))
+    return eqtime, decl
+
+
+def _century(d: date, minutes_utc: float) -> float:
+    jd = d.toordinal() + 1721424.5 + minutes_utc / 1440
+    return (jd - 2451545.0) / 36525
+
+
+def event(d: date, lat: float, lon: float, rising: bool) -> datetime | str:
+    """Sunrise (or sunset) on UTC day d, as a UTC datetime, or "day"/"night"
+    when the sun stays up or down all day."""
+    minutes = 720.0 - 4 * lon            # first guess: solar noon
+    for _ in range(3):                   # the sun moves; refine at the event's own time
+        eqtime, decl = _sun(_century(d, minutes))
+        la, de = math.radians(lat), math.radians(decl)
+        cos_ha = math.cos(math.radians(ZENITH)) / (math.cos(la) * math.cos(de)) - math.tan(la) * math.tan(de)
+        if cos_ha > 1:
+            return "night"
+        if cos_ha < -1:
+            return "day"
+        ha = math.degrees(math.acos(cos_ha))
+        minutes = 720 - 4 * (lon + (ha if rising else -ha)) - eqtime
+    return datetime.combine(d, time(), timezone.utc) + timedelta(minutes=minutes)
+
+
+def local_events(day: date, lat: float, lon: float, tz) -> dict:
+    """Sunrise and sunset falling on the local `day`, and the polar state."""
+    found = {"sunrise": None, "sunset": None, "polar": None}
+    for d in (day - timedelta(days=1), day, day + timedelta(days=1)):
+        for name, rising in (("sunrise", True), ("sunset", False)):
+            e = event(d, lat, lon, rising)
+            if isinstance(e, str):
+                if d == day:
+                    found["polar"] = e
+                continue
+            if e.astimezone(tz).date() == day and found[name] is None:
+                found[name] = e.astimezone(tz)
+    return found
+
+
+# ── light and dark ───────────────────────────────────────────────────────────
+
+def boundaries(day: date, cfg: dict, tz) -> tuple[list[tuple[datetime, str]], str | None]:
+    """The day's switches [(when, mode)], and "light"/"dark" for a polar day/night."""
+    ev = local_events(day, cfg["lat"], cfg["lon"], tz)
+    out = []
+    if ev["sunrise"]:
+        out.append((ev["sunrise"] + timedelta(minutes=cfg["offset_minutes_light"]), "light"))
+    if ev["sunset"]:
+        out.append((ev["sunset"] + timedelta(minutes=cfg["offset_minutes_dark"]), "dark"))
+    polar = None
+    if not out and ev["polar"]:
+        polar = "light" if ev["polar"] == "day" else "dark"
+    return sorted(out), polar
+
+
+def mode_at(now: datetime, cfg: dict) -> dict:
+    tz = now.tzinfo
+    today = now.date()
+    mode = None
+    for back in range(0, 370):
+        day = today - timedelta(days=back)
+        bounds, polar = boundaries(day, cfg, tz)
+        past = [m for when, m in bounds if when <= now]
+        if past:
+            mode = past[-1]
+            break
+        if polar:
+            mode = polar
+            break
+    if mode is None:
+        raise SunError("no sunrise or sunset within a year")
+
+    nxt = None
+    for ahead in range(0, 370):
+        day = today + timedelta(days=ahead)
+        bounds, polar = boundaries(day, cfg, tz)
+        if polar and polar != mode:
+            nxt = (datetime.combine(day, time(), tz), polar)
+            break
+        later = [(when, m) for when, m in bounds if when > now and m != mode]
+        if later:
+            nxt = later[0]
+            break
+    ev = local_events(today, cfg["lat"], cfg["lon"], tz)
+    iso = lambda d: d.isoformat(timespec="minutes") if d else None
+    return {
+        "mode": mode,
+        "next": iso(nxt[0]) if nxt else None,
+        "next_epoch": int(nxt[0].timestamp()) if nxt else None,
+        "next_mode": nxt[1] if nxt else None,
+        "next_hhmm": nxt[0].strftime("%H:%M") if nxt else None,
+        "sunrise": iso(ev["sunrise"]),
+        "sunset": iso(ev["sunset"]),
+    }
+
+
+def load_config(path: Path) -> dict:
+    try:
+        data = tomllib.loads(path.read_text())
+    except FileNotFoundError:
+        raise SunError(f"{path} is missing (./install puts one there; set lat and lon in it)")
+    except tomllib.TOMLDecodeError as e:
+        raise SunError(f"{path}: {e}")
+    cfg = {"offset_minutes_dark": -20, "offset_minutes_light": 20}
+    cfg.update({k: v for k, v in data.items() if v != ""})
+    for key in ("lat", "lon"):
+        if not isinstance(cfg.get(key), (int, float)) or isinstance(cfg.get(key), bool):
+            raise SunError(f"set {key} in {path} (degrees; north and east are positive)")
+    if not -90 <= cfg["lat"] <= 90 or not -180 <= cfg["lon"] <= 180:
+        raise SunError(f"{path}: lat must be within ±90 and lon within ±180")
+    return cfg
+
+
+def main(argv: list[str] | None = None) -> int:
+    ap = argparse.ArgumentParser(prog="rice-sun", description=__doc__.split("\n")[0])
+    ap.add_argument("--config", type=Path, default=CONFIG)
+    ap.add_argument("--at", help="an ISO time instead of now (local unless it has an offset)")
+    a = ap.parse_args(argv)
+    try:
+        cfg = load_config(a.config)
+        at = a.at or os.environ.get("RICE_NOW")
+        now = datetime.fromisoformat(at) if at else datetime.now()
+        now = now.astimezone() if now.tzinfo is None else now.astimezone(datetime.now().astimezone().tzinfo)
+        print(json.dumps(mode_at(now, cfg)))
+    except (SunError, ValueError) as e:
+        print(f"rice-sun: {e}", file=sys.stderr)
+        return 2
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

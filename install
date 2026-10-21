@@ -12,7 +12,6 @@
 #   --no-fonts      don't download Italiana, Manrope and IBM Plex Mono (Paper's
 #                   fonts ship in the repo's fonts/ package and are always linked)
 #   --no-firefox    don't touch Firefox profiles
-#   --auto          enable the time-of-day timer (see ~/.config/rices/auto.conf)
 #   --system        also theme Limine, the Plymouth splash and the greetd/ReGreet
 #                   login screen (runs sudo system/install --all; asks for sudo)
 #   --fresh         for a new minimal Arch install: also add what a desktop
@@ -32,7 +31,7 @@ backup="${XDG_STATE_HOME:-$HOME/.local/state}/rice/backup/$(date +%Y%m%d-%H%M%S)
 fontdir="${XDG_DATA_HOME:-$HOME/.local/share}/fonts/rice"
 fonts_url="https://raw.githubusercontent.com/google/fonts/main/ofl"
 
-rice="" deps=1 fonts=1 firefox=1 auto=0 system=0 fresh=0 yes=0 dry=0 uninstall=0
+rice="" deps=1 fonts=1 firefox=1 system=0 fresh=0 yes=0 dry=0 uninstall=0
 
 # ── output ──────────────────────────────────────────────────────────────
 if [ -t 1 ]; then b=$'\e[1m' dim=$'\e[2m' red=$'\e[31m' grn=$'\e[32m' ylw=$'\e[33m' off=$'\e[0m'
@@ -62,7 +61,6 @@ while [ $# -gt 0 ]; do
         --no-deps) deps=0 ;;
         --no-fonts) fonts=0 ;;
         --no-firefox) firefox=0 ;;
-        --auto) auto=1 ;;
         --system|--greetd) system=1 ;;
         --fresh) fresh=1 system=1 ;;
         -y|--yes) yes=1 ;;
@@ -84,7 +82,7 @@ fi
 if [ "$uninstall" = 1 ]; then
     have stow || die "stow is needed to remove the links"
     step "Removing the links"
-    run systemctl --user disable --now rice-auto.timer 2>/dev/null || true
+    run systemctl --user disable --now rice-mode.timer rice-auto.timer 2>/dev/null || true
     run stow -D -d "$repo" -t "$HOME" "${packages[@]}"
     [ "$(git -C "$repo" config core.hooksPath 2>/dev/null)" = .githooks ] \
         && run git -C "$repo" config --unset core.hooksPath
@@ -515,15 +513,22 @@ fi
 # ── services ────────────────────────────────────────────────────────────
 step "Services"
 if have systemctl && systemctl --user show-environment >/dev/null 2>&1; then
+    # the old time-of-day rice switching is gone; its timer may still be enabled
+    run systemctl --user disable --now rice-auto.timer 2>/dev/null || true
     run systemctl --user daemon-reload
-    if [ "$auto" = 1 ]; then
-        run systemctl --user enable --now rice-auto.timer
-        ok "auto mode on"
-    else
-        ok "auto mode off (turn it on later with: rice auto on)"
-    fi
+    # it only acts once `rice mode auto` is on and mode.toml has a location
+    run systemctl --user enable --now rice-mode.timer
+    ok "the auto-mode timer is enabled (turn auto mode on with: rice mode auto)"
 else
     warn "no systemd user session; skipping the auto-mode timer"
+fi
+
+# auto mode's settings: yours to edit, so copied once and never overwritten
+mode_toml="$HOME/.config/rice/mode.toml"
+if [ ! -e "$mode_toml" ]; then
+    run mkdir -p "$(dirname "$mode_toml")"
+    run cp "$repo/switcher/.local/share/rice/mode.toml" "$mode_toml"
+    ok "wrote $mode_toml: set lat and lon in it for auto mode"
 fi
 
 step "Boot and login"

@@ -6,13 +6,13 @@
 #   rice list            list rices, marking the active one
 #   rice current         print the active rice
 #   rice get <key>       read a value from the active palette, e.g. roles.accent
-#   rice auto on|off     enable or disable time-of-day switching (systemd timer)
-#   rice auto status     print whether auto mode is on
-#   rice auto apply      switch to the rice scheduled for now (used by the timer)
 #   rice mode light|dark|toggle [--instant]
 #                        switch every rice between light and dark, live (no reload);
 #                        --instant skips the transition. The mode stays across rice switches
-#   rice mode status [-v] print the mode (and with -v how long the last switch took)
+#   rice mode auto [off] follow the sun (~/.config/rice/mode.toml), or stop; a manual
+#                        light/dark holds until the next sunrise or sunset
+#   rice mode tick       what the timer runs: apply the sun's mode unless held
+#   rice mode status [-v] the mode, where it came from, and the next switch
 #   rice choose          toggle the chooser (Super+Shift+T)
 #   rice reapply         run every apply step again for the active rice (restarts its shell)
 #   rice session         start the active rice at login (no freeze, no transition)
@@ -38,7 +38,6 @@ RUN_DIR="${XDG_RUNTIME_DIR:-/tmp}/rice"
 # the active rice's build in the active mode; every app's config links through it
 ACTIVE="${XDG_DATA_HOME:-$HOME/.local/share}/rice/active"
 SHARED_SHELL="rice"            # qs -c rice: the chooser and the switch overlay
-AUTO_TIMER="rice-auto.timer"
 
 mkdir -p "$STATE_DIR" "$RUN_DIR" "${ACTIVE%/*}"
 
@@ -420,45 +419,6 @@ cycle() {
 # ── auto mode ────────────────────────────────────────────────────────────────
 # Schedule lives in $RICE_DIR/auto.conf as "HH:MM rice" lines; the last entry
 # whose time has passed wins (wrapping round midnight).
-auto_target() {
-    local conf="$RICE_DIR/auto.conf" now best="" last="" t r
-    [[ -f "$conf" ]] || die "missing $conf"
-    now="$(date +%H%M)"
-    while read -r t r _; do
-        [[ -z "$t" || "$t" == \#* ]] && continue
-        last="$r"
-        (( 10#${t/:/} <= 10#$now )) && best="$r"
-    done < <(sort "$conf" | grep -v '^[[:space:]]*#')
-    printf '%s\n' "${best:-$last}"
-}
-
-auto() {
-    case "${1:-status}" in
-        on)
-            systemctl --user enable --now "$AUTO_TIMER" >/dev/null
-            rm -f "$STATE_DIR/auto-slot"
-            auto apply ;;
-        off)
-            systemctl --user disable --now "$AUTO_TIMER" >/dev/null ;;
-        status)
-            if systemctl --user is-enabled --quiet "$AUTO_TIMER" 2>/dev/null; then
-                echo on
-            else
-                echo off
-            fi ;;
-        apply)
-            # Only act when the scheduled slot changes, so a manual switch
-            # sticks until the next boundary instead of being undone every tick.
-            local target
-            target="$(auto_target)"
-            if [[ "$(cat "$STATE_DIR/auto-slot" 2>/dev/null)" != "$target" ]]; then
-                printf '%s\n' "$target" > "$STATE_DIR/auto-slot"
-                switch_to "$target"
-            fi ;;
-        *) die "usage: rice auto on|off|status|apply" ;;
-    esac
-}
-
 choose() {
     have qs || die "quickshell (qs) is not installed"
     ensure_rice_shell || die "couldn't start the rice shell (qs -c $SHARED_SHELL)"
@@ -475,6 +435,7 @@ session() {
         swap_link "$cur"
     fi
     point_active
+    step mode_cmd tick --instant          # before the shells start, so they start in it
     step render "$cur"
     step apply_gtk "$cur"
     step apply_notifications "$cur"
@@ -643,10 +604,76 @@ mode_set() {
     log "$target"
 }
 
+# ── auto mode: the sun's light and dark ──────────────────────────────────
+# rice-sun (beside this script) works sunrise and sunset out offline from
+# ~/.config/rice/mode.toml and prints JSON; RICE_NOW stands in for the clock.
+sun() { "${RICE_SUN:-$(dirname "$(readlink -f "$0")")/rice-sun}"; }
+auto_on() { [[ -e "$STATE_DIR/mode-auto" ]]; }
+now_s() { if [[ -n "${RICE_NOW:-}" ]]; then date -d "$RICE_NOW" +%s; else date +%s; fi; }
+# the epoch a manual choice holds until (the next boundary), if one is in force
+held_until() {
+    local until
+    until="$(cat "$STATE_DIR/mode-hold-until" 2>/dev/null)" || return 1
+    [[ "$until" =~ ^[0-9]+$ ]] && (( until > $(now_s) )) && printf '%s\n' "$until"
+}
+
+# a manual light/dark while auto is on: keep it until the sun's next switch
+hold() {
+    auto_on || return 0
+    local next
+    next="$(sun 2>/dev/null | jq -r '.next_epoch // empty')" || return 0
+    [[ -n "$next" ]] && write_state mode-hold-until "$next"
+    return 0
+}
+
+mode_tick() {
+    auto_on || return 0
+    local out
+    out="$(sun 2>/dev/null)" || return 0       # no location yet: nothing to follow
+    held_until >/dev/null && return 0
+    rm -f "$STATE_DIR/mode-hold-until"
+    mode_set "$(jq -r .mode <<<"$out")" auto "$1"
+}
+
+mode_auto() {
+    local out
+    case "${1:-on}" in
+        on)
+            out="$(sun)" || exit 2              # rice-sun says what's missing
+            touch "$STATE_DIR/mode-auto"
+            rm -f "$STATE_DIR/mode-hold-until"
+            mode_set "$(jq -r .mode <<<"$out")" auto "$2" ;;
+        off)
+            rm -f "$STATE_DIR/mode-auto" "$STATE_DIR/mode-hold-until"
+            write_state mode-source manual
+            log "auto mode off; staying $(mode)" ;;
+        *) die "usage: rice mode auto [off]" ;;
+    esac
+}
+
+# "light at 06:41", or nothing when auto is off or has no location
+next_switch() {
+    auto_on || return 0
+    local until out
+    if until="$(held_until)"; then
+        printf 'held until %s (then auto)\n' "$(date -d "@$until" +%H:%M)"
+    elif out="$(sun 2>/dev/null)"; then
+        jq -r '"\(.next_mode) at \(.next_hhmm)"' <<<"$out"
+    else
+        echo "auto: set lat and lon in ~/.config/rice/mode.toml"
+    fi
+}
+
 mode_status() {
-    local src
-    src="$(cat "$STATE_DIR/mode-source" 2>/dev/null || echo manual)"
-    printf '%s · %s\n' "$(mode)" "$src"
+    local next
+    next="$(next_switch)"
+    if ! auto_on; then
+        printf '%s · manual\n' "$(mode)"
+    elif [[ "$next" == held* ]]; then
+        printf '%s · %s\n' "$(mode)" "$next"
+    else
+        printf '%s · auto · %s\n' "$(mode)" "$next"
+    fi
     if [[ "${1:-}" == -v ]]; then
         [[ -f "$RUN_DIR/mode-timing" ]] && printf 'last switch: %s ms before the reveal\n' "$(cat "$RUN_DIR/mode-timing")"
         if [[ -L "$HOME/.config/kitty/dark-theme.auto.conf" ]]; then
@@ -667,10 +694,15 @@ mode_cmd() {
         esac
     done
     case "${args[0]:-status}" in
-        light|dark) mode_set "${args[0]}" "$source" "$instant" ;;
-        toggle) mode_set "$([[ "$(mode)" == dark ]] && echo light || echo dark)" "$source" "$instant" ;;
+        light|dark|toggle)
+            local target="${args[0]}"
+            [[ "$target" == toggle ]] && target="$([[ "$(mode)" == dark ]] && echo light || echo dark)"
+            mode_set "$target" "$source" "$instant"
+            [[ "$source" == manual ]] && hold ;;
+        auto) mode_auto "${args[1]:-on}" "$instant" ;;
+        tick) mode_tick "$instant" ;;
         status) mode_status "${args[1]:-}" ;;
-        *) die "usage: rice mode light|dark|toggle|status [--instant]" ;;
+        *) die "usage: rice mode light|dark|toggle|auto [off]|tick|status [--instant]" ;;
     esac
 }
 
@@ -680,19 +712,15 @@ json_str() {
     printf '"%s"' "$s"
 }
 
-# what the chooser shows: { current, auto, schedule, rices: [{ name, card, preview, meta }] }
+# what the chooser shows: { current, mode, mode_auto, mode_next,
+# rices: [{ name, card, preview, meta }] }
 json() {
-    local r first=1 meta sched="" t n
-    if [[ -f "$RICE_DIR/auto.conf" ]]; then
-        while read -r t n _; do
-            [[ -z "$t" || "$t" == \#* ]] && continue
-            sched+="${sched:+ · }$n $t"
-        done < <(sort "$RICE_DIR/auto.conf")
-    fi
-    printf '{"current":%s,"auto":%s,"schedule":%s,"rices":[' \
+    local r first=1 meta
+    printf '{"current":%s,"mode":%s,"mode_auto":%s,"mode_next":%s,"rices":[' \
         "$(json_str "$(current || true)")" \
-        "$([[ "$(auto status)" == on ]] && echo true || echo false)" \
-        "$(json_str "$sched")"
+        "$(json_str "$(mode)")" \
+        "$(auto_on && echo true || echo false)" \
+        "$(json_str "$(next_switch)")"
     while read -r r; do
         meta="$RICE_DIR/$r/build/$(mode)/meta.json"
         [[ -f "$meta" ]] || render "$r" >/dev/null 2>&1 || true
@@ -708,7 +736,7 @@ json() {
     printf ']}\n'
 }
 
-usage() { sed -n '2,27p' "$0" | sed 's/^# \{0,1\}//'; }
+usage() { sed -n '2,28p' "$0" | sed 's/^# \{0,1\}//'; }
 
 case "${1:-}" in
     ""|-h|--help|help) usage ;;
@@ -723,7 +751,6 @@ case "${1:-}" in
         toml_get "$RICE_DIR/current/palette.toml" "${2%.*}" "${2##*.}" ;;
     next) cycle 1 ;;
     prev) cycle -1 ;;
-    auto) shift; auto "$@" ;;
     mode) shift; mode_cmd "$@" ;;
     choose) choose ;;
     reapply) RICE_FORCE=1 switch_to "$(current)" ;;

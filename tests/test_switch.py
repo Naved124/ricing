@@ -223,6 +223,87 @@ class Switch(unittest.TestCase):
         self.rice("mode", "dark", RICE_POWER_SUPPLY=str(battery.parent))
         self.assertIn("qs -c rice ipc call rice reveal dark", self.calls())
 
+    # ── auto mode ─────────────────────────────────────────────────────────
+    def sun(self, *args, at, toml="lat = 51.5074\nlon = -0.1278\n"):
+        conf = Path(self.env["HOME"]) / ".config/rice/mode.toml"
+        conf.parent.mkdir(parents=True, exist_ok=True)
+        conf.write_text(toml)
+        return self.rice(*args, RICE_NOW=at, TZ="Europe/London",
+                         RICE_SUN=str(REPO / "switcher/.local/bin/rice-sun"))
+
+    def state(self, name):
+        p = Path(self.env["XDG_STATE_HOME"]) / "rice" / name
+        if not p.exists():
+            return "light" if name == "mode" else None    # no file yet: light
+        return p.read_text().strip()
+
+    def test_auto_needs_a_location(self):
+        self.to_nacre()
+        r = self.sun("mode", "auto", at="2024-06-21T12:00", toml='lat = ""\nlon = ""\n')
+        self.assertEqual(r.returncode, 2)
+        self.assertIn("set lat in", r.stderr)
+        self.assertIsNone(self.state("mode-auto"))
+
+    def test_auto_follows_the_sun(self):
+        self.to_nacre()
+        r = self.sun("mode", "auto", "--instant", at="2024-06-21T21:05")   # London: dark from 21:01
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual((self.state("mode"), self.state("mode-source")), ("dark", "auto"))
+        status = self.sun("mode", "status", at="2024-06-21T21:05").stdout
+        self.assertRegex(status, r"^dark · auto · light at 05:0\d$")
+        # the timer's tick does nothing until the sun's next switch, then switches
+        self.sun("mode", "tick", at="2024-06-21T23:00")
+        self.assertEqual(self.state("mode"), "dark")
+        self.sun("mode", "tick", at="2024-06-22T12:00")
+        self.assertEqual((self.state("mode"), self.state("mode-source")), ("light", "auto"))
+
+    def test_a_manual_choice_holds_until_the_next_switch(self):
+        self.to_nacre()
+        self.sun("mode", "auto", "--instant", at="2024-06-21T12:00")
+        self.assertEqual(self.state("mode"), "light")
+        self.sun("mode", "dark", "--instant", at="2024-06-21T12:00")
+        self.assertEqual(self.state("mode-source"), "manual")
+        self.assertIsNotNone(self.state("mode-hold-until"))
+        self.assertRegex(self.sun("mode", "status", at="2024-06-21T15:00").stdout,
+                         r"^dark · held until 21:0\d \(then auto\)$")
+        # held: the tick at 3 pm leaves the user's dark alone
+        self.sun("mode", "tick", at="2024-06-21T15:00")
+        self.assertEqual((self.state("mode"), self.state("mode-source")), ("dark", "manual"))
+        # past the boundary: the hold goes and the sun takes over again
+        self.sun("mode", "tick", at="2024-06-21T22:00")
+        self.assertEqual((self.state("mode"), self.state("mode-source")), ("dark", "auto"))
+        self.assertIsNone(self.state("mode-hold-until"))
+        self.sun("mode", "tick", at="2024-06-22T12:00")
+        self.assertEqual(self.state("mode"), "light")
+
+    def test_auto_off(self):
+        self.to_nacre()
+        self.sun("mode", "auto", "--instant", at="2024-06-21T12:00")
+        self.sun("mode", "auto", "off", at="2024-06-21T12:00")
+        self.assertIsNone(self.state("mode-auto"))
+        self.assertEqual(self.sun("mode", "status", at="2024-06-21T12:00").stdout.strip(), "light · manual")
+        self.sun("mode", "tick", at="2024-06-21T23:00")
+        self.assertEqual(self.state("mode"), "light", "a tick with auto off does nothing")
+        # without auto, a manual choice has no hold
+        self.sun("mode", "dark", "--instant", at="2024-06-21T12:00")
+        self.assertIsNone(self.state("mode-hold-until"))
+
+    def test_json_carries_the_mode(self):
+        self.to_nacre()
+        self.sun("mode", "auto", "--instant", at="2024-06-21T21:05")
+        data = json.loads(self.sun("json", at="2024-06-21T21:05").stdout)
+        self.assertEqual((data["mode"], data["mode_auto"]), ("dark", True))
+        self.assertRegex(data["mode_next"], r"^light at 05:0\d$")
+        self.assertNotIn("schedule", data)
+
+    def test_the_timer_runs_the_tick(self):
+        units = REPO / "systemd/.config/systemd/user"
+        self.assertIn("ExecStart=%h/.local/bin/rice mode tick", (units / "rice-mode.service").read_text())
+        self.assertIn("OnCalendar=*:0/5", (units / "rice-mode.timer").read_text())
+        self.assertFalse((units / "rice-auto.timer").exists())
+        self.assertFalse((REPO / "rices/.config/rices/auto.conf").exists())
+        self.assertIn("rice mode tick", (REPO / "hypr/.config/hypr/hypridle.conf").read_text())
+
     def test_shell_rice_stops_swaync_and_wallpaper_daemons(self):
         self.rice("nacre")
         calls = self.calls()
@@ -365,7 +446,7 @@ class Switch(unittest.TestCase):
         self.assertTrue(all(x["card"] for x in d["rices"]))
         nacre = d["rices"][0]["meta"]
         self.assertEqual(nacre["transition"], "ripple")
-        self.assertIn("paper 07:00", d["schedule"])
+        self.assertEqual((d["mode"], d["mode_auto"], d["mode_next"]), ("light", False, ""))
 
     def test_lock_uses_the_shell(self):
         self.rice("nacre")

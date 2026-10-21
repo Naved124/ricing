@@ -13,7 +13,6 @@ The config has two layers:
 ```
 ~/.config/rices/
   nacre/  paper/           ← palette.toml, templates/, card.qml, transition.frag
-  auto.conf                 ← schedule for auto mode
   current -> nacre/         ← the active rice
 ```
 
@@ -63,12 +62,12 @@ Install with [GNU Stow](https://www.gnu.org/software/stow/). Each folder is a pa
 
 | Package | Installs | What it is |
 | --- | --- | --- |
-| `switcher` | `~/.local/bin/rice`, `rice-shot`, `rice-rec` | the switch script, the screenshot tool and the screen recorder |
+| `switcher` | `~/.local/bin/rice`, `rice-sun`, `rice-shot`, `rice-rec` | the switch script, the sunrise/sunset calculator, the screenshot tool and the screen recorder |
 | `render` | `~/.local/bin/rice-render`, `~/.local/share/rice/templates/` | palette → theme files for every app |
-| `rices` | `~/.config/rices/` | the rices and `auto.conf` |
+| `rices` | `~/.config/rices/` | the rices |
 | `hypr` | `~/.config/hypr/` | `hyprland.lua` (entry), `base.lua`, `hypridle.conf` |
 | `quickshell` | `~/.config/quickshell/{rice,nacre,paper}/` | the shared chooser and switch overlay, and Nacre's and Paper's shells |
-| `systemd` | `~/.config/systemd/user/rice-auto.*` | the timer for auto mode |
+| `systemd` | `~/.config/systemd/user/rice-mode.*` | the timer for auto mode (light and dark by the sun) |
 | `fonts` | `~/.local/share/fonts/paper/` | Paper's OFL fonts: Courier Prime, Kalam, Newsreader (licences beside them) |
 | `zsh` | `~/.config/zsh/rice.zsh` | the shell setup, sourced from `~/.zshrc` (see Shell) |
 | `system` | (not stowed) | the boot menu, splash and login screen, installed with sudo, see below |
@@ -102,7 +101,7 @@ That one script:
 - reloads Hyprland if you're in it; otherwise log in and it starts by itself.
 
 It's safe to run again. Useful options: `--rice paper` to start on another rice,
-`--dry-run` to see what it would do, `--no-deps`, `--auto` for time-of-day switching,
+`--dry-run` to see what it would do, `--no-deps`,
 `--system` for the boot menu, splash and login screen, and `--uninstall` to remove the links. `./install --help`
 lists them all.
 
@@ -176,9 +175,9 @@ rice next | prev     cycle (Super+Ctrl+T)
 rice choose          toggle the chooser (Super+Shift+T)
 rice list            list rices, * marks the active one
 rice get roles.bg    read a value from the active palette
-rice auto on|off     time-of-day switching (see auto.conf)
 rice mode dark       light or dark, for every rice (also: light, toggle; --instant)
-rice mode status -v  the mode, and how long the last switch took
+rice mode auto       light by day and dark by night, from ~/.config/rice/mode.toml (off: stop)
+rice mode status -v  the mode, where it came from, the next switch, the last switch's time
 rice reapply         run every apply step again, restarting the rice's shell
 rice session         bring the active rice up at login (Hyprland runs this)
 rice lock            lock with the rice's own lock screen, or hyprlock
@@ -377,9 +376,31 @@ turn it off or the shell restarts; a cup in the bar shows while it's on.
 
 ## Auto mode
 
-`auto.conf` lists `HH:MM rice` lines. The latest time that has passed wins, wrapping
-round midnight. The timer checks every 5 minutes but switches only when the scheduled
-slot changes, so a manual switch sticks until the next boundary.
+Light by day, dark by night, worked out offline: `rice-sun` computes sunrise and sunset
+for your place with NOAA's solar calculator. `./install` copies a settings file to
+`~/.config/rice/mode.toml`; fill in your latitude and longitude (rounded to a degree is
+plenty), then turn it on:
+
+```toml
+lat = 51.51
+lon = -0.13
+offset_minutes_dark  = -20   # dark 20 minutes before sunset
+offset_minutes_light = 20    # light 20 minutes after sunrise
+```
+
+```
+rice mode auto       # follow the sun from now on (and switch now if it's due)
+rice mode status     # e.g. "dark · auto · light at 06:41"
+rice mode auto off   # stay in whatever mode you're in
+```
+
+The `rice-mode.timer` user timer runs `rice mode tick` every 5 minutes, at login and
+after resume, and applies the sun's mode. A `rice mode light` or `dark` while auto is
+on holds until the next sunrise or sunset and then auto takes over again
+("light · held until 18:02 (then auto)"). In polar day it stays light and in polar
+night dark. The chooser's auto switch (or `a` in it) turns auto mode on and off and
+shows the next switch; which rice you use is always your choice. The night light
+(hyprsunset) is separate and isn't touched.
 
 ## Development
 
