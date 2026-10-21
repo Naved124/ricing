@@ -53,7 +53,7 @@ class VerifyConfig(unittest.TestCase):
         return out.split("Config parsing result:", 1)[-1].strip()
 
     def test_each_rice(self):
-        for rice in ("nacre", "paper"):
+        for rice in ("nacre", "paper", "abyss"):
             with self.subTest(rice):
                 self.assertEqual(self.verify(rice), "config ok")
 

@@ -599,10 +599,11 @@ class Modes(unittest.TestCase):
         # everything mode-dependent sits in hypr-mode.lua, which `rice mode`
         # sends with hyprctl eval; the rest (window rules too) never changes,
         # so a mode switch never needs a reload
-        for name in ("nacre", "paper"):
+        for name in ("nacre", "paper", "abyss"):
             with self.subTest(name):
                 out = self.outputs(name)
-                self.assertEqual(out["build/light/hypr.lua"], out["build/dark/hypr.lua"])
+                # a one-mode rice (Abyss) renders dark only; light links to it
+                self.assertEqual(out.get("build/light/hypr.lua", out["build/dark/hypr.lua"]), out["build/dark/hypr.lua"])
                 self.assertIn(b"hl.config({", out["build/dark/hypr-mode.lua"])
                 self.assertNotRegex(out["build/dark/hypr-mode.lua"].decode(),
                                     r"hl\.(window_rule|layer_rule|bind|animation|curve)\b")

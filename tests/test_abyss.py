@@ -117,6 +117,59 @@ class Reef(unittest.TestCase):
             self.assertNotIn("FrameAnimation", f.read_text(), f)
 
 
+class Apps(unittest.TestCase):
+    """Hyprland and the app themes, rendered from the palette."""
+
+    @classmethod
+    def setUpClass(cls):
+        rr = load("rice_render", REPO / "render/.local/bin/rice-render")
+        rr.SHARED = REPO / "render/.local/share/rice/templates"
+        ctx = rr.load_modes(RICE)["dark"]
+        cls.out = {p.relative_to(RICE / "build/dark").as_posix(): v.decode(errors="replace")
+                   for p, v in rr.mode_outputs(RICE, ctx).items() if "build/dark" in p.as_posix()}
+
+    def test_hyprland(self):
+        hypr, mode = self.out["hypr.lua"], self.out["hypr-mode.lua"]
+        for want in ("rounding         = 12", "gaps_in     = 8", "gaps_out    = 18", "border_size = 1",
+                     "size              = 8", "passes            = 3", 'style = "popin 96%"',
+                     '"^abyss-(bar|launcher|island|center|osd|power|toast|keys|stats)$"'):
+            self.assertIn(want, hypr)
+        self.assertNotIn("screen_shader", hypr)
+        for want in ('"rgba(62f2e2aa)", "rgba(b98cffaa)"', "angle  = 45", '"rgba(78e8f026)"',
+                     "range          = 24", "brightness = 0.85", "vibrancy   = 0.2",
+                     'background_color = "rgba(01060bff)"'):
+            self.assertIn(want, mode)
+
+    def test_terminal_and_editor(self):
+        self.assertIn("background_opacity    0.8", self.out["kitty.conf"])
+        kitty = self.out["kitty-colors.conf"]
+        for want in ("background            #040f17", "cursor                #62f2e2",
+                     "active_tab_foreground   #62f2e2"):
+            self.assertIn(want, kitty)
+        nvim = self.out["nvim/rice.lua"]
+        for want in ('hl("Normal",       { fg = c.term_fg, bg = "NONE" })', 'hl("Keyword",    { fg = c.magenta })',
+                     'hl("Function",   { fg = c.accent })', 'hl("Type",       { fg = c.link })',
+                     'hl("Comment",    { fg = c.comment, italic = true })', 'comment   = "#7ea4ab"',
+                     'faint     = "#2a4450"', 'hl("LineNr",       { fg = c.faint })', 'magenta   = "#b98cff"',
+                     'green     = "#5fe0a8"', 'yellow    = "#e8d27a"', 'link      = "#82c3ff"',
+                     'hl("FloatBorder",  { fg = c.border, bg = c.float })'):
+            self.assertIn(want, nvim)
+
+    def test_tools(self):
+        btop = self.out["btop.theme"]
+        for want in ('cpu_start]="#62f2e2"', 'cpu_mid]="#b98cff"', 'cpu_end]="#ff8fc0"', 'cpu_box]="#13282d"'):
+            self.assertIn(want, btop)
+        self.assertIn("gradient_count = 3", self.out["cava/config"])
+        self.assertIn('current = { fg = "#62f2e2", bg = "#061521", underline = true', self.out["yazi/flavor.toml"])
+        ff = self.out["fastfetch/config.jsonc"]
+        self.assertIn('"type": "data"', ff)
+        self.assertIn('"keys": "magenta"', ff)
+        self.assertIn('set default-bg              "#040f17"', self.out["zathurarc"])
+        # GTK: adw-gtk3-dark (palette meta) with the teal accent
+        self.assertIn("#62f2e2", self.out["gtk/gtk.css"])
+        self.assertIn("adw-gtk3-dark", (RICE / "palette.toml").read_text())
+
+
 class Switch(unittest.TestCase):
     """Abyss floods in and drains out; its card is the reef at rest."""
 
