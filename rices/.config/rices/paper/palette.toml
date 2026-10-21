@@ -102,6 +102,8 @@ screen_shader = "grain.frag"
 # Hyprland's shadow under every window (hypr-mode.lua)
 hypr_shadow_range  = 18
 hypr_shadow_offset = [3, 8]
+hypr_shadow_alpha  = "38"            # hex alpha of the focused window's shadow
+hypr_shadow_alpha_inactive = "20"
 
 [modes.light.colors]
 desk     = "#d9d6cc"   # the desk under everything
@@ -189,5 +191,114 @@ glass    = 1.0
 # The wallpaper is a still image (assets/wall.png); boot screens shade from
 # the wall into the desk.
 [modes.light.wallpaper]
-image  = "assets/wall.png"
-ground = ["wall", "desk"]
+image   = "assets/wall.png"
+ground  = ["wall", "desk"]
+texture = "assets/paper-tex.png"   # the paper stock: kitty's background, the shell's sheets
+
+# ── dark: Paper Night, a lamplit desk ───────────────────────────────────────
+# The same desk at night under a lamp (top left). Same names as light, so the
+# shell and templates follow the light: the ink becomes gel-blue, the ribbon
+# coral, the typewriter types cream, and the notes are black card with a
+# coloured strip of adhesive. tests/test_night.py keeps it comfortable.
+
+[modes.dark.meta]
+gtk_theme     = "adw-gtk3-dark"
+icon_theme    = "Papirus-Dark"
+color_scheme  = "prefer-dark"
+# rendered from templates/grain-dark.frag: fibres that lighten, and the lamp
+screen_shader = "build/dark/grain-dark.frag"
+# a darker, larger shadow on a dark desk
+hypr_shadow_range  = 22
+hypr_shadow_offset = [3, 10]
+hypr_shadow_alpha  = "aa"
+hypr_shadow_alpha_inactive = "66"
+# the lamp: where its pool sits (x, y of the screen), and the screen shader's
+# vignette (corners at most 5% darker, a warm lift of at most 3% at the lamp;
+# 0 turns it off)
+lamp_pos      = [0.18, 0.12]
+lamp_vignette = 0.04
+
+[modes.dark.colors]
+desk     = "#161411"   # walnut-charcoal under everything
+wall     = "#1a1815"   # the wallpaper's ground
+paper    = "#1f1c19"   # the sheet: windows, the terminal
+card     = "#2a2622"   # black index cards: bar, launcher, panels, notes
+kraft    = "#3b3024"   # dark manila
+kraft_hi = "#4d3e2c"   # a step lighter: yazi's chosen file (dark only; see night())
+ink      = "#a3b4f0"   # gel-blue (was the fountain pen's ink)
+pencil   = "#c9c1b0"   # body text
+graphite = "#8f897c"   # secondary text, outlines
+red      = "#ef8a78"   # coral (was the ribbon red): alerts, the clock, ticks
+rule     = "#2f3a4c"   # ruled lines, dim blue
+margin   = "#6e403a"   # the margin line
+sticky   = "#d8c25a"   # yellow adhesive strip, the highlighter
+pink     = "#d99aab"   # pink strip, washi tape
+mint     = "#93c4a4"   # mint strip
+carbon   = "#e6dfcf"   # cream: the typewriter's white ribbon
+fern     = "#9cc48a"
+ochre    = "#e2c46a"   # a warm straw, not a muddy darkened ochre
+plum     = "#d39bd0"
+teal     = "#86c4bd"
+umber    = "#0b0a08"   # shadow colour: near-black, warm
+crease   = "#3a3630"   # hairlines and dividers
+manila   = "#e8d9bd"   # text on kraft
+envelope = "#2b241d"   # the lock screen's envelope, in lamplight
+chalk    = "#34302a"   # tear-off pages, photo borders, a note's sheen
+soot     = "#070605"   # faint shade: vignettes, holes, the lift under tape
+felt     = "#e6dfcf"   # cream gel pen on the notes
+binding  = "#0d0b09"   # the tear-off pad's holes
+wad      = "#4a453d"   # crumpled balls in the bin
+wad_crease = "#2a2622"
+basket   = "#0e0d0b"
+scrim    = "#070605"   # behind the launcher
+
+[modes.dark.roles]
+bg        = "paper"
+surface   = "card"
+overlay   = "desk"
+border    = "crease"
+fg        = "pencil"
+muted     = "graphite"
+accent    = "ink"
+urgent    = "red"
+selection = "kraft"     # one step of manila, with gel-blue text
+success   = "fern"
+warning   = "ochre"
+cursor    = "carbon"
+link      = "ink"
+shadow    = "umber"
+term_bg   = "paper"
+term_fg   = "carbon"
+
+[modes.dark.gradient]
+stops = ["ink", "red", "sticky"]
+angle = 0
+
+[modes.dark.ansi]
+color0  = "#1c1a17"
+color1  = "#ef8a78"
+color2  = "#9cc48a"
+color3  = "#e2c46a"
+color4  = "#a3b4f0"
+color5  = "#d39bd0"
+color6  = "#86c4bd"
+color7  = "#c9c1b0"
+color8  = "#5a554c"
+color9  = "#f6a596"
+color10 = "#b4d6a3"
+color11 = "#eed58a"
+color12 = "#bcc9f6"
+color13 = "#e2b5df"
+color14 = "#a2d6cf"
+color15 = "#e6dfcf"
+
+[modes.dark.opacity]
+terminal = 1.0
+active   = 1.0
+inactive = 1.0
+glass    = 1.0
+
+[modes.dark.wallpaper]
+image   = "assets/wall-dark.png"
+ground  = ["desk", "wall"]
+texture = "assets/sheet-dark.png"

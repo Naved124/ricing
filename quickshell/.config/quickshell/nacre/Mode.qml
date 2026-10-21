@@ -22,6 +22,11 @@ Scope {
     property bool dark: false
     property real k: 0
     property bool started: false
+    // auto mode, and what it does next ("auto · light at 06:41", "held until
+    // 18:02 (then auto)"), from `rice mode status`; re-read when the mode or
+    // its source changes
+    property bool auto: false
+    property string next: ""
 
     readonly property string path: (Quickshell.env("XDG_STATE_HOME") || Quickshell.env("HOME") + "/.local/state")
                                    + "/rice/mode"
@@ -63,6 +68,37 @@ Scope {
         return { r: (n >> 16 & 255) / 255, g: (n >> 8 & 255) / 255, b: (n & 255) / 255, a: a };
     }
 
+    // light → dark → auto → light, for a control centre's tile
+    function cycle() {
+        Quickshell.execDetached(["sh", "-c", auto ? "rice mode auto off && rice mode light"
+                                                  : dark ? "rice mode auto" : "rice mode dark"]);
+    }
+    function refreshStatus() { status.running = true; }
+
+    Process {
+        id: status
+        command: ["rice", "mode", "status"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                const parts = text.trim().split(" · ");
+                mode.auto = parts.length > 1 && parts[1] !== "manual";
+                mode.next = mode.auto ? parts.slice(1).join(" · ") : "";
+            }
+        }
+    }
+    FileView {
+        path: mode.path + "-source"
+        watchChanges: true
+        printErrors: false
+        onFileChanged: mode.refreshStatus()
+    }
+    Timer {
+        interval: 60000             // a held choice runs out, the next switch nears
+        running: mode.auto
+        repeat: true
+        onTriggered: mode.refreshStatus()
+    }
+
     NumberAnimation {
         id: fade
         target: mode
@@ -79,6 +115,7 @@ Scope {
         printErrors: false
         onFileChanged: reload()
         onLoaded: {
+            mode.refreshStatus();
             if (mode.started)
                 mode.set(text(), 600);
             else

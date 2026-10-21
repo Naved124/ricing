@@ -406,7 +406,7 @@ class ShellModes(unittest.TestCase):
                 # no colour is fixed to one mode: each one goes through the mix
                 for line in text.splitlines():
                     if "readonly property color" in line:
-                        self.assertRegex(line, r"(c|role)\(\"\w+\"\)", line)
+                        self.assertRegex(line, r"(cc|c|role)\(\"\w+\"", line)
 
     def test_meta_json_carries_both_modes(self):
         ctxs = rr.load_modes(RICES / "nacre")
@@ -589,12 +589,44 @@ class Paper(unittest.TestCase):
         self.assertNotIn("bold_is_bright", k)    # not a kitty option; kitty never brightens bold
 
     def test_nvim_scheme(self):
-        n = self.render("nvim/rice.lua")
+        n = self.render("nvim/rice@light.lua")
         self.assertIn('hl("Keyword",    { fg = c.ink, bold = true })', n)
         self.assertIn('hl("Comment",    { fg = c.note, italic = true })', n)
         self.assertIn('hl("DiagnosticWarn",  { fg = c.ochre })', n)
         self.assertIn('ruled    = "#e9eced"', n)          # #a8c3e4 at 18% over the paper
         self.assertIn('vim.g.colors_name = "rice"', n)    # the linked name every rice shares
+
+    def test_paper_night(self):
+        """The dark build: notebook nvim, the dark sheet under kitty, the lamp's
+        grain, and the night shadow."""
+        ctx = rr.load_modes(RICES / "paper")["dark"]
+        r = lambda rel: rr.render_text((RICES / "paper/templates" / rel).read_text(), ctx, rel)
+        n = r("nvim/rice@dark.lua")
+        for want in ('vim.o.background = "dark"', 'paper    = "#1f1c19"', 'hl("Keyword",    { fg = c.ink, bold = true })',
+                     'ink      = "#a3b4f0"', 'hl("CursorLineNr", { fg = c.red, bold = true })',
+                     'hl("CursorLine",   { bg = c.ruled })', 'ruled    = "#2f3a4c"', 'hl("FloatBorder",  { fg = c.kraft, bg = c.card })'):
+            self.assertIn(want, n)
+        self.assertIn("/assets/sheet-dark.png", r("kitty.conf"))
+        grain = r("grain-dark.frag")
+        self.assertIn("const float VIGNETTE = 0.04;", grain)
+        self.assertIn("vec2(0.18, 1.0 - 0.12)", grain)
+        code = "\n".join(l.split("//")[0] for l in grain.splitlines())
+        self.assertNotRegex(code, r"\btime\b")
+        mode = r("hypr-mode.lua")
+        for want in ('range          = 22', 'offset         = { 3, 10 }', '"rgba(0b0a08aa)"',
+                     'background_color = "rgba(161411ff)"', '/build/dark/grain-dark.frag"'):
+            self.assertIn(want, mode)
+        # the day keeps its highlighter; the night its kraft
+        self.assertIn('theme[selected_bg]="#3b3024"', r("btop.theme"))
+        self.assertIn('theme[selected_bg]="#f6e15f"', self.render("btop.theme"))
+        self.assertTrue((RICES / "paper/assets/wall-dark.png").exists())
+        self.assertTrue((RICES / "paper/assets/sheet-dark.png").exists())
+
+    def test_night_filter_keeps_the_day(self):
+        light, dark = rr.load_modes(RICES / "paper")["light"], rr.load_modes(RICES / "paper")["dark"]
+        t = "{{ colors.sticky | night(colors.kraft_hi) }}"
+        self.assertEqual(rr.render_text(t, light, "t"), "#f6e15f")   # kraft_hi is dark-only
+        self.assertEqual(rr.render_text(t, dark, "t"), "#4d3e2c")
 
     def test_fonts_are_vendored_with_their_licences(self):
         fonts = REPO / "fonts/.local/share/fonts/paper"

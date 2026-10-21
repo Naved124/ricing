@@ -12,6 +12,10 @@ Writes, next to this file:
                     the shell's sheets
     ink-wear.png    256x256 tileable alpha mask: where a rubber stamp's ink
                     took (opaque) and where the paper shows through
+    wall-dark.png   the same desk at night: walnut-charcoal with its grain, the
+                    grid in dim blue, silvery pencil, and the lamp's warm pool
+                    at the top left
+    sheet-dark.png  512x512 tileable dark sheet (kitty and the shell at night)
     click.wav       the lamp's pull-chain, for `rice mode` (sound = true in
                     ~/.config/rice/mode.toml): two band-passed noise clicks
 and ../templates/fastfetch/logo.png, a pencil typewriter that rice-render
@@ -44,6 +48,24 @@ STAIN = (150, 105, 55)
 PENCIL = (75, 74, 70)
 INK = (28, 42, 110)
 RED = (200, 55, 45)
+
+# the same desk under a lamp (palette.toml's dark colours)
+NIGHT = {
+    "wall": (0x16, 0x14, 0x11),          # walnut-charcoal
+    "paper": (0x1F, 0x1C, 0x19),         # the sheet
+    "fibre": (205, 195, 175),            # fibres catch the lamp: lighter, not darker
+    "grain": (60, 46, 32),               # the desk's wood grain
+    "grid": (0x2F, 0x3A, 0x4C, round(0.35 * 255)),
+    "coffee": (70, 48, 28),              # dark umber
+    "stain": (52, 36, 22),
+    "pencil": (165, 165, 168),           # graphite is silvery at night
+    "ink": (0xA3, 0xB4, 0xF0),           # gel-blue, dim
+    "red": (0xEF, 0x8A, 0x78),
+    "pool": (0x3A, 0x2F, 0x22),          # the lamp's pool
+}
+DAY = {"wall": WALL, "paper": PAPER, "fibre": FIBRE, "grid": GRID, "coffee": COFFEE, "stain": STAIN,
+       "pencil": PENCIL, "ink": INK, "red": RED}
+LAMP = (0.18, 0.12)                      # palette.toml: [modes.dark.meta] lamp_pos
 
 
 def font(name: str, size: int) -> ImageFont.FreeTypeFont:
@@ -83,7 +105,8 @@ def wobble(draw: ImageDraw.ImageDraw, rng: random.Random, pts, width: float, col
         draw.line(shaky, fill=colour, width=max(1, round(width)), joint="curve")
 
 
-def speckle(im: Image.Image, rng: random.Random, count: int, alpha: float, tile: bool = False):
+def speckle(im: Image.Image, rng: random.Random, count: int, alpha: float, tile: bool = False,
+            fibre=FIBRE):
     """Paper fibres: single dots plus short hairs at random angles."""
     w, h = im.size
     lay, d = layer(im.size)
@@ -96,30 +119,36 @@ def speckle(im: Image.Image, rng: random.Random, count: int, alpha: float, tile:
             seg = [(x, y), (x + math.cos(ang) * ln, y + math.sin(ang) * ln)]
             for ox in ((-w, 0, w) if tile else (0,)):
                 for oy in ((-h, 0, h) if tile else (0,)):
-                    d.line([(px + ox, py + oy) for px, py in seg], fill=(*FIBRE, a), width=1)
+                    d.line([(px + ox, py + oy) for px, py in seg], fill=(*fibre, a), width=1)
         else:
-            d.point((x, y), fill=(*FIBRE, a))
+            d.point((x, y), fill=(*fibre, a))
     im.alpha_composite(lay)
 
 
 # ── the wallpaper ───────────────────────────────────────────────────────────
 
-def wall(width: int, height: int, seed: int) -> Image.Image:
+def wall(width: int, height: int, seed: int, night: bool = False) -> Image.Image:
+    """The desk; night=True is the same desk under the lamp (wall-dark.png):
+    the same things in the same places, in night colours, with the wood's
+    grain and the lamp's pool."""
     rng = random.Random(seed)
+    P = NIGHT if night else DAY
     # everything is placed on the preview's 1280x720 desk and scaled
     s = min(width / 1280, height / 720)
     X = lambda v: v / 1280 * width
     Y = lambda v: v / 720 * height
 
-    im = Image.new("RGBA", (width, height), (*WALL, 255))
-    speckle(im, rng, round(14000 * width * height / (1280 * 720)), 0.06)
+    im = Image.new("RGBA", (width, height), (*P["wall"], 255))
+    if night:
+        wood_grain(im, random.Random(seed + 5), s)
+    speckle(im, rng, round(14000 * width * height / (1280 * 720)), 0.06 * (0.5 if night else 1), fibre=P["fibre"])
 
     # the drafting grid: 24 px, whatever the resolution
     lay, d = layer(im.size)
     for gx in range(0, width, 24):
-        d.line([(gx, 0), (gx, height)], fill=GRID)
+        d.line([(gx, 0), (gx, height)], fill=P["grid"])
     for gy in range(0, height, 24):
-        d.line([(0, gy), (width, gy)], fill=GRID)
+        d.line([(0, gy), (width, gy)], fill=P["grid"])
     im.alpha_composite(lay)
 
     # a coffee ring, bottom left: a soft stain, then three wobbly rims
@@ -130,7 +159,7 @@ def wall(width: int, height: int, seed: int) -> Image.Image:
         t = k / 40
         a = 0.05 + 0.04 * t ** 3
         r = R * t
-        sd.ellipse([cx - r, cy - r, cx + r, cy + r], fill=(*STAIN, round(a * 255 * 0.35)))
+        sd.ellipse([cx - r, cy - r, cx + r, cy + r], fill=(*P["stain"], round(a * 255 * 0.35)))
     im.alpha_composite(stain.filter(ImageFilter.GaussianBlur(3 * s)))
     lay, d = layer(im.size)
     for k in range(3):
@@ -141,18 +170,18 @@ def wall(width: int, height: int, seed: int) -> Image.Image:
             a = i / steps * math.tau
             r = R + k * 3 * s + math.sin(a * 5 + phase) * 2 * s + rng.uniform(0, 1.5) * s
             pts.append((cx + math.cos(a) * r, cy + math.sin(a) * r))
-        d.line(pts, fill=(*COFFEE, round((0.18 - k * 0.05) * 255)), width=max(1, round((3 - k) * s)), joint="curve")
+        d.line(pts, fill=(*P["coffee"], round((0.18 - k * 0.05) * 255 * (1.6 if night else 1))), width=max(1, round((3 - k) * s)), joint="curve")
     im.alpha_composite(lay.filter(ImageFilter.GaussianBlur(0.6 * s)))
 
     # a pencil sketch, bottom right: a wobbly triangle inside another
     lay, d = layer(im.size)
     tri = [(X(1090), Y(420)), (X(1150), Y(330)), (X(1210), Y(420)), (X(1090), Y(420))]
-    wobble(d, rng, tri, 1.3 * s, (*PENCIL, round(0.55 * 255)), jitter=1.2 * s)
+    wobble(d, rng, tri, 1.3 * s, (*P["pencil"], round((0.32 if night else 0.55) * 255)), jitter=1.2 * s)
     inner = [(X(1105), Y(410)), (X(1150), Y(345)), (X(1195), Y(410))]
-    wobble(d, rng, inner, 1.0 * s, (*PENCIL, round(0.35 * 255)), jitter=1.2 * s)
+    wobble(d, rng, inner, 1.0 * s, (*P["pencil"], round((0.2 if night else 0.35) * 255)), jitter=1.2 * s)
     # a short red pencil stroke near the bottom centre
     wobble(d, rng, [(X(470), Y(700)), (X(520), Y(690)), (X(575), Y(694))], 1.2 * s,
-           (*RED, round(0.5 * 255)), jitter=1.2 * s)
+           (*P["red"], round((0.3 if night else 0.5) * 255)), jitter=1.2 * s)
     im.alpha_composite(lay)
 
     # "btw i use arch", in ink at 55%, slightly turned
@@ -161,19 +190,57 @@ def wall(width: int, height: int, seed: int) -> Image.Image:
     box = f.getbbox(text)
     tw, th = box[2] - box[0] + 8, box[3] + 8
     note = Image.new("RGBA", (tw, th), (0, 0, 0, 0))
-    ImageDraw.Draw(note).text((4, 0), text, font=f, fill=(*INK, round(0.55 * 255)))
+    ImageDraw.Draw(note).text((4, 0), text, font=f, fill=(*P["ink"], round((0.3 if night else 0.55) * 255)))
     note = note.rotate(math.degrees(0.06), resample=Image.BICUBIC, expand=True)
     im.alpha_composite(note, (round(X(1060)), round(Y(460) - th)))
 
+    if night:
+        lamp_pool(im)
     return im.convert("RGB")
+
+
+def wood_grain(im: Image.Image, rng: random.Random, s: float):
+    """Fine, long, slightly wavy lines along the desk: walnut under the paper."""
+    w, h = im.size
+    lay, d = layer(im.size)
+    y = 0.0
+    while y < h:
+        y += rng.uniform(2, 7) * s
+        amp, freq, phase = rng.uniform(1, 4) * s, rng.uniform(0.6, 1.6) / w * math.tau, rng.uniform(0, math.tau)
+        a = round(rng.uniform(0.04, 0.12) * 255)
+        pts = [(x, y + math.sin(x * freq + phase) * amp) for x in range(0, w + 16, 16)]
+        d.line(pts, fill=(*NIGHT["grain"], a), width=1)
+    im.alpha_composite(lay.filter(ImageFilter.GaussianBlur(0.7 * s)))
+
+
+def lamp_pool(im: Image.Image):
+    """The lamp's warm pool: pool colour at 35% at the lamp, gone by 45% of the width."""
+    w, h = im.size
+    cx, cy, R = LAMP[0] * w, LAMP[1] * h, 0.45 * w
+    pool = Image.new("L", (w, h))
+    px = pool.load()
+    step = 4                                # a coarse grid, smoothed after
+    for y in range(0, h, step):
+        for x in range(0, w, step):
+            t = min(1.0, math.hypot(x - cx, y - cy) / R)
+            v = round(0.35 * 255 * (1 - t) ** 2 * (1 + 2 * t))   # a soft falloff
+            for yy in range(y, min(h, y + step)):
+                for xx in range(x, min(w, x + step)):
+                    px[xx, yy] = v
+    lay = Image.new("RGBA", (w, h), (*NIGHT["pool"], 0))
+    lay.putalpha(pool.filter(ImageFilter.GaussianBlur(step * 2)))
+    im.alpha_composite(lay)
 
 
 # ── tileable paper stock ────────────────────────────────────────────────────
 
-def paper_tex(size: int, seed: int) -> Image.Image:
-    """Paper colour with a soft cloudy formation and fibres, wrapping at the edges."""
+def paper_tex(size: int, seed: int, night: bool = False) -> Image.Image:
+    """Paper colour with a soft cloudy formation and fibres, wrapping at the
+    edges; night=True is the dark sheet (sheet-dark.png), whose formation and
+    fibres are lighter than the stock rather than darker."""
     rng = random.Random(seed + 1)
-    im = Image.new("RGBA", (size, size), (*PAPER, 255))
+    P = NIGHT if night else DAY
+    im = Image.new("RGBA", (size, size), (*P["paper"], 255))
 
     # formation: periodic value noise (a wrapped lattice), two octaves
     def octave(cells: int, amp: float):
@@ -204,12 +271,13 @@ def paper_tex(size: int, seed: int) -> Image.Image:
         for oy in range(3):
             wrap.paste(cloud, (ox * size, oy * size))
     cloud = wrap.filter(ImageFilter.GaussianBlur(size / 40)).crop((size, size, size * 2, size * 2))
-    shade = Image.new("RGBA", im.size, (*FIBRE, 0))
+    shade = Image.new("RGBA", im.size, (*P["fibre"], 0))
     # darker where the cloud is low: at most ~3% of the stock's lightness
-    shade.putalpha(cloud.point(lambda v: max(0, 128 - v) // 8))
+    # (at night lighter, and a little weaker)
+    shade.putalpha(cloud.point(lambda v: max(0, 128 - v) // (10 if night else 8)))
     im.alpha_composite(shade)
 
-    speckle(im, rng, size * size // 40, 0.07, tile=True)
+    speckle(im, rng, size * size // 40, 0.07 * (0.7 if night else 1), tile=True, fibre=P["fibre"])
     return im.convert("RGB")
 
 
@@ -311,11 +379,14 @@ def main() -> None:
     wall(w, h, a.seed).save(a.out / "wall.png", optimize=True)
     paper_tex(512, a.seed).save(a.out / "paper-tex.png", optimize=True)
     ink_wear(256, a.seed).save(a.out / "ink-wear.png", optimize=True)
+    wall(w, h, a.seed, night=True).save(a.out / "wall-dark.png", optimize=True)
+    paper_tex(512, a.seed, night=True).save(a.out / "sheet-dark.png", optimize=True)
     write_wav(a.out / "click.wav", click(a.seed))
     lg = a.out.parent / "templates/fastfetch/logo.png" if a.out == HERE else a.out / "logo.png"
     lg.parent.mkdir(parents=True, exist_ok=True)
     logo(192, a.seed).save(lg, optimize=True)
-    for p in (a.out / "wall.png", a.out / "paper-tex.png", a.out / "ink-wear.png", a.out / "click.wav", lg):
+    for p in (a.out / "wall.png", a.out / "paper-tex.png", a.out / "ink-wear.png", a.out / "wall-dark.png",
+              a.out / "sheet-dark.png", a.out / "click.wav", lg):
         print(f"  {p}")
 
 

@@ -91,7 +91,7 @@ get lost.
 
 Copy an existing one; every section below is read by shared code. Schema v2: what
 belongs to the rice is shared at the top level, what changes with the light is under
-`[modes.<mode>.*]` (only `light` so far). `rice-render` flattens one mode back into the
+`[modes.<mode>.*]`. `rice-render` flattens one mode back into the
 old shape, so templates keep writing `{{ roles.bg }}`, `{{ colors.ink }}`,
 `{{ gtk.theme }}` and `{{ meta.screen_shader }}`. Top-level `[colors]`, `[roles]` etc.
 are an error.
@@ -114,7 +114,7 @@ Shared:
 - `[nvim]` `colorscheme = "rice"`.
 - `[install]` generated files that live outside `build/`, e.g. the shell's `Theme.qml`.
 
-Per mode (`[modes.light.*]`):
+Per mode (`[modes.light.*]`, `[modes.dark.*]`):
 
 - `meta`: `gtk_theme`, `icon_theme`, `color_scheme` (templates and `rice` see them as
   `gtk.theme`, `gtk.icons`, `gtk.color_scheme`; packages go in `install`'s theme list),
@@ -143,7 +143,9 @@ greeter always use `build/light/`.
   A file that must hold both modes reads `light.*` and `dark.*`; every `[install]` file
   (`Theme.qml`) must render the same in both modes, or the build fails. A template that
   genuinely differs by structure is a pair, `name@light.ext` + `name@dark.ext`; one
-  without its twin fails the build.
+  without its twin fails the build. For one value, `{{ colors.sticky | night(colors.kraft) }}`
+  is the value by day and the argument at night (the argument may be a dark-only colour).
+  In a Theme, `cc("sticky", "kraft")` mixes one colour by day into another at night.
 - **Shells follow the mode live.** `Theme.k` goes 0 → 1 (light → dark); a colour fixed to
   one mode would never change, so Themes have none. Shaders that need it get
   `uniform float dark` bound to `Theme.k`. The chooser's `rice/Theme.qml` mixes the

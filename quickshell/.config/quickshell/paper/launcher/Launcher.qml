@@ -196,8 +196,8 @@ PanelWindow {
                 placeholderText: win.clipboard ? "what did you copy?" : "what do you need?"
                 placeholderTextColor: Theme.graphite
                 color: Theme.ink
-                selectionColor: Theme.sticky
-                selectedTextColor: Theme.carbon
+                selectionColor: Theme.highlight
+                selectedTextColor: Theme.highlightText
                 font.family: Theme.fontHand
                 font.pixelSize: 22
                 background: Item {

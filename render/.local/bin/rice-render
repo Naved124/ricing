@@ -427,6 +427,11 @@ class Filters:
             return json.dumps(v)
         return str(v)
 
+    def night(self, v, other):
+        """`{{ colors.sticky | night(colors.kraft) }}`: the value by day, the
+        argument at night (a colour only the dark palette has is fine)."""
+        return other
+
     def resolve_arg(self, a: str) -> str:
         """An argument may name a palette value: argb(opacity.glass)."""
         if re.fullmatch(r"[A-Za-z_]\w*(\.\w+)+", a):
@@ -443,6 +448,8 @@ class Filters:
             "apply", "arg_color", "need_color", "str", "resolve_arg",
         }:
             raise RenderError(f"unknown filter {name!r}")
+        if name == "night" and self.ctx.get("mode") != "dark":
+            return value              # the day keeps its value; the argument may not exist
         args = [self.resolve_arg(a) for a in args]
         try:
             if isinstance(value, list) and name not in self.LIST:

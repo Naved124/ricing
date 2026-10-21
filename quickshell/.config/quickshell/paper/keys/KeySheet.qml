@@ -115,7 +115,7 @@ PanelWindow {
             placeholderText: "find: workspace, shift, print…"
             placeholderTextColor: Theme.graphite
             color: Theme.ink
-            selectionColor: Theme.sticky
+            selectionColor: Theme.highlight
             font.family: Theme.fontHand
             font.pixelSize: 19
             Keys.onEscapePressed: Shell.keysOpen = false

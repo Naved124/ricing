@@ -10,7 +10,7 @@ Item {
 
     implicitWidth: 70
     implicitHeight: 22
-    opacity: 0.85
+    opacity: Theme.tapeOpacity
     antialiasing: true
 
     // a faint lift where the tape stands off the paper

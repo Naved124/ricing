@@ -4,12 +4,14 @@ import qs.common
 import "../common/paper.js" as P
 
 // A checkbox drawn in ink, a red tick when on, its label in Kalam (and a
-// smaller note after it). Click to toggle; right-click for `secondary`.
+// small pencil glyph and a smaller note after it). Click to toggle;
+// right-click for `secondary`.
 Item {
     id: root
 
     property string label
     property string detail
+    property string glyph                 // a Glyph name drawn after the label, or none
     property bool on: false
     property bool available: true
     signal toggled()
@@ -62,13 +64,20 @@ Item {
         anchors.verticalCenter: parent.verticalCenter
         spacing: 8
         Hand {
-            id: name
+            id: labelText
             text: root.label
             size: 19
             color: Theme.ink
         }
+        Glyph {
+            anchors.verticalCenter: labelText.verticalCenter
+            visible: root.glyph.length > 0
+            name: root.glyph || "note"
+            size: 17
+            color: Theme.ink
+        }
         Hand {
-            anchors.baseline: name.baseline
+            anchors.baseline: labelText.baseline
             visible: text.length > 0
             text: root.detail
             size: 14

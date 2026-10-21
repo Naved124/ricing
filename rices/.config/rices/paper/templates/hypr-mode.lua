@@ -19,12 +19,12 @@ hl.config({
 
     decoration = {
         screen_shader = grain,
-        -- light from the top left; warm brown, never black
+        -- light from the top left (the lamp, at night); warm, never pure black
         shadow = {
             range          = {{ meta.hypr_shadow_range }},
             offset         = { {{ meta.hypr_shadow_offset.0 }}, {{ meta.hypr_shadow_offset.1 }} },
-            color          = "{{ roles.shadow | hypr(38) }}",
-            color_inactive = "{{ roles.shadow | hypr(20) }}",
+            color          = "{{ roles.shadow | hypr(meta.hypr_shadow_alpha) }}",
+            color_inactive = "{{ roles.shadow | hypr(meta.hypr_shadow_alpha_inactive) }}",
         },
     },
 

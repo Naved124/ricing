@@ -10,8 +10,9 @@ import qs.services
 // The bar: a strip of ruled card taped across the top of each monitor.
 // 44 tall, nearly the full width of the screen, centred 10 px from the
 // top and turned a hair (−0.35°), with one blue rule 10 px above its
-// bottom edge and a piece of washi tape over each end. It reserves its
-// space, so tiled windows sit below it, and steps aside for fullscreen.
+// bottom edge and a piece of washi tape over each end. The lamp's
+// pull-chain (light and dark) hangs from the right-hand tape. It reserves
+// its space, so tiled windows sit below it, and steps aside for fullscreen.
 PanelWindow {
     id: win
 
@@ -35,8 +36,9 @@ PanelWindow {
     WlrLayershell.layer: WlrLayer.Top
     WlrLayershell.namespace: "paper-bar"
 
-    // only the strip takes clicks; the margins around it stay click-through
-    mask: Region { item: strip }
+    // only the strip and the pull-chain take clicks; the margins around
+    // them stay click-through
+    mask: Region { item: strip; Region { item: lamp } }
 
     // caffeine: one bar holds an idle inhibitor, so hypridle neither dims,
     // locks nor sleeps while it's on
@@ -65,6 +67,11 @@ PanelWindow {
 
         Tape { x: -14; y: -8; rotation: -14 }
         Tape { x: parent.width - width + 14; y: -8; rotation: 11 }
+        LampChain {
+            id: lamp
+            x: parent.width - 30
+            y: parent.height - 4
+        }
 
         RowLayout {
             anchors.fill: parent

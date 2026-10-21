@@ -14,12 +14,12 @@ Singleton {
     readonly property var lightPalette: ({
         colors: {"desk": "#d9d6cc", "wall": "#ebe8df", "paper": "#f7f5ef", "card": "#fbfaf6", "kraft": "#d8b98a", "ink": "#1c2a6e", "pencil": "#4b4a46", "graphite": "#8d8a82", "red": "#c8372d", "rule": "#a8c3e4", "margin": "#e3958f", "sticky": "#f6e15f", "pink": "#ffb6c8", "mint": "#b8e5c8", "carbon": "#24231f", "fern": "#2f6b3d", "ochre": "#946617", "plum": "#8a3b7a", "teal": "#2d6f78", "umber": "#3c2d14", "crease": "#d9d4c6", "manila": "#3a2c14", "envelope": "#f3ead6", "chalk": "#ffffff", "soot": "#000000", "felt": "#2b2a1e", "binding": "#3b0f0b", "wad": "#f2efe6", "wad_crease": "#a9a59a", "basket": "#3c3c3a", "scrim": "#504632"},
         roles: {"bg": "#f7f5ef", "surface": "#fbfaf6", "overlay": "#d9d6cc", "border": "#d9d4c6", "fg": "#4b4a46", "muted": "#8d8a82", "accent": "#1c2a6e", "urgent": "#c8372d", "selection": "#f6e15f", "success": "#2f6b3d", "warning": "#946617", "cursor": "#24231f", "link": "#1c2a6e", "shadow": "#3c2d14", "term_bg": "#f7f5ef", "term_fg": "#24231f"},
-        wallpaper: {"image": "assets/wall.png", "ground": ["wall", "desk"]}
+        wallpaper: {"image": "assets/wall.png", "ground": ["wall", "desk"], "texture": "assets/paper-tex.png"}
     })
     readonly property var darkPalette: ({
-        colors: {"desk": "#d9d6cc", "wall": "#ebe8df", "paper": "#f7f5ef", "card": "#fbfaf6", "kraft": "#d8b98a", "ink": "#1c2a6e", "pencil": "#4b4a46", "graphite": "#8d8a82", "red": "#c8372d", "rule": "#a8c3e4", "margin": "#e3958f", "sticky": "#f6e15f", "pink": "#ffb6c8", "mint": "#b8e5c8", "carbon": "#24231f", "fern": "#2f6b3d", "ochre": "#946617", "plum": "#8a3b7a", "teal": "#2d6f78", "umber": "#3c2d14", "crease": "#d9d4c6", "manila": "#3a2c14", "envelope": "#f3ead6", "chalk": "#ffffff", "soot": "#000000", "felt": "#2b2a1e", "binding": "#3b0f0b", "wad": "#f2efe6", "wad_crease": "#a9a59a", "basket": "#3c3c3a", "scrim": "#504632"},
-        roles: {"bg": "#f7f5ef", "surface": "#fbfaf6", "overlay": "#d9d6cc", "border": "#d9d4c6", "fg": "#4b4a46", "muted": "#8d8a82", "accent": "#1c2a6e", "urgent": "#c8372d", "selection": "#f6e15f", "success": "#2f6b3d", "warning": "#946617", "cursor": "#24231f", "link": "#1c2a6e", "shadow": "#3c2d14", "term_bg": "#f7f5ef", "term_fg": "#24231f"},
-        wallpaper: {"image": "assets/wall.png", "ground": ["wall", "desk"]}
+        colors: {"desk": "#161411", "wall": "#1a1815", "paper": "#1f1c19", "card": "#2a2622", "kraft": "#3b3024", "kraft_hi": "#4d3e2c", "ink": "#a3b4f0", "pencil": "#c9c1b0", "graphite": "#8f897c", "red": "#ef8a78", "rule": "#2f3a4c", "margin": "#6e403a", "sticky": "#d8c25a", "pink": "#d99aab", "mint": "#93c4a4", "carbon": "#e6dfcf", "fern": "#9cc48a", "ochre": "#e2c46a", "plum": "#d39bd0", "teal": "#86c4bd", "umber": "#0b0a08", "crease": "#3a3630", "manila": "#e8d9bd", "envelope": "#2b241d", "chalk": "#34302a", "soot": "#070605", "felt": "#e6dfcf", "binding": "#0d0b09", "wad": "#4a453d", "wad_crease": "#2a2622", "basket": "#0e0d0b", "scrim": "#070605"},
+        roles: {"bg": "#1f1c19", "surface": "#2a2622", "overlay": "#161411", "border": "#3a3630", "fg": "#c9c1b0", "muted": "#8f897c", "accent": "#a3b4f0", "urgent": "#ef8a78", "selection": "#3b3024", "success": "#9cc48a", "warning": "#e2c46a", "cursor": "#e6dfcf", "link": "#a3b4f0", "shadow": "#0b0a08", "term_bg": "#1f1c19", "term_fg": "#e6dfcf"},
+        wallpaper: {"image": "assets/wall-dark.png", "ground": ["desk", "wall"], "texture": "assets/sheet-dark.png"}
     })
 
     // ── named colours ───────────────────────────────────────────────────────
@@ -81,6 +81,21 @@ Singleton {
     readonly property color tapeB:       Qt.alpha(c("chalk"), 0.6)
     readonly property color cursorLine:  Qt.alpha(c("rule"), 0.18)
 
+    // ── paper's night ───────────────────────────────────────────────────────
+    // What changes shape at night rather than only colour, mixed by k too.
+    // a highlighter stroke by day, a step of kraft with gel-blue text at night
+    readonly property color highlight:     cc("sticky", "kraft")
+    readonly property color highlightText: cc("carbon", "ink")
+    // type straight on the desk (the lock's clock): card by day, cream at night
+    readonly property color deskType:      cc("card", "carbon")
+    // washi tape is see-through: more of the dark card shows at night
+    readonly property real  tapeOpacity:   mode.blend(0.85, 0.55)
+    // notification images at 92% brightness at night
+    readonly property color imageShade:    Qt.alpha(c("soot"), 0.08 * k)
+    // the lamp (top left): where its pool sits, and its warmth
+    readonly property point lampPos:       Qt.point(0.18, 0.12)
+    readonly property color lampPool:      Qt.alpha(c("kraft"), 0.35 * k)
+
     // ── type ────────────────────────────────────────────────────────────────
     readonly property string fontType:  "Courier Prime"
     readonly property string fontHand:  "Kalam"
@@ -118,7 +133,9 @@ Singleton {
     // ── where the rice's files are (read at run time, never baked in) ──────
     readonly property string riceDir: (Quickshell.env("XDG_CONFIG_HOME") || Quickshell.env("HOME") + "/.config") + "/rices/paper"
     readonly property string wallpaper: riceDir + "/" + (dark ? darkPalette : lightPalette).wallpaper.image
-    readonly property string paperTex:  riceDir + "/assets/paper-tex.png"
+    readonly property string wallpaperLight: riceDir + "/" + lightPalette.wallpaper.image
+    readonly property string wallpaperDark:  riceDir + "/" + darkPalette.wallpaper.image
+    readonly property string paperTex:  riceDir + "/" + (dark ? darkPalette : lightPalette).wallpaper.texture
     readonly property string inkWear:   riceDir + "/assets/ink-wear.png"
 
     // ── the mode ────────────────────────────────────────────────────────────
@@ -130,4 +147,6 @@ Singleton {
 
     function c(name) { return mode.mix(lightPalette.colors[name], darkPalette.colors[name]); }
     function role(name) { return mode.mix(lightPalette.roles[name], darkPalette.roles[name]); }
+    // one colour by day, another at night
+    function cc(day, night) { return mode.mix(lightPalette.colors[day], darkPalette.colors[night]); }
 }

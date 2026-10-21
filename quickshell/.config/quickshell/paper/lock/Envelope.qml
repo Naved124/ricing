@@ -7,7 +7,8 @@ import qs.common
 import qs.services
 import "../common/paper.js" as P
 
-// One monitor's lock screen: a torn envelope on a dimmed kraft desk. The
+// One monitor's lock screen: a torn envelope on a dimmed kraft desk (at
+// night, dark walnut kraft under the lamp's pool, with cream type). The
 // time huge in Newsreader above it, the date in Courier. On the envelope
 // the password is typed out as • with a blinking carriage underscore, each
 // dot struck a little off its line like a real typebar. A wrong password
@@ -41,6 +42,30 @@ Item {
             GradientStop { position: 1; color: Qt.alpha(Theme.soot, 0.25) }
         }
     }
+    // at night the lamp's warm pool lies on the desk, top left
+    Shape {
+        anchors.fill: parent
+        visible: Theme.k > 0
+        preferredRendererType: Shape.CurveRenderer
+        ShapePath {
+            strokeWidth: 0
+            strokeColor: "transparent"
+            fillGradient: RadialGradient {
+                centerX: Theme.lampPos.x * root.width
+                centerY: Theme.lampPos.y * root.height
+                centerRadius: 0.45 * root.width
+                focalX: centerX
+                focalY: centerY
+                GradientStop { position: 0; color: Theme.lampPool }
+                GradientStop { position: 1; color: "transparent" }
+            }
+            startX: 0; startY: 0
+            PathLine { x: root.width; y: 0 }
+            PathLine { x: root.width; y: root.height }
+            PathLine { x: 0; y: root.height }
+            PathLine { x: 0; y: 0 }
+        }
+    }
 
     Item {
         id: stage
@@ -63,7 +88,7 @@ Item {
                     text: Qt.formatTime(clock.date, "h:mm ap").split(" ")[0]
                     size: Math.round(170 * root.k)
                     weight: 500
-                    color: Theme.card
+                    color: Theme.deskType
                     style: Text.Raised
                     styleColor: Qt.alpha(Theme.soot, 0.333)
                 }
@@ -71,14 +96,14 @@ Item {
                     anchors.baseline: time.baseline
                     text: Qt.formatTime(clock.date, "h:mm ap").split(" ")[1] ?? ""
                     size: Math.round(34 * root.k)
-                    color: Theme.card
+                    color: Theme.deskType
                 }
             }
             Type {
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: Qt.formatDate(clock.date, "dddd d MMMM yyyy").toUpperCase()
                 size: Math.round(16 * root.k)
-                color: Theme.card
+                color: Theme.deskType
                 font.letterSpacing: 16 * root.k * 0.3
             }
         }
@@ -317,7 +342,7 @@ Item {
             text: [Battery.present ? `batt ${Math.round(Battery.level * 100)}%` : "",
                    Media.playing && Media.player ? `♪ ${Media.player.trackTitle}` : ""].filter(s => s).join("   ·   ")
             size: 17
-            color: Theme.card
+            color: Theme.deskType
         }
     }
 }

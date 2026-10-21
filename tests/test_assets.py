@@ -33,7 +33,7 @@ class PaperAssets(unittest.TestCase):
         cls.tmp.cleanup()
 
     def test_same_seed_same_pixels(self):
-        for name in ("wall.png", "paper-tex.png", "ink-wear.png", "logo.png"):
+        for name in ("wall.png", "paper-tex.png", "ink-wear.png", "logo.png", "wall-dark.png", "sheet-dark.png"):
             with self.subTest(name):
                 a, b = (Image.open(r / name).convert("RGBA") for r in self.runs)
                 self.assertIsNone(ImageChops.difference(a, b).getbbox())
@@ -53,7 +53,11 @@ class PaperAssets(unittest.TestCase):
 
     def test_texture_tiles(self):
         """The left and right (and top and bottom) edges continue into each other."""
-        tex = Image.open(ASSETS / "paper-tex.png").convert("L")
+        for name in ("paper-tex.png", "sheet-dark.png"):
+            with self.subTest(name):
+                self.tiles(Image.open(ASSETS / name).convert("L"))
+
+    def tiles(self, tex):
         w, h = tex.size
         px = tex.load()
         seam = sum(abs(px[0, y] - px[w - 1, y]) for y in range(h)) / h

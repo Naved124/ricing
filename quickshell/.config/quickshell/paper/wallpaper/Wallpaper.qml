@@ -6,7 +6,7 @@ import Quickshell.Io
 import Quickshell.Wayland
 import qs.common
 
-// The desk: assets/wall.png, still, on the background layer of every
+// The desk: assets/wall.png (wall-dark.png at night), still, on the background layer of every
 // monitor. Nothing moves, so it costs nothing once drawn. (For a monitor
 // that isn't 16:9, run assets/gen.py --size WxH; until then it's cropped.)
 PanelWindow {
@@ -21,13 +21,25 @@ PanelWindow {
     WlrLayershell.namespace: "paper-wallpaper"
     color: Theme.wall
 
+    // the desk by day, and the same desk under the lamp, crossfaded by k
     Image {
         anchors.fill: parent
-        source: "file://" + Theme.wallpaper
+        source: "file://" + Theme.wallpaperLight
         fillMode: Image.PreserveAspectCrop
         asynchronous: true
         smooth: true
         sourceSize: Qt.size(root.width, root.height)
+        visible: Theme.k < 1
+    }
+    Image {
+        anchors.fill: parent
+        source: "file://" + Theme.wallpaperDark
+        fillMode: Image.PreserveAspectCrop
+        asynchronous: true
+        smooth: true
+        sourceSize: Qt.size(root.width, root.height)
+        opacity: Theme.k
+        visible: Theme.k > 0
     }
 
     // the still frame the lock screen, the login greeter and the boot menu

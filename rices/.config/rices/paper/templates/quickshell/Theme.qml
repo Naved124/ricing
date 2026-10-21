@@ -81,6 +81,21 @@ Singleton {
     readonly property color tapeB:       Qt.alpha(c("chalk"), 0.6)
     readonly property color cursorLine:  Qt.alpha(c("rule"), 0.18)
 
+    // ── paper's night ───────────────────────────────────────────────────────
+    // What changes shape at night rather than only colour, mixed by k too.
+    // a highlighter stroke by day, a step of kraft with gel-blue text at night
+    readonly property color highlight:     cc("sticky", "kraft")
+    readonly property color highlightText: cc("carbon", "ink")
+    // type straight on the desk (the lock's clock): card by day, cream at night
+    readonly property color deskType:      cc("card", "carbon")
+    // washi tape is see-through: more of the dark card shows at night
+    readonly property real  tapeOpacity:   mode.blend(0.85, 0.55)
+    // notification images at 92% brightness at night
+    readonly property color imageShade:    Qt.alpha(c("soot"), 0.08 * k)
+    // the lamp (top left): where its pool sits, and its warmth
+    readonly property point lampPos:       Qt.point({{ dark.meta.lamp_pos.0 }}, {{ dark.meta.lamp_pos.1 }})
+    readonly property color lampPool:      Qt.alpha(c("kraft"), 0.35 * k)
+
     // ── type ────────────────────────────────────────────────────────────────
     readonly property string fontType:  "{{ fonts.type }}"
     readonly property string fontHand:  "{{ fonts.hand }}"
@@ -118,7 +133,9 @@ Singleton {
     // ── where the rice's files are (read at run time, never baked in) ──────
     readonly property string riceDir: (Quickshell.env("XDG_CONFIG_HOME") || Quickshell.env("HOME") + "/.config") + "/rices/paper"
     readonly property string wallpaper: riceDir + "/" + (dark ? darkPalette : lightPalette).wallpaper.image
-    readonly property string paperTex:  riceDir + "/assets/paper-tex.png"
+    readonly property string wallpaperLight: riceDir + "/" + lightPalette.wallpaper.image
+    readonly property string wallpaperDark:  riceDir + "/" + darkPalette.wallpaper.image
+    readonly property string paperTex:  riceDir + "/" + (dark ? darkPalette : lightPalette).wallpaper.texture
     readonly property string inkWear:   riceDir + "/assets/ink-wear.png"
 
     // ── the mode ────────────────────────────────────────────────────────────
@@ -130,4 +147,6 @@ Singleton {
 
     function c(name) { return mode.mix(lightPalette.colors[name], darkPalette.colors[name]); }
     function role(name) { return mode.mix(lightPalette.roles[name], darkPalette.roles[name]); }
+    // one colour by day, another at night
+    function cc(day, night) { return mode.mix(lightPalette.colors[day], darkPalette.colors[night]); }
 }

@@ -3,6 +3,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import Quickshell
 import Quickshell.Bluetooth
+import Quickshell.Services.UPower
 import Quickshell.Wayland
 import qs.common
 import qs.notes
@@ -12,8 +13,9 @@ import qs.services
 // from a spiral notebook dropped in at the top right, five binding holes
 // down its left edge.
 //   · hand-drawn checkboxes with red ticks: Wi-Fi, Bluetooth, Do Not
-//     Disturb, night light, paper grain (right-click Wi-Fi or Bluetooth for
-//     their settings)
+//     Disturb, night light, paper grain, the lamp (light, dark, auto),
+//     performance (power-profiles-daemon) and the microphone (right-click
+//     Wi-Fi or Bluetooth for their settings)
 //   · volume (to 150%) and brightness as pencil lines with a red dot
 //   · what's playing, on an index card
 //   · the notification history as small sticky notes, and "clear desk"
@@ -213,6 +215,38 @@ PanelWindow {
                         detail: on ? "" : "off for games and video"
                         on: Shell.grain
                         onToggled: Shell.setGrain(!Shell.grain)
+                    }
+                    // the lamp: light → dark (lamplight) → auto (by the sun) → light
+                    Check {
+                        width: parent.width
+                        label: "lamp"
+                        glyph: Theme.dark ? "moon" : "sun"
+                        detail: Theme.mode.auto ? Theme.mode.next
+                              : Theme.dark ? "on · tick again for auto" : "daylight"
+                        on: Theme.dark
+                        onToggled: Theme.mode.cycle()
+                        onSecondary: Quickshell.execDetached(["rice", "mode", "auto", Theme.mode.auto ? "off" : "on"])
+                    }
+                    // power-profiles-daemon: performance or balanced; right-click for the saver
+                    Check {
+                        readonly property int profile: PowerProfiles.profile
+                        width: parent.width
+                        label: "performance"
+                        detail: profile === PowerProfile.PowerSaver ? "power saver · right-click: balanced"
+                              : on ? "full speed" : "balanced · right-click: power saver"
+                        on: profile === PowerProfile.Performance
+                        available: PowerProfiles.hasPerformanceProfile
+                        onToggled: PowerProfiles.profile = on ? PowerProfile.Balanced : PowerProfile.Performance
+                        onSecondary: PowerProfiles.profile = profile === PowerProfile.PowerSaver
+                                     ? PowerProfile.Balanced : PowerProfile.PowerSaver
+                    }
+                    Check {
+                        width: parent.width
+                        label: "microphone"
+                        detail: !Audio.source ? "none" : Audio.micMuted ? "muted" : (Audio.source.description || "on")
+                        on: !!Audio.source && !Audio.micMuted
+                        available: !!Audio.source
+                        onToggled: Audio.toggleMic()
                     }
                     // screen recording to ~/Videos (Super+Shift+R does the same)
                     Check {

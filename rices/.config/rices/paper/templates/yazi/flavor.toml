@@ -2,6 +2,8 @@
 # Linked as ~/.config/yazi/flavors/rice-{{ mode }}.yazi/flavor.toml. Keys follow yazi 25.5+.
 # The pane you're in is kraft card with dark brown writing; the chosen file
 # is a translucent white highlight with bold ink. The other panes stay paper.
+# At night the folder is dark kraft with pale manila writing, and the chosen
+# file a step lighter kraft in gel-blue.
 [mgr]
 cwd               = { fg = "{{ colors.manila }}", bold = true }
 find_keyword      = { fg = "{{ colors.red }}", bold = true, underline = true }
@@ -12,7 +14,7 @@ marker_cut        = { fg = "{{ colors.red }}", bg = "{{ colors.red }}" }
 border_style      = { fg = "{{ colors.kraft | darken(0.15) }}" }
 
 [indicator]
-current = { fg = "{{ colors.ink }}", bg = "{{ colors.kraft | mix(#ffffff, 0.45) }}", bold = true }
+current = { fg = "{{ colors.ink }}", bg = "{{ colors.kraft | mix(#ffffff, 0.45) | night(colors.kraft_hi) }}", bold = true }
 preview = { fg = "{{ colors.ink }}", underline = true }
 
 [tabs]
@@ -22,7 +24,7 @@ inactive = { fg = "{{ ansi.color7 }}", bg = "{{ colors.card }}" }
 [mode]
 normal_main = { fg = "{{ colors.manila }}", bg = "{{ colors.kraft }}", bold = true }
 normal_alt  = { fg = "{{ colors.manila }}", bg = "{{ colors.kraft | mix(colors.paper, 0.6) }}" }
-select_main = { fg = "{{ colors.carbon }}", bg = "{{ colors.sticky }}", bold = true }
+select_main = { fg = "{{ colors.carbon | night(colors.paper) }}", bg = "{{ colors.sticky }}", bold = true }
 select_alt  = { fg = "{{ colors.carbon }}", bg = "{{ colors.paper }}" }
 unset_main  = { fg = "{{ colors.card }}", bg = "{{ colors.red }}", bold = true }
 unset_alt   = { fg = "{{ colors.carbon }}", bg = "{{ colors.paper }}" }

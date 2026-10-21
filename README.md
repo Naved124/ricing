@@ -259,6 +259,18 @@ dark. `rice mode dark` changes the light without reloading anything:
    Nacre the pearl turns: a thin iridescent ring in the new mode's colours grows from the
    bar's orb with a glint running round it (800 ms).
 
+**Paper Night** is the same desk under a lamp in the top-left corner: walnut-charcoal
+under a dark sheet, cream type, gel-blue ink and coral where Paper was red, with the
+lamp's warm pool on the wallpaper and the lock screen. Notes become black card with a
+coloured strip of adhesive, the washi tape lets more dark through, and the grain's
+fibres lighten instead of darkening, under a faint lamp vignette (`lamp_vignette` in
+`[modes.dark.meta]`, 0 turns it off). Pull the chain hanging from the bar's right-hand
+tape to switch; the control centre's "lamp" goes light → dark → auto.
+
+Both control centres also have **performance** (power-profiles-daemon: click for
+performance or balanced, right-click for the power saver in Paper) and **microphone**
+(mute) toggles.
+
 What follows the change, and when:
 
 | App | When |

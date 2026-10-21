@@ -28,6 +28,9 @@ Item {
     readonly property bool critical: notification?.urgency === NotificationUrgency.Critical
     readonly property bool low: notification?.urgency === NotificationUrgency.Low
     readonly property color paperColour: critical ? Theme.pink : low ? Theme.mint : Theme.sticky
+    // at night the note is black card and the colour is only its strip of
+    // adhesive; by day the whole note is the colour
+    readonly property color body: Theme.mode.mix(paperColour, Theme.card)
     readonly property real tilt: P.between(P.hash((notification?.id ?? 0) + ":" + (notification?.appName ?? "")), -3.5, 3.5)
     readonly property int lifetime: popup ? Notifs.lifetime(notification) : 0
     property bool leaving: false
@@ -88,14 +91,14 @@ Item {
         Rectangle {
             id: paper
             anchors.fill: parent
-            color: root.paperColour
+            color: root.body
 
             // light on the top-left corner
             gradient: Gradient {
                 orientation: Gradient.Vertical
-                GradientStop { position: 0; color: Qt.lighter(root.paperColour, 1.12) }
-                GradientStop { position: 0.4; color: root.paperColour }
-                GradientStop { position: 1; color: Qt.darker(root.paperColour, 1.02) }
+                GradientStop { position: 0; color: Qt.lighter(root.body, 1.12) }
+                GradientStop { position: 0.4; color: root.body }
+                GradientStop { position: 1; color: Qt.darker(root.body, 1.02) }
             }
             Rectangle {
                 anchors.fill: parent
@@ -105,11 +108,11 @@ Item {
                     GradientStop { position: 0.4; color: Qt.alpha(Theme.chalk, 0) }
                 }
             }
-            // the adhesive band
+            // the adhesive band: a faint shade by day, the note's colour at night
             Rectangle {
                 width: parent.width
                 height: 14 * root.ui
-                color: Qt.alpha(Theme.soot, 0.05)
+                color: Theme.mode.mix(Qt.alpha(Theme.soot, 0.05), root.paperColour)
             }
             Image {
                 anchors.fill: parent
@@ -131,7 +134,7 @@ Item {
                 text: root.notification?.summary || root.notification?.appName || ""
                 size: 16 * root.ui
                 weight: 700
-                color: Theme.felt
+                color: Theme.mode.mix(Theme.felt, Theme.ink)    // the summary in gel-blue at night
                 wrapMode: Text.Wrap
                 maximumLineCount: 2
                 elide: Text.ElideRight
@@ -229,6 +232,11 @@ Item {
                 source: root.notification?.image ?? ""
                 fillMode: Image.PreserveAspectCrop
                 asynchronous: true
+            }
+            // 92% brightness at night
+            Rectangle {
+                anchors.fill: parent
+                color: Theme.imageShade
             }
             Tape {
                 x: -12
