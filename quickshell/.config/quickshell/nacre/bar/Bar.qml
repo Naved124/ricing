@@ -7,7 +7,7 @@ import qs.common
 import qs.services
 
 // The bar: a floating pill across the top, 38 tall, 12 px down, its ends
-// lined up with the window gaps.
+// lined up with the window gaps, with the island (Island.qml) in its middle.
 // One per monitor, each showing that monitor's workspaces. It reserves its
 // space so windows never slide under it, and steps aside for fullscreen.
 PanelWindow {
@@ -67,18 +67,12 @@ PanelWindow {
                 Layout.alignment: Qt.AlignVCenter
             }
 
-            Title {
-                monitor: win.monitor
+            // the island sits over the middle of the pill
+            Item {
                 Layout.fillWidth: true
-                Layout.fillHeight: true
             }
 
             NetSpeed {
-                Layout.alignment: Qt.AlignVCenter
-            }
-
-            MediaMini {
-                bar: win
                 Layout.alignment: Qt.AlignVCenter
             }
 
@@ -91,5 +85,14 @@ PanelWindow {
                 Layout.alignment: Qt.AlignVCenter
             }
         }
+    }
+
+    // the middle of the bar: the window's title, or what's playing, glowing
+    Island {
+        bar: win
+        monitor: win.monitor
+        maxWidth: pill.width * 0.38
+        x: pill.x + (pill.width - width) / 2
+        y: pill.y + (pill.height - height) / 2
     }
 }

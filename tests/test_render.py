@@ -477,6 +477,37 @@ class SystemCard(unittest.TestCase):
         self.assertIn("|stats)$", (RICES / "nacre/templates/hypr.lua").read_text())
 
 
+class Island(unittest.TestCase):
+    """The bar's middle: the window title, or what's playing, glowing with the beat."""
+    SHELLS = REPO / "quickshell/.config/quickshell"
+
+    def test_one_cava_per_shell(self):
+        beat = (self.SHELLS / "paper/services/Beat.qml").read_text()
+        self.assertEqual((self.SHELLS / "nacre/services/Beat.qml").read_text(), beat,
+                         "copy paper/services/Beat.qml to nacre/services/Beat.qml")
+        self.assertIn("running: Media.playing", beat)
+        for shell in ("paper", "nacre"):
+            with self.subTest(shell):
+                runs = [f.relative_to(self.SHELLS / shell).as_posix()
+                        for f in (self.SHELLS / shell).rglob("*.qml") if "exec cava" in f.read_text()]
+                self.assertEqual(runs, ["services/Beat.qml"])
+
+    def test_both_bars_carry_the_island(self):
+        for shell in ("paper", "nacre"):
+            with self.subTest(shell):
+                bar = (self.SHELLS / shell / "bar/Bar.qml").read_text()
+                self.assertIn("Island {", bar)
+                island = (self.SHELLS / shell / "bar/Island.qml").read_text()
+                for needle in ("Beat.level", "Beat.levels", "Media.playing", "trackArtUrl",
+                               "MultiEffect", "PopupWindow", "HoverHandler"):
+                    self.assertIn(needle, island)
+        # the island took over Nacre's now-playing chip and title
+        self.assertFalse((self.SHELLS / "nacre/bar/MediaMini.qml").exists())
+        self.assertNotIn("MediaMini", (self.SHELLS / "nacre/bar/Bar.qml").read_text())
+        self.assertIn("Iridescent", (self.SHELLS / "nacre/bar/Island.qml").read_text())
+        self.assertIn("Theme.warmth", (self.SHELLS / "paper/bar/Island.qml").read_text())
+
+
 class BlackPearl(unittest.TestCase):
     """Nacre at night: the Hyprland half and the wallpaper's still."""
 

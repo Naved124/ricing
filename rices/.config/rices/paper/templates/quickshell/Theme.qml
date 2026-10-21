@@ -94,6 +94,8 @@ Singleton {
     readonly property color imageShade:    Qt.alpha(c("soot"), 0.08 * k)
     // the lamp (top left): where its pool sits, and its warmth
     readonly property point lampPos:       Qt.point({{ dark.meta.lamp_pos.0 }}, {{ dark.meta.lamp_pos.1 }})
+    // the island's glow: the highlighter's yellow by day, the lamp's straw at night
+    readonly property color warmth:        cc("sticky", "ochre")
     readonly property color lampPool:      Qt.alpha(c("kraft"), 0.35 * k)
 
     // ── type ────────────────────────────────────────────────────────────────

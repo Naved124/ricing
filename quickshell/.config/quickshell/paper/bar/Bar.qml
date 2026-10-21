@@ -73,6 +73,15 @@ PanelWindow {
             y: parent.height - 4
         }
 
+        // the middle: the window's title, or what's playing (Island.qml)
+        Island {
+            bar: win
+            monitor: win.monitor
+            width: parent.width * 0.36
+            x: (parent.width - width) / 2
+            y: (parent.height - 6 - height) / 2
+        }
+
         RowLayout {
             anchors.fill: parent
             anchors.leftMargin: 34
@@ -85,10 +94,9 @@ PanelWindow {
                 Layout.alignment: Qt.AlignVCenter
             }
 
-            Title {
-                monitor: win.monitor
+            // the island sits over the middle of the strip
+            Item {
                 Layout.fillWidth: true
-                Layout.alignment: Qt.AlignVCenter
             }
 
             NetSpeed {

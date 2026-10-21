@@ -148,7 +148,7 @@ line to add for each (btop, zathura, nvim).
 `hyprsunset`, `playerctl`, `wireplumber`, `kitty`, and the three fonts above.
 
 **Optional, used if present:** `satty` (screenshot editing), `fd` (launcher file search),
-`cava` (control-centre visualiser), `wf-recorder` (screen recording), `hyprpicker`, `imagemagick` (blurred lock
+`cava` (the island's glow and the visualisers), `wf-recorder` (screen recording), `hyprpicker`, `imagemagick` (blurred lock
 backdrop), `swaync`, `swww`/`mpvpaper` and `hyprlock` (for rices without their own shell),
 `nvim`, `gsettings`, `power-profiles-daemon`, `bluez`.
 
@@ -280,6 +280,18 @@ which the luminance test checks.
 Both control centres also have **performance** (power-profiles-daemon: click for
 performance or balanced, right-click for the power saver) and **microphone** (mute)
 toggles.
+
+### The island
+
+The middle of each bar is an island. With nothing playing it shows the window's title as
+before; while something plays it shows the cover, the track and a small visualizer, and
+glows with the music's beat. In Nacre it's a pearl-glass pill ringed with the orient,
+like a focused window's border; in Paper it's a tab of paper laid on the strip, with the
+cover pinned on like a photo and the desk lamp's warmth underneath (the highlighter's
+yellow by day, the lamp's straw at night). Hover widens it for play/pause and next; a
+click drops the full media card. It follows whichever player is playing. The glow and
+visualizers come from one cava per shell (`services/Beat.qml`, only while something
+plays; install `cava` for them).
 
 ### System card
 
