@@ -320,6 +320,22 @@ class EndToEnd(unittest.TestCase):
         self.assertTrue(mine.is_symlink())
         self.assertEqual((backup / ".config/starship.toml").read_text(), "my prompt")
 
+    def test_nvim_is_see_through_and_lazyvim_picks_it(self):
+        (self.rices / "current").symlink_to("nacre")
+        self.run_render("nacre", "-q")
+        scheme = (self.rices / "nacre/build/light/nvim/rice.lua").read_text()
+        # kitty only frosts cells in its own background colour
+        self.assertIn('hl("Normal",       { fg = c.term_fg, bg = "NONE" })', scheme)
+        spec = self.home / ".config/nvim/lua/plugins/rice.lua"
+        self.run_render("--link")
+        self.assertFalse(spec.is_symlink(), "linked into a config that isn't LazyVim")
+        lazy = self.home / ".config/nvim/lua/config/lazy.lua"
+        lazy.parent.mkdir(parents=True)
+        lazy.write_text('require("lazy").setup({ spec = { { "LazyVim/LazyVim", import = "lazyvim.plugins" } } })')
+        self.run_render("--link")
+        self.assertEqual(Path(os.readlink(spec)), self.home / ".local/share/rice/active/nvim/lazyvim.lua")
+        self.assertIn('colorscheme = "rice"', spec.read_text())
+
     def test_telegram_theme_is_a_stable_zip(self):
         self.run_render("nacre", "-q")
         theme = self.rices / "nacre/build/light/telegram/rice.tdesktop-theme"

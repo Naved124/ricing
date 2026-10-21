@@ -779,6 +779,16 @@ MODE_LINKS = [
 ]
 # kitty 0.38 and later switch between these by the desktop's colour scheme
 KITTY_AUTO = (".config/kitty/{mode}-theme.auto.conf", "kitty-colors.conf")
+# LazyVim sets its own colourscheme after init.lua; a plugin spec tells it to use ours
+LAZYVIM = (".config/nvim/lua/plugins/rice.lua", "nvim/lazyvim.lua")
+
+
+def uses_lazyvim() -> bool:
+    """Whether ~/.config/nvim is a LazyVim config (a plain lazy.nvim one would install LazyVim)."""
+    try:
+        return "LazyVim" in (INSTALL_ROOT / ".config/nvim/lua/config/lazy.lua").read_text()
+    except OSError:
+        return False
 
 
 def kitty_auto_themes() -> bool:
@@ -796,7 +806,7 @@ Add these once (they include the active rice instead of being replaced):
   kitty.conf        include ~/.local/share/rice/active/kitty.conf
   btop.conf         color_theme = "rice"
   zathurarc         include rice
-  nvim init.lua     vim.cmd.colorscheme("rice")
+  nvim init.lua     vim.cmd.colorscheme("rice")  (LazyVim is set up by --link)
   Telegram          open ~/.local/share/rice/active/telegram/rice.tdesktop-theme
                     in Telegram (again after switching rice; it can't follow live)
   Firefox           rice-render --link --firefox  (links userChrome into every profile)
@@ -937,7 +947,7 @@ def spicetify() -> None:
 
 def link(firefox: bool, backup: Path | None = None) -> None:
     ensure_active()
-    pairs = [(INSTALL_ROOT / l, ACTIVE / t) for l, t in LINKS]
+    pairs = [(INSTALL_ROOT / l, ACTIVE / t) for l, t in LINKS + ([LAZYVIM] if uses_lazyvim() else [])]
     per_mode = MODE_LINKS + ([KITTY_AUTO] if kitty_auto_themes() else [])
     pairs += [(INSTALL_ROOT / l.format(mode=m), CURRENT / m / t) for l, t in per_mode for m in MODES]
     if firefox:

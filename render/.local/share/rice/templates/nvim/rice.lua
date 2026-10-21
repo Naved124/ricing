@@ -11,6 +11,8 @@ local c = {
   overlay   = "{{ roles.overlay }}",
   border    = "{{ roles.border }}",
   fg        = "{{ roles.fg }}",
+  term_fg   = "{{ roles.term_fg }}",
+  term_bg   = "{{ roles.term_bg }}",
   muted     = "{{ roles.muted }}",
   accent    = "{{ roles.accent }}",
   urgent    = "{{ roles.urgent }}",
@@ -32,9 +34,10 @@ local c = {
 
 local function hl(group, spec) vim.api.nvim_set_hl(0, group, spec) end
 
--- editor
-hl("Normal",       { fg = c.fg, bg = c.bg })
-hl("NormalNC",     { fg = c.fg, bg = c.bg })
+-- editor: no background of its own, so the text sits on the terminal's
+-- (frosted) background; a painted one stops short of kitty's padding
+hl("Normal",       { fg = c.term_fg, bg = "NONE" })
+hl("NormalNC",     { fg = c.term_fg, bg = "NONE" })
 hl("NormalFloat",  { fg = c.fg, bg = c.surface })
 hl("FloatBorder",  { fg = c.grad[#c.grad], bg = c.surface })
 hl("FloatTitle",   { fg = c.accent, bg = c.surface, bold = true })
@@ -42,7 +45,7 @@ hl("Cursor",       { fg = c.bg, bg = c.cursor })
 hl("CursorLine",   { bg = c.surface })
 hl("CursorLineNr", { fg = c.accent, bold = true })
 hl("LineNr",       { fg = c.border })
-hl("SignColumn",   { bg = c.bg })
+hl("SignColumn",   { bg = "NONE" })
 hl("ColorColumn",  { bg = c.surface })
 hl("Visual",       { bg = c.selection })
 hl("Search",       { fg = c.fg, bg = c.warning })
@@ -58,11 +61,11 @@ hl("WinSeparator", { fg = c.border })
 hl("VertSplit",    { fg = c.border })
 hl("TabLine",      { fg = c.muted, bg = c.surface })
 hl("TabLineSel",   { fg = "{{ roles.accent | readable }}", bg = c.accent, bold = true })
-hl("TabLineFill",  { bg = c.bg })
+hl("TabLineFill",  { bg = "NONE" })
 hl("Folded",       { fg = c.muted, bg = c.surface, italic = true })
 hl("NonText",      { fg = c.border })
 hl("Whitespace",   { fg = c.border })
-hl("EndOfBuffer",  { fg = c.bg })
+hl("EndOfBuffer",  { fg = c.term_bg, bg = "NONE" })
 hl("Directory",    { fg = c.blue })
 hl("Title",        { fg = c.accent, bold = true })
 hl("ErrorMsg",     { fg = c.red })
@@ -100,6 +103,14 @@ for from, to in pairs({
   ["@punctuation"] = "Delimiter", ["@tag"] = "Statement", ["@property"] = "Identifier",
 }) do hl(from, { link = to }) end
 hl("@variable.parameter", { fg = c.fg, italic = true })
+
+-- LazyVim's start screen (snacks.nvim)
+hl("SnacksDashboardHeader",  { fg = c.accent })
+hl("SnacksDashboardIcon",    { fg = c.blue })
+hl("SnacksDashboardDesc",    { fg = c.term_fg })
+hl("SnacksDashboardKey",     { fg = c.magenta, bold = true })
+hl("SnacksDashboardFooter",  { fg = c.muted, italic = true })
+hl("SnacksDashboardSpecial", { fg = c.accent })
 
 -- diagnostics, diff, git
 hl("DiagnosticError", { fg = c.red })
