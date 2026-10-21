@@ -20,8 +20,8 @@ Two rices ship today:
 
 | Rice | Look | Shell |
 | --- | --- | --- |
-| **Nacre** | pearl glass, colour only at the edges and in motion | its own Quickshell config: bar, launcher, control centre, notifications, OSDs, lock, power menu, live wallpaper |
-| **Paper** | sheets on a desk, typewriter and pencil | its own Quickshell config: a taped bar, tear-off calendar, wastebasket, sticky-note notifications, index-card launcher, envelope lock, rubber-stamp power menu, and a paper grain over the screen |
+| **Nacre** | pearl glass, colour only at the edges and in motion | its own Quickshell config: bar with a dynamic island (time, media, notifications), launcher, control centre, OSDs, lock, power menu, live wallpaper |
+| **Paper** | sheets on a desk, typewriter and pencil | its own Quickshell config: a taped bar, tear-off calendar, wastebasket, an island whose notifications unfold as sticky notes, index-card launcher, envelope lock, rubber-stamp power menu, and a paper grain over the screen |
 
 ### Paper
 
@@ -283,15 +283,30 @@ toggles.
 
 ### The island
 
-The middle of each bar is an island. With nothing playing it shows the window's title as
-before; while something plays it shows the cover, the track and a small visualizer, and
-glows with the music's beat. In Nacre it's a pearl-glass pill ringed with the orient,
-like a focused window's border; in Paper it's a tab of paper laid on the strip, with the
-cover pinned on like a photo and the desk lamp's warmth underneath (the highlighter's
-yellow by day, the lamp's straw at night). Hover widens it for play/pause and next; a
-click drops the full media card. It follows whichever player is playing. The glow and
-visualizers come from one cava per shell (`services/Beat.qml`, only while something
-plays; install `cava` for them).
+The middle of each bar is an island, on a layer of its own so it can grow. It always
+shows the time (hover for the date, click it for the calendar) and the notifications
+waiting (a bell and a count in Nacre, "3 notes" in Paper, or a dot when there are none).
+The window's title sits on the left, after the workspaces; a title or track too long
+for its room scrolls past and comes round again.
+
+- **Something playing**: the cover, the track and a small visualizer join the time, and
+  the island glows with the music's beat. In Nacre it's a pearl-glass pill ringed with
+  the orient, like a focused window's border; in Paper it's a tab of paper with the cover
+  pinned on like a photo and the desk lamp's warmth underneath (the highlighter's yellow
+  by day, the lamp's straw at night). Hover widens it for play/pause and next. It follows
+  whichever player is playing.
+- **A notification**: the island grows into its card for 4 s (hover holds it): pearl
+  glass in Nacre, a sticky note in Paper. Its actions are there, × (or "peel") dismisses
+  it, and so does a swipe sideways. More wait their turn. With Do Not Disturb on only the
+  count goes up; critical ones still open. There are no other popups.
+- **A click**: it grows into a panel with what's playing on top and the notification
+  history below, with "Clear all" ("clear desk" in Paper). Esc or a click outside closes
+  it.
+
+Notifications open on the focused monitor, even over a fullscreen window. The control
+centre no longer carries media or notifications. The glow and visualizers come from one
+cava per shell (`services/Beat.qml`, only while something plays; install `cava` for
+them). Nacre's system tray icons are always out on the right of the bar.
 
 ### System card
 

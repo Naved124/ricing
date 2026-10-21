@@ -15,10 +15,12 @@ Item {
     property color hairline: Theme.hairline
     property bool shadow: true
     property real shadowBlur: 0.9
+    property bool bare: false          // no pane at all, only what's put in it
     default property alias content: inner.data
 
     Rectangle {
         id: plate
+        visible: !root.bare
         anchors.fill: parent
         radius: root.radius
         color: root.fill
@@ -37,6 +39,7 @@ Item {
 
     // light on the pane: bright at the top edge, gone by 40% of the height
     Rectangle {
+        visible: !root.bare
         anchors.fill: parent
         anchors.margins: 1
         radius: Math.max(0, root.radius - 1)
@@ -48,6 +51,7 @@ Item {
 
     // a faint sky glow rising from the bottom edge, like light through ice
     Rectangle {
+        visible: !root.bare
         anchors.fill: parent
         anchors.margins: 1
         radius: Math.max(0, root.radius - 1)

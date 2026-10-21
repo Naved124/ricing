@@ -124,12 +124,3 @@ function pencil(points, seed, wobble, closed) {
     out.push([last[0] + (r() - 0.5) * w, last[1] + (r() - 0.5) * w]);
     return "M " + out.map(p => f(p[0]) + " " + f(p[1])).join(" L ") + (closed ? " Z" : "");
 }
-
-// "Firefox — Some very long title" → "Firefox — Some…ng title": cut in the middle
-function middle(text, max) {
-    const s = String(text ?? "");
-    if (s.length <= max) return s;
-    const keep = max - 1;
-    const head = Math.ceil(keep / 2), tail = Math.floor(keep / 2);
-    return s.slice(0, head) + "…" + s.slice(s.length - tail);
-}

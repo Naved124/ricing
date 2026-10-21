@@ -6,52 +6,21 @@ import Quickshell.Widgets
 import qs
 import qs.common
 
-// The system tray, collapsed into a single pearl. Click to open it.
+// The system tray: the apps' icons, always out, in a row.
 Item {
     id: root
 
     required property var bar
-    property bool open: false
     readonly property var items: SystemTray.items.values
 
     visible: items.length > 0
     implicitHeight: 26
-    implicitWidth: pearl.width + 14 + (open ? icons.implicitWidth + 8 : 0)
-    clip: true
-
-    Behavior on implicitWidth { NumberAnimation { duration: Theme.durMove; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.settle } }
-
-    Rectangle {
-        anchors.fill: parent
-        radius: height / 2
-        color: root.open ? Theme.glassSoft : "transparent"
-        border.color: root.open ? Theme.hairline : "transparent"
-        Behavior on color { ColorAnimation { duration: 200 } }
-    }
-
-    Pearl {
-        id: pearl
-        x: 7
-        anchors.verticalCenter: parent.verticalCenter
-        width: 13; height: 13
-        gloss: 0.9
-        iri: root.items.some(i => i.status === Status.NeedsAttention) ? 1 : 0.3
-
-        MouseArea {
-            anchors.fill: parent
-            anchors.margins: -6
-            cursorShape: Qt.PointingHandCursor
-            onClicked: root.open = !root.open
-        }
-    }
+    implicitWidth: icons.implicitWidth + 16
 
     Row {
         id: icons
-        x: pearl.x + pearl.width + 8
-        anchors.verticalCenter: parent.verticalCenter
-        spacing: 6
-        opacity: root.open ? 1 : 0
-        Behavior on opacity { NumberAnimation { duration: Theme.durFocus } }
+        anchors.centerIn: parent
+        spacing: 8
 
         Repeater {
             model: root.items

@@ -478,7 +478,7 @@ class SystemCard(unittest.TestCase):
 
 
 class Island(unittest.TestCase):
-    """The bar's middle: the window title, or what's playing, glowing with the beat."""
+    """The island over the bar's middle: the time, what's playing, notifications."""
     SHELLS = REPO / "quickshell/.config/quickshell"
 
     def test_one_cava_per_shell(self):
@@ -492,20 +492,51 @@ class Island(unittest.TestCase):
                         for f in (self.SHELLS / shell).rglob("*.qml") if "exec cava" in f.read_text()]
                 self.assertEqual(runs, ["services/Beat.qml"])
 
-    def test_both_bars_carry_the_island(self):
+    def test_each_shell_has_an_island(self):
         for shell in ("paper", "nacre"):
             with self.subTest(shell):
-                bar = (self.SHELLS / shell / "bar/Bar.qml").read_text()
-                self.assertIn("Island {", bar)
+                self.assertIn("Island {}", (self.SHELLS / shell / "shell.qml").read_text())
                 island = (self.SHELLS / shell / "bar/Island.qml").read_text()
-                for needle in ("Beat.level", "Beat.levels", "Media.playing", "trackArtUrl",
-                               "MultiEffect", "PopupWindow", "HoverHandler"):
+                for needle in ("PanelWindow", f'"{shell}-island"', "WlrLayer.Overlay", "mask: Region",
+                               "Beat.level", "Beat.levels", "Media.playing", "trackArtUrl", "MultiEffect",
+                               "HoverHandler", "Notifs.current", "Notifs.dismiss(", "Notifs.done(",
+                               "Notifs.seen()", "Notifs.all.length", "SystemClock", "Marquee",
+                               "Shell.toggleIsland(", "Keys.onEscapePressed"):
                     self.assertIn(needle, island)
-        # the island took over Nacre's now-playing chip and title
-        self.assertFalse((self.SHELLS / "nacre/bar/MediaMini.qml").exists())
-        self.assertNotIn("MediaMini", (self.SHELLS / "nacre/bar/Bar.qml").read_text())
+                # the time moved into the island; the bar keeps the title, scrolling
+                bar = (self.SHELLS / shell / "bar/Bar.qml").read_text()
+                self.assertNotIn("Island {", bar)
+                self.assertNotIn("Clock {", bar)
+                self.assertFalse((self.SHELLS / shell / "bar/Clock.qml").exists())
+                self.assertIn("Title {", bar)
+                self.assertIn("Marquee", (self.SHELLS / shell / "bar/Title.qml").read_text())
         self.assertIn("Iridescent", (self.SHELLS / "nacre/bar/Island.qml").read_text())
         self.assertIn("Theme.warmth", (self.SHELLS / "paper/bar/Island.qml").read_text())
+        self.assertFalse((self.SHELLS / "nacre/bar/MediaMini.qml").exists())
+
+    def test_notifications_go_to_the_island(self):
+        for shell in ("paper", "nacre"):
+            with self.subTest(shell):
+                notifs = (self.SHELLS / shell / "services/Notifs.qml").read_text()
+                self.assertIn("readonly property int lifetime: 4000", notifs)
+                self.assertIn("root.queue = [...root.queue, n]", notifs)
+                # no other popups, and the control centre keeps neither media nor history
+                center = (self.SHELLS / shell / "center/Center.qml").read_text()
+                for gone in ("MediaCard", "NowPlaying", "History", "Notifs.all", "Cava"):
+                    self.assertNotIn(gone, center)
+                for f in (self.SHELLS / shell).rglob("*.qml"):
+                    self.assertNotIn("Notifs.popups", f.read_text(), f)
+                    self.assertNotIn("Notifs.shown", f.read_text(), f)
+        self.assertFalse((self.SHELLS / "nacre/notifs/Popups.qml").exists())
+        self.assertFalse((self.SHELLS / "paper/notes/Notes.qml").exists())
+        # the island is glass in Nacre (blurred) and still in Paper (no slide-in)
+        self.assertIn("|island|", (RICES / "nacre/templates/hypr.lua").read_text())
+        self.assertIn("|island|", (RICES / "paper/templates/hypr.lua").read_text())
+
+    def test_nacre_tray_is_always_out(self):
+        tray = (self.SHELLS / "nacre/bar/Tray.qml").read_text()
+        self.assertNotIn("Pearl", tray)
+        self.assertNotIn("property bool open", tray)
 
 
 class BlackPearl(unittest.TestCase):

@@ -10,9 +10,9 @@ import qs.common
 import qs.services
 
 // The control centre (Super+N): a full-height frosted panel on the right.
-// Quick toggles, level sliders, what's playing (with cava), the month, and
-// the notification history. Slides in 40 px with a bloom; Esc or a click
-// outside sinks it away.
+// Quick toggles, level sliders and the month. (What's playing and the
+// notifications live in the bar's island.) Slides in 40 px with a bloom; Esc
+// or a click outside sinks it away.
 PanelWindow {
     id: win
 
@@ -40,7 +40,7 @@ PanelWindow {
         id: focusTimer
         interval: 60
         onTriggered: {
-            const target = Shell.centerFocus === "calendar" ? cal : Shell.centerFocus === "media" ? media : null;
+            const target = Shell.centerFocus === "calendar" ? cal : null;
             if (target) flick.contentY = Math.min(target.mapToItem(content, 0, 0).y - 10, Math.max(0, flick.contentHeight - flick.height));
         }
     }
@@ -305,43 +305,10 @@ PanelWindow {
                         }
                     }
 
-                    // what's playing
-                    Rectangle {
-                        id: media
-                        width: parent.width
-                        visible: !!Media.player
-                        height: visible ? mediaColumn.implicitHeight + 28 : 0
-                        radius: Theme.radiusPopup + 4
-                        color: Theme.glassSoft
-                        border.color: Theme.hairline
-
-                        Column {
-                            id: mediaColumn
-                            x: 14
-                            y: 14
-                            width: parent.width - 28
-                            spacing: 10
-                            MediaCard {
-                                width: parent.width
-                                artSize: 72
-                            }
-                            Cava {
-                                width: parent.width
-                                active: win.open && Media.playing
-                            }
-                        }
-                    }
-
                     Rectangle { width: parent.width; height: 1; color: Theme.hairline }
 
                     Calendar {
                         id: cal
-                        width: parent.width
-                    }
-
-                    Rectangle { width: parent.width; height: 1; color: Theme.hairline }
-
-                    History {
                         width: parent.width
                     }
                 }

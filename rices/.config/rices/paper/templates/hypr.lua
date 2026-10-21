@@ -96,7 +96,7 @@ hl.window_rule({
 -- centre, the power card and the key sheet in from the top. No blur.
 ---------------------------------------------------------------------------
 hl.layer_rule({ name = "paper-wallpaper", match = { namespace = "^paper-wallpaper$" }, no_anim = true })
-hl.layer_rule({ name = "paper-still", match = { namespace = "^paper-(bar|desk|notes|osd|turn)$" }, no_anim = true })
+hl.layer_rule({ name = "paper-still", match = { namespace = "^paper-(bar|desk|island|osd|turn)$" }, no_anim = true })
 
 ---------------------------------------------------------------------------
 -- The mode's colours, shadows and grain (beside this file in build/<mode>/)

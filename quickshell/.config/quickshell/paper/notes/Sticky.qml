@@ -13,16 +13,14 @@ import "../common/paper.js" as P
 // normal, pink for critical; a darker adhesive band across the top, light
 // catching the top-left corner, and a tilt between −3.5° and +3.5° that is
 // the same every time for the same notification.
-// It is slapped on (from 1.25× at −8°, overshooting into place) and peeled
-// off (a twist and a skew, then it drops away) when clicked or when its
-// time is up. Critical notes stay until dismissed. Actions are underlined
+// The island's history lays them out; a click peels one off (a twist and
+// a skew, then it drops away) and dismisses it. Actions are underlined
 // words; an image is taped onto the corner; the app's icon is a small
 // pencil sketch.
 Item {
     id: root
 
     required property var notification
-    property bool popup: true             // false in the control centre's history
     property real ui: 1          // UI scale (Theme.uiSize / 14)
 
     readonly property bool critical: notification?.urgency === NotificationUrgency.Critical
@@ -32,17 +30,15 @@ Item {
     // adhesive; by day the whole note is the colour
     readonly property color body: Theme.mode.mix(paperColour, Theme.card)
     readonly property real tilt: P.between(P.hash((notification?.id ?? 0) + ":" + (notification?.appName ?? "")), -3.5, 3.5)
-    readonly property int lifetime: popup ? Notifs.lifetime(notification) : 0
     property bool leaving: false
 
     implicitWidth: 186 * ui
     implicitHeight: Math.max(110 * ui, content.y + content.implicitHeight + 28 * ui)
 
-    // done with the note: peel it, then let the service know
-    function peel(dismiss) {
+    // done with the note: peel it, then dismiss it
+    function peel() {
         if (leaving) return;
         leaving = true;
-        peelAnim.dismiss = dismiss;
         peelAnim.start();
     }
 
@@ -53,7 +49,6 @@ Item {
         transformOrigin: Item.TopLeft
 
         property real skew: 0         // degrees, for the peel
-        property real slapScale: 1
         rotation: root.tilt
         transform: [
             Matrix4x4 {
@@ -61,8 +56,7 @@ Item {
                                      0, 1, 0, 0,
                                      0, 0, 1, 0,
                                      0, 0, 0, 1)
-            },
-            Scale { origin.x: note.width / 2; origin.y: note.height / 2; xScale: note.slapScale; yScale: note.slapScale }
+            }
         ]
 
         // the note's shadow: close at the top where it's stuck, falling
@@ -147,7 +141,7 @@ Item {
                 color: Theme.felt
                 lineHeight: 0.95
                 wrapMode: Text.Wrap
-                maximumLineCount: root.popup ? 5 : 3
+                maximumLineCount: 3
                 elide: Text.ElideRight
             }
             // actions: underlined words
@@ -168,7 +162,7 @@ Item {
                             anchors.fill: parent
                             anchors.margins: -3
                             cursorShape: Qt.PointingHandCursor
-                            onClicked: { parent.modelData.invoke(); root.peel(true); }
+                            onClicked: { parent.modelData.invoke(); root.peel(); }
                         }
                     }
                 }
@@ -248,19 +242,9 @@ Item {
         }
     }
 
-    // slapped on
-    ParallelAnimation {
-        id: slap
-        NumberAnimation { target: note; property: "slapScale"; from: 1.25; to: 1; duration: 450; easing.type: Easing.BezierSpline; easing.bezierCurve: [0.2, 1.5, 0.4, 1, 1, 1] }
-        NumberAnimation { target: note; property: "rotation"; from: -8; to: root.tilt; duration: 450; easing.type: Easing.BezierSpline; easing.bezierCurve: [0.2, 1.5, 0.4, 1, 1, 1] }
-        NumberAnimation { target: note; property: "opacity"; from: 0; to: 1; duration: 180 }
-    }
-    Component.onCompleted: if (root.popup) slap.start()
-
     // peeled off: a twist and a skew as it comes unstuck, then it drops
     SequentialAnimation {
         id: peelAnim
-        property bool dismiss: false
         ParallelAnimation {
             NumberAnimation { target: note; property: "rotation"; to: -14; duration: 240; easing.type: Easing.OutQuad }
             NumberAnimation { target: note; property: "skew"; to: -6; duration: 240 }
@@ -272,31 +256,11 @@ Item {
             NumberAnimation { target: note; property: "y"; to: 520; duration: 360; easing.type: Easing.InQuad }
             NumberAnimation { target: note; property: "opacity"; to: 0; duration: 360; easing.type: Easing.InQuad }
         }
-        ScriptAction {
-            script: {
-                if (peelAnim.dismiss) Notifs.dismiss(root.notification);
-                else Notifs.unshow(root.notification);
-            }
-        }
+        ScriptAction { script: Notifs.dismiss(root.notification) }
     }
 
-    // its time on the desk (paused while the pointer rests on it)
-    Timer {
-        id: life
-        interval: Math.max(1, root.lifetime)
-        running: root.lifetime > 0 && root.popup && !hover.hovered && !root.leaving
-        onTriggered: root.peel(false)
-    }
-
-    HoverHandler { id: hover }
-
-    // a click on the note: its default action, if it has one, then peel it
+    // a click on the note peels it off
     TapHandler {
-        enabled: root.popup
-        onTapped: {
-            const def = (root.notification?.actions ?? []).find(a => a.identifier === "default");
-            if (def) def.invoke();
-            root.peel(true);
-        }
+        onTapped: root.peel()
     }
 }

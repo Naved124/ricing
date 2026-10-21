@@ -101,7 +101,7 @@ hl.window_rule({
 -- Quickshell surfaces: real frosted glass behind the panels
 ---------------------------------------------------------------------------
 hl.layer_rule({
-    name = "nacre-glass", match = { namespace = "^nacre-(bar|launcher|notifs|center|osd|power|toast|keys|lock|stats)$" },
+    name = "nacre-glass", match = { namespace = "^nacre-(bar|launcher|island|center|osd|power|toast|keys|lock|stats)$" },
     blur = true, ignore_alpha = 0.2, no_anim = true,
 })
 hl.layer_rule({ name = "nacre-wallpaper", match = { namespace = "^nacre-wallpaper$" }, no_anim = true })

@@ -12,17 +12,20 @@ import qs.services
 
 // One notification: frosted glass with a lilac hairline, the app icon in a
 // pearl, title, a two-line body, an image when there is one, pill actions
-// and an inline reply. As a popup, a thin gradient line drains along the
-// bottom; critical ones wear a moving iridescent border instead.
+// and an inline reply. In the island (`popup`) it is bare, the island being
+// its glass, and a thin gradient line drains along the bottom for its 4 s;
+// critical ones wear a moving iridescent border instead. Swipe it right to
+// dismiss it.
 Item {
     id: root
 
     required property var notification
-    property bool popup: true          // false inside the control centre
+    property bool popup: true          // false in the island's history
     property bool paused: hover.hovered || reply.activeFocus
+    property bool held: false          // the island holds the clock (hovered, being swiped)
 
     readonly property bool critical: notification?.urgency === NotificationUrgency.Critical
-    readonly property int lifetime: popup ? Notifs.lifetime(notification) : 0
+    readonly property int lifetime: popup ? Notifs.lifetime : 0
 
     signal expired()
     signal dismissed()
@@ -36,8 +39,9 @@ Item {
         id: card
         anchors.fill: parent
         radius: Theme.radiusPopup
-        shadow: root.popup
-        fill: root.popup ? Theme.glassStrong : Theme.glassSoft
+        shadow: false
+        bare: root.popup
+        fill: Theme.glassSoft
 
         // critical: the border itself is iridescent and moving
         Iridescent {
@@ -120,7 +124,7 @@ Item {
                                 name: "close"
                                 size: 14
                                 color: Theme.inkSoft
-                                opacity: hover.hovered ? 1 : 0
+                                opacity: hover.hovered || root.popup ? 1 : 0
                                 Behavior on opacity { NumberAnimation { duration: 150 } }
                             }
                             MouseArea {
@@ -268,7 +272,7 @@ Item {
 
                 NumberAnimation on remaining {
                     running: root.lifetime > 0
-                    paused: running && root.paused
+                    paused: running && (root.paused || root.held)
                     from: 1
                     to: 0
                     duration: root.lifetime

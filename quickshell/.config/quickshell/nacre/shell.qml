@@ -13,7 +13,6 @@ import qs.desk
 import qs.keys
 import qs.launcher
 import qs.lock
-import qs.notifs
 import qs.osd
 import qs.power
 import qs.services
@@ -32,9 +31,13 @@ ShellRoot {
         model: Quickshell.screens
         Bar {}
     }
+    // over the middle of each bar: the time, what's playing, notifications
+    Variants {
+        model: Quickshell.screens
+        Island {}
+    }
 
     // follow the focused monitor
-    Popups {}
     Osd {}
     Toast {}
     Flash { id: flasher }

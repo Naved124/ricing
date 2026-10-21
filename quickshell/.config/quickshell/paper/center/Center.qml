@@ -6,7 +6,6 @@ import Quickshell.Bluetooth
 import Quickshell.Services.UPower
 import Quickshell.Wayland
 import qs.common
-import qs.notes
 import qs.services
 
 // The control centre (Super+N, or the bar's battery and speaker): a page
@@ -17,8 +16,7 @@ import qs.services
 //     performance (power-profiles-daemon) and the microphone (right-click
 //     Wi-Fi or Bluetooth for their settings)
 //   · volume (to 150%) and brightness as pencil lines with a red dot
-//   · what's playing, on an index card
-//   · the notification history as small sticky notes, and "clear desk"
+// (What's playing and the notes live in the bar's island.)
 // Esc or a click outside puts it away.
 PanelWindow {
     id: win
@@ -298,64 +296,6 @@ PanelWindow {
                         glyph: "sun"
                         value: Brightness.level
                         onMoved: v => Brightness.set(Math.max(0.02, v))
-                    }
-                }
-
-                NowPlaying {
-                    width: parent.width - 6
-                    x: 3
-                    visible: !!Media.player
-                    active: win.open
-                }
-
-                // the notes that came in, smaller
-                Item {
-                    width: parent.width
-                    height: 26
-                    Hand {
-                        text: Notifs.all.length ? `${Notifs.all.length} note${Notifs.all.length === 1 ? "" : "s"}` : "no notes"
-                        size: 17
-                        color: Theme.pencil
-                    }
-                    Hand {
-                        anchors.right: parent.right
-                        visible: Notifs.all.length > 0
-                        text: "clear desk"
-                        size: 16
-                        color: Theme.red
-                        font.underline: true
-                        MouseArea {
-                            anchors.fill: parent
-                            anchors.margins: -4
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: Notifs.clearAll()
-                        }
-                    }
-                }
-                Flow {
-                    width: parent.width
-                    spacing: 10
-                    Repeater {
-                        model: Notifs.all.slice().reverse().slice(0, 12)
-                        delegate: Item {
-                            id: small
-                            required property var modelData
-                            width: 148
-                            height: note.height * 0.8
-                            Sticky {
-                                id: note
-                                notification: small.modelData
-                                popup: false
-                                width: 186
-                                scale: 0.8
-                                transformOrigin: Item.TopLeft
-                            }
-                            MouseArea {
-                                anchors.fill: parent
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: Notifs.dismiss(small.modelData)
-                            }
-                        }
                     }
                 }
             }

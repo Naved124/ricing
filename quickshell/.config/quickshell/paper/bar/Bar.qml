@@ -7,7 +7,9 @@ import Quickshell.Wayland
 import qs.common
 import qs.services
 
-// The bar: a strip of ruled card taped across the top of each monitor.
+// The bar: a strip of ruled card taped across the top of each monitor. The
+// window's title follows the workspaces; the middle is left to the island
+// (Island.qml, a layer of its own).
 // 44 tall, nearly the full width of the screen, centred 10 px from the
 // top and turned a hair (−0.35°), with one blue rule 10 px above its
 // bottom edge and a piece of washi tape over each end. The lamp's
@@ -25,6 +27,7 @@ PanelWindow {
     readonly property int top: 10
     readonly property int pad: 40            // below: room for the tilt and the shadow
     readonly property int side: 26           // either end: room for the tape
+    readonly property int islandHalf: 350    // half the island at its widest (playing, hovered)
 
     visible: !Hypr.fullscreenOn(monitor)
 
@@ -73,15 +76,6 @@ PanelWindow {
             y: parent.height - 4
         }
 
-        // the middle: the window's title, or what's playing (Island.qml)
-        Island {
-            bar: win
-            monitor: win.monitor
-            width: parent.width * 0.36
-            x: (parent.width - width) / 2
-            y: (parent.height - 6 - height) / 2
-        }
-
         RowLayout {
             anchors.fill: parent
             anchors.leftMargin: 34
@@ -90,8 +84,16 @@ PanelWindow {
             spacing: 22
 
             Workspaces {
+                id: workspaces
                 monitor: win.monitor
                 Layout.alignment: Qt.AlignVCenter
+            }
+
+            // "now: <title>", up to the island's widest, with a little air
+            Title {
+                monitor: win.monitor
+                Layout.alignment: Qt.AlignVCenter
+                Layout.preferredWidth: Math.max(0, Math.round(Math.min(implicitWidth, strip.width / 2 - win.islandHalf - 34 - workspaces.width - 22 - 12)))
             }
 
             // the island sits over the middle of the strip
@@ -124,10 +126,6 @@ PanelWindow {
 
             Tray {
                 bar: win
-                Layout.alignment: Qt.AlignVCenter
-            }
-
-            Clock {
                 Layout.alignment: Qt.AlignVCenter
             }
         }

@@ -6,34 +6,35 @@ import Quickshell
 import Quickshell.Services.Notifications
 
 // Nacre is the notification daemon (no swaync, no mako).
-// Every notification is kept for the control centre until dismissed;
-// popups are a separate, short-lived list. Do Not Disturb silences popups
-// but still collects everything, and critical notifications break through.
+// Every notification is kept for the island's history until dismissed. New
+// ones queue for the island (bar/Island.qml), which grows into a card for
+// each in turn, 4 s apiece. Do Not Disturb keeps them out of the queue (the
+// island's count still goes up); critical ones break through.
 Singleton {
     id: root
 
     readonly property var all: server.trackedNotifications.values
-    property var popups: []          // Notification objects currently popped up
-    readonly property int maxVisible: 3
+    property var queue: []           // waiting for the island, oldest first
+    readonly property var current: queue[0] ?? null
+    readonly property int lifetime: 4000
 
-    // seconds a popup stays up, by urgency (critical stays until dismissed)
-    function lifetime(n) {
-        if (n.urgency === NotificationUrgency.Critical) return 0;
-        if (n.urgency === NotificationUrgency.Low) return 3000;
-        return 5000;
-    }
-
-    function hidePopup(n) {
-        popups = popups.filter(p => p !== n);
+    // the island is done with it (its time ran out, or the app closed it)
+    function done(n) {
+        queue = queue.filter(p => p !== n);
     }
 
     function dismiss(n) {
-        hidePopup(n);
+        done(n);
         n.dismiss();
     }
 
+    // the history was opened: everything waiting is in there now
+    function seen() {
+        queue = [];
+    }
+
     function clearAll() {
-        popups = [];
+        queue = [];
         for (const n of all.slice()) n.dismiss();
     }
 
@@ -69,8 +70,8 @@ Singleton {
             n.tracked = true;
             const breaksThrough = n.urgency === NotificationUrgency.Critical;
             if (!Shell.dnd || breaksThrough)
-                root.popups = [n, ...root.popups];
-            n.closed.connect(() => root.hidePopup(n));
+                root.queue = [...root.queue, n];
+            n.closed.connect(() => root.done(n));
         }
     }
 }

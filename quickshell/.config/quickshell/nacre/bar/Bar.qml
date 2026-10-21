@@ -7,7 +7,8 @@ import qs.common
 import qs.services
 
 // The bar: a floating pill across the top, 38 tall, 12 px down, its ends
-// lined up with the window gaps, with the island (Island.qml) in its middle.
+// lined up with the window gaps. The window's title follows the workspaces;
+// the middle is left to the island (Island.qml, a layer of its own).
 // One per monitor, each showing that monitor's workspaces. It reserves its
 // space so windows never slide under it, and steps aside for fullscreen.
 PanelWindow {
@@ -21,6 +22,7 @@ PanelWindow {
     readonly property int pillWidth: width - side * 2
     readonly property int pillHeight: 38
     readonly property int pad: 22          // room for the lilac shadow below
+    readonly property int islandHalf: 250  // half the island at its widest (playing, hovered)
 
     visible: !Hypr.fullscreenOn(monitor)
 
@@ -63,8 +65,16 @@ PanelWindow {
             }
 
             Workspaces {
+                id: workspaces
                 monitor: win.monitor
                 Layout.alignment: Qt.AlignVCenter
+            }
+
+            // up to the island's widest, with a little air
+            Title {
+                monitor: win.monitor
+                Layout.alignment: Qt.AlignVCenter
+                Layout.preferredWidth: Math.max(0, Math.round(Math.min(implicitWidth, pill.width / 2 - win.islandHalf - workspaces.x - workspaces.width - 10)))
             }
 
             // the island sits over the middle of the pill
@@ -80,19 +90,6 @@ PanelWindow {
                 bar: win
                 Layout.alignment: Qt.AlignVCenter
             }
-
-            Clock {
-                Layout.alignment: Qt.AlignVCenter
-            }
         }
-    }
-
-    // the middle of the bar: the window's title, or what's playing, glowing
-    Island {
-        bar: win
-        monitor: win.monitor
-        maxWidth: pill.width * 0.38
-        x: pill.x + (pill.width - width) / 2
-        y: pill.y + (pill.height - height) / 2
     }
 }

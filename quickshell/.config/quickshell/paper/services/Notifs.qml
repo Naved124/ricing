@@ -5,57 +5,37 @@ import QtQuick
 import Quickshell
 import Quickshell.Services.Notifications
 
-// Paper is the notification daemon (no swaync). Notifications become sticky
-// notes: at most three on the desk at once, newest on top; more wait in a
-// queue and are slapped on as notes are peeled off. Everything is kept for
-// the control centre's history until dismissed.
-// Do Not Disturb keeps notes off the desk (they only go to the history);
-// critical ones still come through, and never time out.
+// Paper is the notification daemon (no swaync). New notifications queue
+// for the island (bar/Island.qml), which unfolds into a sticky note for
+// each in turn, 4 s apiece; everything is kept for the island's history
+// until dismissed. Do Not Disturb keeps them out of the queue (the island's
+// count still goes up); critical ones still come through.
 Singleton {
     id: root
 
     readonly property var all: server.trackedNotifications.values
-    property var shown: []           // on the desk, newest first (≤ maxVisible)
-    property var queue: []           // waiting for a free spot, oldest first
-    readonly property int maxVisible: 3
+    property var queue: []           // waiting for the island, oldest first
+    readonly property var current: queue[0] ?? null
+    readonly property int lifetime: 4000
 
-    // how long a note stays up, in ms; 0 = until dismissed
-    function lifetime(n) {
-        if (n.urgency === NotificationUrgency.Critical) return 0;
-        if (n.expireTimeout > 0) return Math.max(2000, n.expireTimeout);
-        return n.urgency === NotificationUrgency.Low ? 4000 : 6500;
-    }
-
-    // the note left the desk (peeled, timed out or the app closed it):
-    // the next one in the queue takes its place
-    function unshow(n) {
-        if (shown.includes(n)) {
-            const rest = shown.filter(p => p !== n);
-            if (queue.length) {
-                shown = [queue[0], ...rest];
-                queue = queue.slice(1);
-            } else {
-                shown = rest;
-            }
-        } else if (queue.includes(n)) {
-            queue = queue.filter(p => p !== n);
-        }
+    // the island is done with it (its time ran out, or the app closed it)
+    function done(n) {
+        queue = queue.filter(p => p !== n);
     }
 
     function dismiss(n) {
-        unshow(n);
+        done(n);
         n.dismiss();
     }
 
-    function clearAll() {
-        shown = [];
+    // the history was opened: everything waiting is in there now
+    function seen() {
         queue = [];
-        for (const n of all.slice()) n.dismiss();
     }
 
-    function post(n) {
-        if (shown.length < maxVisible) shown = [n, ...shown];
-        else queue = [...queue, n];
+    function clearAll() {
+        queue = [];
+        for (const n of all.slice()) n.dismiss();
     }
 
     NotificationServer {
@@ -73,8 +53,8 @@ Singleton {
         onNotification: n => {
             n.tracked = true;
             if (!Shell.dnd || n.urgency === NotificationUrgency.Critical)
-                root.post(n);
-            n.closed.connect(() => root.unshow(n));
+                root.queue = [...root.queue, n];
+            n.closed.connect(() => root.done(n));
         }
     }
 }

@@ -1,8 +1,8 @@
 //@ pragma UseQApplication
 
 // Paper — a desk in daylight. Windows are sheets, the terminal is a
-// typewriter, notifications are sticky notes, and closing a window crumples
-// it into the bin.
+// typewriter, notifications are sticky notes unfolding from the bar's
+// island, and closing a window crumples it into the bin.
 // Run with `qs -c paper` (the `rice` script does this when Paper is active).
 
 import QtQuick
@@ -15,7 +15,6 @@ import qs.desk
 import qs.keys
 import qs.launcher
 import qs.lock
-import qs.notes
 import qs.osd
 import qs.power
 import qs.services
@@ -32,6 +31,11 @@ ShellRoot {
         model: Quickshell.screens
         Bar {}
     }
+    // over the middle of each bar: the time, what's playing, the notes
+    Variants {
+        model: Quickshell.screens
+        Island {}
+    }
 
     // switching workspace turns a page
     Variants {
@@ -44,9 +48,6 @@ ShellRoot {
     // the system card: cpu, memory and disk on a taped index card, draggable
     Stats {}
     Month {}
-
-    // notifications, as sticky notes
-    Notes {}
 
     // panels that follow the focused monitor
     Launcher {}

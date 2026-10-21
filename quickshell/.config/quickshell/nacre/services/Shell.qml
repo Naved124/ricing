@@ -15,9 +15,13 @@ Singleton {
     property string launcherMode: ""      // "", "=", "/", ":", ">", "?", "!"
     property string launcherText: ""      // prefilled query (ipc: shell search)
     property bool centerOpen: false
-    property string centerFocus: ""       // "", "calendar", "media"
+    property string centerFocus: ""       // "" or "calendar"
     property bool powerOpen: false
     property bool keysOpen: false
+    // the island's drop-down (what's playing and the notification history),
+    // open under the island on one screen (its name)
+    property bool islandOpen: false
+    property string islandScreen: ""
     // caffeine: hold off dimming, locking and sleep (bar/Bar.qml inhibits idle).
     // Deliberately forgotten on restart, so it can't drain a battery overnight.
     property bool caffeine: false
@@ -70,7 +74,15 @@ Singleton {
         keysOpen = open;
     }
 
+    function toggleIsland(name) {
+        const open = !(islandOpen && islandScreen === name);
+        closeAll();
+        islandScreen = name;
+        islandOpen = open;
+    }
+
     function closeAll() {
+        islandOpen = false;
         launcherOpen = false;
         centerOpen = false;
         powerOpen = false;

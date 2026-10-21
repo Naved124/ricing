@@ -32,7 +32,7 @@ user-facing guide; this file is the contract every rice has to keep.
 | `render/.local/share/rice/templates/` | templates shared by all rices (use `roles.*` only) |
 | `switcher/.local/bin/rice` | `rice <name>`, `rice next`, `rice choose`, `rice lock`, `rice session`, … |
 | `quickshell/.config/quickshell/rice/` | shared shell (`qs -c rice`): chooser + switch freeze/dissolve overlay, survives switches |
-| `quickshell/.config/quickshell/nacre/` | Nacre's own shell: bar (with the island), launcher, centre, OSD, notifs, lock, power, key sheet, wallpaper, the system card (`desk/Stats.qml`) |
+| `quickshell/.config/quickshell/nacre/` | Nacre's own shell: bar, the island (`bar/Island.qml`: time, media, notifications), launcher, centre, OSD, notifs, lock, power, key sheet, wallpaper, the system card (`desk/Stats.qml`) |
 | `quickshell/.config/quickshell/paper/` | Paper's own shell (same entry points); `common/Theme.qml` is generated, `common/Sheet.qml` is the paper every panel is cut from |
 | `fonts/.local/share/fonts/paper/` | Paper's vendored OFL fonts with their licences |
 | `zsh/.config/zsh/rice.zsh` | **shared** zsh setup (one line in `~/.zshrc` sources it); colours from `active/zsh.zsh`, reloaded on the next prompt after a switch |
@@ -228,10 +228,16 @@ switched by time.
      plus an `[install]` entry. It carries both modes (`lightPalette`, `darkPalette`
      from `light.*`/`dark.*`), and every colour property is `c("name")` or
      `role("name")`, mixed by `k`; it holds a `Mode` (`mode`, `dark`, `k`).
-   - an island in the middle of the bar (`bar/Island.qml`): the window title, or the
-     playing track with its cover and a small visualizer, glowing with `Beat.level`; hover
-     shows play/pause and next, a click drops the media card. Every visualizer reads the
-     shell's one cava, an identical copy of `services/Beat.qml`
+   - an island over the middle of the bar (`bar/Island.qml`, a `PanelWindow` per screen on
+     `WlrLayer.Overlay`, namespace `<shell>-island`, masked to itself): always the time
+     (the bar has no clock) and the notification count; the playing track with its cover
+     and a small visualizer, glowing with `Beat.level`, hover for play/pause and next;
+     each notification as a card for `Notifs.lifetime` (4 s) from `Notifs.queue`, with
+     its actions, dismiss and swipe; a click grows it into media plus the notification
+     history (`Shell.toggleIsland`). It is the only notification popup; the control
+     centre has neither media nor history. Every visualizer reads the shell's one cava,
+     an identical copy of `services/Beat.qml`. The window title goes after the
+     workspaces, in a `Marquee` when long
    - the draggable system card on the desktop (`desk/Stats.qml`, `WlrLayer.Bottom`, saved in
      `Shell.statsShown`/`statsAt`, toggled from the control centre), fed by an identical
      copy of `services/Sys.qml` (CPU, memory and `/` from one long-lived reader)
