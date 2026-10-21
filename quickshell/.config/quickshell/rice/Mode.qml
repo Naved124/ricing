@@ -13,14 +13,18 @@ import Quickshell.Io
 //   set   crossfade over 600 ms
 //   fade  crossfade over a given time (the fallback when there's no overlay)
 //
-// The same file sits in every shell (paper/common, nacre, rice); the tests
-// keep the copies identical.
+// A rice with one mode (Abyss) sets `only: "dark"`: it stays there whatever
+// the file says, and answers `get` with it.
+//
+// The same file sits in every shell (paper/common, nacre, rice, abyss); the
+// tests keep the copies identical.
 Scope {
     id: mode
 
     property var curve: [0.2, 0.9, 0.2, 1.0, 1, 1]   // Easing.BezierSpline control points
-    property bool dark: false
-    property real k: 0
+    property string only: ""                          // "dark" for a dark-only rice
+    property bool dark: only === "dark"
+    property real k: only === "dark" ? 1 : 0
     property bool started: false
     // auto mode, and what it does next ("auto · light at 06:41", "held until
     // 18:02 (then auto)"), from `rice mode status`; re-read when the mode or
@@ -34,12 +38,16 @@ Scope {
     function isDark(text) { return String(text ?? "").trim() === "dark"; }
 
     function jump(m) {
+        if (only)
+            m = only;
         fade.stop();
         dark = isDark(m);
         k = dark ? 1 : 0;
     }
 
     function set(m, ms) {
+        if (only)
+            m = only;
         const to = isDark(m) ? 1 : 0;
         dark = to === 1;
         if (k === to && !fade.running)

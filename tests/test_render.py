@@ -799,3 +799,153 @@ class Paper(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def make_dark_only(rices: Path, name: str = "deep") -> Path:
+    """A dark-only rice for the tests: Nacre with its light tables cut and
+    [meta] modes = ["dark"] (what Abyss declares)."""
+    rice = rices / name
+    shutil.copytree(rices / "nacre", rice, ignore=shutil.ignore_patterns("build"))
+    text = (rice / "palette.toml").read_text()
+    # drop every [modes.light.*] table, up to the next table that isn't one
+    text = re.sub(r"(?ms)^\[modes\.light\.[^\]]*\].*?(?=^\[(?!modes\.light\.))", "", text)
+    text = text.replace('name          = "nacre"', f'name          = "{name}"', 1)
+    text = text.replace('title         = "Nacre"', f'title         = "{name.title()}"', 1)
+    text = text.replace("[meta]\n", '[meta]\nmodes         = ["dark"]\n', 1)
+    text = text.replace('".config/quickshell/nacre/Theme.qml"', f'".config/quickshell/{name}/Theme.qml"')
+    (rice / "palette.toml").write_text(text)
+    return rice
+
+
+class DarkOnly(unittest.TestCase):
+    """A rice that declares [meta] modes = ["dark"] renders that mode only."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        root = Path(self.tmp.name)
+        self.rices, self.home = root / "rices", root / "home"
+        shutil.copytree(RICES, self.rices, ignore=shutil.ignore_patterns("build", "current"))
+        self.home.mkdir()
+        self.rice = make_dark_only(self.rices)
+        self.saved = rr.SHARED, rr.INSTALL_ROOT
+        rr.SHARED, rr.INSTALL_ROOT = TEMPLATES, self.home
+
+    def tearDown(self):
+        rr.SHARED, rr.INSTALL_ROOT = self.saved
+        self.tmp.cleanup()
+
+    def outputs(self, rice=None) -> dict[str, bytes]:
+        rice = rice or self.rice
+        return {p.relative_to(rice).as_posix() if p.is_relative_to(rice) else str(p): d
+                for p, d in rr.outputs_for(rice, rr.load_modes(rice)).items()}
+
+    def run_render(self, *args):
+        env = dict(os.environ, RICE_DIR=str(self.rices), RICE_TEMPLATES=str(TEMPLATES),
+                   RICE_INSTALL_ROOT=str(self.home), HOME=str(self.home))
+        return subprocess.run([sys.executable, str(SCRIPT), *args], env=env, capture_output=True, text=True)
+
+    def test_the_fixture_has_no_light_tables(self):
+        text = (self.rice / "palette.toml").read_text()
+        self.assertNotIn("[modes.light.", text)
+        self.assertIn("[modes.dark.colors]", text)
+        self.assertEqual(rr.load_modes(self.rice)["light"]["modes"], ["dark"])
+
+    def test_only_the_dark_build_is_rendered(self):
+        out = self.outputs()
+        builds = {k.split("/")[1] for k in out if k.startswith("build/")}
+        self.assertEqual(builds, {"dark"})
+        self.assertGreater(len(out), 30)
+        self.assertEqual(json.loads(out["build/dark/meta.json"])["mode"], "dark")
+
+    def test_build_light_links_to_dark(self):
+        p = self.run_render("deep", "-q")
+        self.assertEqual(p.returncode, 0, p.stderr)
+        light = self.rice / "build/light"
+        self.assertTrue(light.is_symlink())
+        self.assertEqual(os.readlink(light), "dark")
+        self.assertEqual((light / "kitty.conf").read_text(), (self.rice / "build/dark/kitty.conf").read_text())
+        self.assertEqual(self.run_render("deep", "--check").returncode, 0)
+        # a real light build left from before is replaced by the link
+        os.unlink(light)
+        (light / "old").mkdir(parents=True)
+        self.assertEqual(self.run_render("deep", "--check").returncode, 1)
+        self.assertEqual(self.run_render("deep", "-q").returncode, 0)
+        self.assertTrue(light.is_symlink())
+        # a rice with both modes keeps two real builds
+        self.assertEqual(self.run_render("nacre", "-q").returncode, 0)
+        self.assertFalse((self.rices / "nacre/build/light").is_symlink())
+
+    def test_meta_says_which_mode_it_keeps(self):
+        meta = json.loads(self.outputs()["build/dark/meta.json"])
+        self.assertEqual(meta["fixed_mode"], "dark")
+        self.assertEqual(meta["modes"]["light"], meta["modes"]["dark"])
+        self.assertNotIn("fixed_mode", json.loads(Modes.outputs(self, self.rices / "nacre")["build/dark/meta.json"]))
+
+    def test_the_installed_theme_carries_the_dark_palette_twice(self):
+        theme = self.outputs()[str(self.home / ".config/quickshell/deep/Theme.qml")].decode()
+        light = re.search(r"lightPalette: \(\{(.*?)\}\)", theme, re.S)[1]
+        dark = re.search(r"darkPalette: \(\{(.*?)\}\)", theme, re.S)[1]
+        self.assertEqual(light, dark)
+        self.assertIn('"bg": "#18171e"', dark)
+
+    def test_its_own_dark_template_needs_no_light_twin(self):
+        tpl = self.rice / "templates/notes"
+        tpl.mkdir()
+        (tpl / "pad@dark.conf").write_text("{{ mode }} {{ roles.bg }}\n")
+        self.assertEqual(self.outputs()["build/dark/notes/pad.conf"], b"dark #18171e\n")
+        # every template still has a dark version
+        (tpl / "pad@dark.conf").rename(tpl / "pad@light.conf")
+        with self.assertRaisesRegex(rr.RenderError, r"pad@light.conf: has no dark twin"):
+            self.outputs()
+        # and a rice with both modes still needs both twins
+        (tpl / "pad@light.conf").unlink()
+        mine = self.rices / "nacre/templates/notes"
+        mine.mkdir()
+        (mine / "pad@dark.conf").write_text("x\n")
+        with self.assertRaisesRegex(rr.RenderError, r"pad@dark.conf: has no light twin"):
+            self.outputs(self.rices / "nacre")
+
+    def test_shared_templates_still_come_in_pairs(self):
+        shared = Path(self.tmp.name) / "shared"
+        shutil.copytree(TEMPLATES, shared)
+        (shared / "only@dark.conf").write_text("x\n")
+        rr.SHARED = shared
+        with self.assertRaisesRegex(rr.RenderError, r"only@dark.conf: has no light twin"):
+            self.outputs()
+
+    def test_bad_declarations_are_explained(self):
+        palette = self.rice / "palette.toml"
+        text = palette.read_text()
+        palette.write_text(text.replace('modes         = ["dark"]', 'modes         = ["dusk"]'))
+        with self.assertRaisesRegex(rr.RenderError, r"modes = \['dusk'\]"):
+            rr.load_modes(self.rice)
+        palette.write_text(text.replace('modes         = ["dark"]', 'modes         = ["light"]'))
+        with self.assertRaisesRegex(rr.RenderError, r"no \[modes.light.\*\] tables"):
+            rr.load_modes(self.rice)
+        nacre = (self.rices / "nacre/palette.toml").read_text()
+        palette.write_text(nacre.replace("[meta]\n", '[meta]\nmodes = ["dark"]\n', 1))
+        with self.assertRaisesRegex(rr.RenderError, r"\[modes.light.\*\] tables, but \[meta\] modes"):
+            rr.load_modes(self.rice)
+
+    def test_the_active_link_reaches_the_dark_build_by_day(self):
+        self.assertEqual(self.run_render("deep", "-q").returncode, 0)
+        (self.rices / "current").symlink_to(self.rice)
+        env = dict(os.environ, RICE_DIR=str(self.rices), RICE_TEMPLATES=str(TEMPLATES),
+                   RICE_INSTALL_ROOT=str(self.home), HOME=str(self.home),
+                   XDG_DATA_HOME=str(self.home / "data"), XDG_STATE_HOME=str(self.home / "state"),
+                   PATH="/usr/bin:/bin")
+        (self.home / "state/rice").mkdir(parents=True)
+        (self.home / "state/rice/mode").write_text("light\n")
+        p = subprocess.run([sys.executable, str(SCRIPT), "--link"], env=env, capture_output=True, text=True)
+        self.assertEqual(p.returncode, 0, p.stderr)
+        active = self.home / "data/rice/active"
+        self.assertTrue(str(os.readlink(active)).endswith("current/build/light"))
+        self.assertEqual(active.resolve(), (self.rice / "build/dark").resolve())
+
+    def test_the_chooser_gives_it_no_sun_or_moon(self):
+        chooser = (REPO / "quickshell/.config/quickshell/rice/Chooser.qml").read_text()
+        self.assertIn("visible: !slot.modelData.meta?.fixed_mode", chooser)
+        self.assertIn("slot.modelData.meta?.fixed_mode ?? (Theme.dark", chooser)
+        mode = (REPO / "quickshell/.config/quickshell/rice/Mode.qml").read_text()
+        self.assertIn('property string only: ""', mode)
+        self.assertIn("if (only)\n            m = only;", mode)

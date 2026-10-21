@@ -208,6 +208,17 @@ include, `hyprland.lua` and `rice.zsh` go through `active/`. A rice without
 `[modes.dark.*]` renders its light tables into `dark/` too. Boot screens and the
 greeter always use `build/light/`.
 
+**One-mode rices.** `[meta] modes = ["dark"]` (Abyss) declares the only mode a rice
+has: it carries only `[modes.dark.*]`, renders only `build/dark/`, and `build/light`
+is a link to `dark`, so `active`, the greeter and boot screens reach its one look
+whatever the mode file says. Its own templates may be lone `name@dark.ext` files
+(shared ones still come in pairs), its `light.*` in templates is its `dark.*`, and its
+`meta.json` has `fixed_mode`. `rice mode` while it is active still writes the mode
+(the other rices open in it later) but changes nothing on screen: no freeze, Hyprland,
+GTK or app steps; a manual choice asks its shell for a toast (`shell.toast("Abyss is
+always dark")`), auto mode stays quiet. Its shell's `Mode` has `only: "dark"`, its
+control centre has no mode toggle, and the chooser shows its card with no sun or moon.
+
 - Templates stay mode-agnostic: roles, colours, `gtk.*`, `meta.*` and `{{ mode }}`.
   A file that must hold both modes reads `light.*` and `dark.*`; every `[install]` file
   (`Theme.qml`) must render the same in both modes, or the build fails. A template that

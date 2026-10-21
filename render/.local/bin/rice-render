@@ -11,7 +11,10 @@ Templates live in ~/.local/share/rice/templates (shared by every rice) and
 <rice>/templates (a rice's own overrides or extra files). Every rice is
 rendered in both modes, into <rice>/build/light/ and <rice>/build/dark/, plus
 the paths listed in the palette's [install] table. A rice with no
-[modes.dark.*] tables renders its light tables into dark/ too.
+[modes.dark.*] tables renders its light tables into dark/ too. A rice that
+declares `modes = ["dark"]` in [meta] renders that mode only; its build/light
+is a link to build/dark, so everything that reads the light build (the active
+link at day, the greeter, boot screens) gets the one look it has.
 ~/.local/share/rice/active points at the build of the active rice and mode,
 and every app's config links through it.
 
@@ -132,19 +135,37 @@ MODE_TABLES = ("colors", "roles", "gradient", "ansi", "opacity", "wallpaper")
 GTK_KEYS = {"gtk_theme": "theme", "icon_theme": "icons", "color_scheme": "color_scheme"}
 
 
+def declared_modes(data: dict, path: Path) -> tuple[str, ...]:
+    """The modes a rice has: [meta] modes (Abyss: ["dark"]), else both."""
+    want = data.get("meta", {}).get("modes")
+    if want is None:
+        return MODES
+    if not isinstance(want, list) or not want or any(m not in MODES for m in want) \
+            or len(set(want)) != len(want):
+        raise RenderError(f"{path}: [meta] modes = {want!r}; list one or both of {', '.join(MODES)}")
+    return tuple(m for m in MODES if m in want)
+
+
 def flatten_mode(data: dict, mode: str, path: Path) -> dict:
     """One mode of a schema-v2 palette, in the shape templates read: the mode's
     tables at the top level, its meta merged into [meta] and its GTK keys
-    into [gtk]."""
+    into [gtk]. A mode the rice doesn't have is its first mode's."""
+    own = declared_modes(data, path)
     modes = data.pop("modes", None)
-    if not isinstance(modes, dict) or "light" not in modes:
-        raise RenderError(f"{path}: no [modes.light.*] tables (palette schema v2; see CLAUDE.md)")
+    if not isinstance(modes, dict) or own[0] not in modes:
+        raise RenderError(f"{path}: no [modes.{own[0]}.*] tables (palette schema v2; see CLAUDE.md)")
+    if own != MODES and any(m in modes for m in MODES if m not in own):
+        extra = next(m for m in MODES if m in modes and m not in own)
+        raise RenderError(f"{path}: [modes.{extra}.*] tables, but [meta] modes = {list(own)!r}")
     stray = [t for t in MODE_TABLES if t in data]
     if stray:
         raise RenderError(f"{path}: [{stray[0]}] belongs under [modes.<mode>.{stray[0]}]")
     if mode not in MODES:
         raise RenderError(f"{path}: no mode called {mode!r} (modes are {', '.join(MODES)})")
-    # a rice without its own dark tables wears its light ones at night
+    # a rice without its own dark tables wears its light ones at night; a
+    # dark-only rice wears its dark ones all day
+    if mode not in own:
+        mode = own[0]
     m = modes.get(mode) or modes["light"]
     for t in MODE_TABLES:
         if t in m:
@@ -154,6 +175,7 @@ def flatten_mode(data: dict, mode: str, path: Path) -> dict:
     data["gtk"] = {**data.get("gtk", {}), **{GTK_KEYS[k]: v for k, v in look.items() if k in GTK_KEYS}}
     data["mode"] = mode
     data["has_mode"] = mode in modes
+    data["modes"] = list(own)
     return data
 
 
@@ -222,11 +244,17 @@ def load_palette(rice: Path, mode: str = "light") -> dict:
 
 def load_modes(rice: Path) -> dict[str, dict]:
     """Both modes of a rice. Each context can also reach the other's palette
-    as light.* and dark.*, for files that carry both."""
+    as light.* and dark.*, for files that carry both; a rice with one mode
+    answers both names with it (its Theme.qml then mixes a palette with
+    itself). ctx["modes"] lists the modes it really renders."""
     ctxs = {m: load_palette(rice, m) for m in MODES}
     for ctx in ctxs.values():
         ctx.update(ctxs)
     return ctxs
+
+
+def own_modes(ctxs: dict[str, dict]) -> tuple[str, ...]:
+    return tuple(ctxs["light"]["modes"])
 
 
 # ── template engine ──────────────────────────────────────────────────────────
@@ -556,11 +584,14 @@ def pearl(ctx: dict, size: int = 192) -> bytes:
 MODE_FILE = re.compile(r"^(?P<stem>[^.]*)@(?P<mode>[a-z]+)(?P<ext>(\.[^/]*)?)$")
 
 
-def template_files(rice: Path, mode: str = "light") -> dict[str, Path]:
+def template_files(rice: Path, mode: str = "light", own: tuple[str, ...] = MODES) -> dict[str, Path]:
     """relative path → template file for one mode; a rice's own templates win,
-    and name@<mode>.ext beats name.ext from the same folder."""
+    and name@<mode>.ext beats name.ext from the same folder. Shared pairs need
+    both twins; a rice's own need one per mode it has (a dark-only rice may
+    keep just name@dark.ext)."""
     found: dict[str, Path] = {}
     for root in (SHARED, rice / "templates"):
+        need = MODES if root == SHARED else own
         if not root.is_dir():
             continue
         plain: dict[str, Path] = {}
@@ -578,23 +609,24 @@ def template_files(rice: Path, mode: str = "light") -> dict[str, Path]:
             name = (rel.parent / (m["stem"] + m["ext"])).as_posix()
             moded.setdefault(name, {})[m["mode"]] = f
         for name, by_mode in moded.items():
-            missing = [x for x in MODES if x not in by_mode]
+            missing = [x for x in need if x not in by_mode]
             if missing:
                 have = next(iter(by_mode.values()))
                 raise RenderError(f"{have}: has no {missing[0]} twin; a template that differs "
                                   f"by mode needs one file per mode ({', '.join(MODES)})")
         found.update(plain)
-        found.update({name: by_mode[mode] for name, by_mode in moded.items()})
+        found.update({name: by_mode[mode] for name, by_mode in moded.items() if mode in by_mode})
     return found
 
 
 def outputs_for(rice: Path, ctxs: dict[str, dict]) -> dict[Path, bytes]:
-    """Every file for both modes: build/<mode>/…, then the [install] copies."""
+    """Every file for the rice's modes: build/<mode>/…, then the [install] copies."""
     out: dict[Path, bytes] = {}
-    for mode in MODES:
+    own = own_modes(ctxs)
+    for mode in own:
         out.update(mode_outputs(rice, ctxs[mode]))
     for rel, dest in ctxs["light"].get("install", {}).items():
-        srcs = [rice / "build" / mode / rel for mode in MODES]
+        srcs = [rice / "build" / mode / rel for mode in own]
         if srcs[0] not in out:
             raise RenderError(f"{rice}/palette.toml: [install] {rel!r} is not a rendered file")
         # an installed file serves both modes, so it has to carry both itself
@@ -608,7 +640,7 @@ def outputs_for(rice: Path, ctxs: dict[str, dict]) -> dict[Path, bytes]:
 def mode_outputs(rice: Path, ctx: dict) -> dict[Path, bytes]:
     out: dict[Path, bytes] = {}
     build = rice / "build" / ctx["mode"]
-    for rel, src in template_files(rice, ctx["mode"]).items():
+    for rel, src in template_files(rice, ctx["mode"], tuple(ctx["modes"])).items():
         name = render_text(rel, ctx, f"{src} (file name)")
         if src.suffix in {".png", ".jpg", ".ttf", ".otf", ".qsb"}:
             out[build / name] = src.read_bytes()
@@ -630,9 +662,14 @@ def mode_outputs(rice: Path, ctx: dict) -> dict[Path, bytes]:
         "variant": ctx["derived"]["variant"],
         "mode": ctx["mode"],
         # both modes, for the chooser to crossfade between and draw cards in
+        # (a one-mode rice gives its one look under both names)
         "modes": {m: {"roles": ctx[m]["roles"], "colors": ctx[m]["colors"],
                       "gradient": ctx[m]["gradient"]["stops"]} for m in MODES},
     }
+    if ctx["modes"] != list(MODES):
+        # the mode it always wears: the chooser shows no sun or moon for it,
+        # and `rice mode` leaves it alone
+        meta["fixed_mode"] = ctx["modes"][0]
     if ctx["meta"].get("mode_transition"):
         # `rice mode`'s reveal (the shared shell's Freeze): the shader in the rice
         # folder, where it starts, how long, and its tint in each mode (a colour
@@ -690,19 +727,36 @@ def write(path: Path, data: bytes) -> bool:
 
 def render(rice: Path, check: bool = False, quiet: bool = False) -> int:
     changed = 0
-    outputs = outputs_for(rice, load_modes(rice))
-    if not check:
+    ctxs = load_modes(rice)
+    outputs = outputs_for(rice, ctxs)
+    own = own_modes(ctxs)
+    build = rice / "build"
+    # a mode the rice doesn't have is a link to the one it has
+    aliases = {m: own[0] for m in MODES if m not in own}
+    if check:
+        for m, to in aliases.items():
+            if not (build / m).is_symlink() or os.readlink(build / m) != to:
+                print(f"out of date: {build / m} (should link to {to})", file=sys.stderr)
+                changed += 1
+    else:
         # build/ is all ours: anything beside light/ and dark/ is left over
         # from before the per-mode builds, and a link still pointing at it
         # would keep showing old colours
-        build = rice / "build"
         for old in build.iterdir() if build.is_dir() else ():
-            if old.name in MODES:
+            if old.name in own or (old.name in aliases and old.is_symlink()
+                                    and os.readlink(old) == aliases[old.name]):
                 continue
             shutil.rmtree(old) if old.is_dir() and not old.is_symlink() else old.unlink()
             changed += 1
             if not quiet:
                 print(f"  removed {old}")
+        for m, to in aliases.items():
+            if not (build / m).is_symlink():
+                build.mkdir(parents=True, exist_ok=True)
+                (build / m).symlink_to(to)
+                changed += 1
+                if not quiet:
+                    print(f"  link  {build / m} → {to}")
     for path, data in outputs.items():
         if check:
             try:

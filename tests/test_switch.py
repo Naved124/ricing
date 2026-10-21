@@ -323,6 +323,61 @@ class Switch(unittest.TestCase):
         self.assertRegex(data["mode_next"], r"^light at 05:0\d$")
         self.assertNotIn("schedule", data)
 
+    # ── a dark-only rice (Abyss) ─────────────────────────────────────────
+    def to_deep(self):
+        import sys
+        sys.path.insert(0, str(REPO / "tests"))
+        from test_render import make_dark_only
+        make_dark_only(self.rices)
+        r = self.rice("deep")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.log.unlink(missing_ok=True)
+
+    def test_a_dark_only_rice_opens_dark_by_day(self):
+        self.to_deep()
+        active = Path(self.env["HOME"]) / ".local/share/rice/active"
+        self.assertEqual(Path(os.readlink(active)), self.rices / "current/build/light")
+        self.assertEqual(active.resolve(), (self.rices / "deep/build/dark").resolve())
+        self.log.unlink(missing_ok=True)
+        self.assertEqual(self.rice("reapply").returncode, 0)
+        self.assertIn("gsettings set org.gnome.desktop.interface gtk-theme adw-gtk3-dark", self.calls())
+        self.assertIn("gsettings set org.gnome.desktop.interface color-scheme prefer-dark", self.calls())
+
+    def test_rice_mode_remembers_but_a_dark_only_rice_stays_dark(self):
+        self.to_deep()
+        state = Path(self.env["XDG_STATE_HOME"]) / "rice"
+        for target, want in (("dark", "dark"), ("light", "light"), ("toggle", "dark")):
+            with self.subTest(target):
+                self.log.unlink(missing_ok=True)
+                r = self.rice("mode", target)
+                self.assertEqual(r.returncode, 0, r.stderr)
+                self.assertEqual((state / "mode").read_text(), f"{want}\n")
+                calls = self.calls()
+                # nothing on screen changes: no freeze, no Hyprland, no GTK, no apps
+                for prefix in ("grim", "hyprctl", "gsettings", "pkill -USR1", "qs -c rice ipc call rice reveal"):
+                    self.assertFalse(any(c.startswith(prefix) for c in calls), f"{prefix}: {calls}")
+                # the chooser follows the choice; the rice says why it doesn't
+                self.assertIn(f"qs -c rice ipc call mode jump {want}", calls)
+                self.assertIn("qs -c nacre ipc call shell toast Deep is always dark", calls)
+        active = Path(self.env["HOME"]) / ".local/share/rice/active"
+        self.assertEqual(active.resolve(), (self.rices / "deep/build/dark").resolve())
+        # Paper and Nacre open in the mode chosen meanwhile
+        self.rice("mode", "light")
+        self.assertEqual(self.rice("paper").returncode, 0)
+        self.assertEqual(active.resolve(), (self.rices / "paper/build/light").resolve())
+
+    def test_auto_leaves_a_dark_only_rice_alone(self):
+        self.to_deep()
+        r = self.sun("mode", "auto", "--instant", at="2024-06-21T12:00")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual((self.state("mode"), self.state("mode-source")), ("light", "auto"))
+        self.log.unlink(missing_ok=True)
+        self.sun("mode", "tick", at="2024-06-21T23:00")
+        self.assertEqual(self.state("mode"), "dark")
+        calls = self.calls()
+        self.assertFalse(any("toast" in c for c in calls), "the timer is quiet")
+        self.assertFalse(any(c.startswith(("grim", "hyprctl", "gsettings")) for c in calls), calls)
+
     def test_the_timer_runs_the_tick(self):
         units = REPO / "systemd/.config/systemd/user"
         self.assertIn("ExecStart=%h/.local/bin/rice mode tick", (units / "rice-mode.service").read_text())

@@ -11,7 +11,8 @@ import qs
 // toggles auto mode (light and dark by the sun), `d` light and dark, Esc or a
 // click outside closes. Cards show their rice in the current mode, crossfading
 // with it, and a sun or moon in the corner says which mode it opens in; the
-// footer's pill is light · dark · auto, with the next switch.
+// footer's pill is light · dark · auto, with the next switch. A rice with one
+// mode (meta.fixed_mode, Abyss) wears it on its card and gets no sun or moon.
 // A rice can draw its own card: rices/<name>/card.qml. It receives `rice`,
 // `selected` and `active` like GenericCard.qml, plus `base` (GenericCard's
 // URL) and `mode` ("light" or "dark") if it declares them. `rice.meta`'s
@@ -179,10 +180,12 @@ PanelWindow {
                     Binding { target: loader.item; property: "selected"; value: slot.isSelected; when: loader.status === Loader.Ready }
                     Binding { target: loader.item; property: "active"; value: slot.modelData.name === Rices.current; when: loader.status === Loader.Ready }
                     Binding { target: loader.item; property: "base"; value: Qt.resolvedUrl("GenericCard.qml"); when: loader.status === Loader.Ready && loader.item.hasOwnProperty("base") }
-                    Binding { target: loader.item; property: "mode"; value: Theme.dark ? "dark" : "light"; when: loader.status === Loader.Ready && loader.item.hasOwnProperty("mode") }
+                    Binding { target: loader.item; property: "mode"; value: slot.modelData.meta?.fixed_mode ?? (Theme.dark ? "dark" : "light"); when: loader.status === Loader.Ready && loader.item.hasOwnProperty("mode") }
 
                     // the mode it opens in: a sun or a moon in the corner
+                    // (none for a rice that only has one)
                     Rectangle {
+                        visible: !slot.modelData.meta?.fixed_mode
                         anchors.right: parent.right
                         anchors.top: parent.top
                         anchors.margins: 6

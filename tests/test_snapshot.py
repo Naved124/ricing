@@ -29,8 +29,12 @@ loader.exec_module(rr)
 
 
 def rice_names() -> list[str]:
+    """Every rice with a light mode (a dark-only one like Abyss has no light output)."""
+    import tomllib
     return sorted(p.name for p in RICES.iterdir()
-                  if p.is_dir() and not p.is_symlink() and (p / "palette.toml").exists())
+                  if p.is_dir() and not p.is_symlink() and (p / "palette.toml").exists()
+                  and "light" in rr.declared_modes(tomllib.loads((p / "palette.toml").read_text()),
+                                                   p / "palette.toml"))
 
 
 def light_hashes() -> dict[str, str]:
