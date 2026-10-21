@@ -9,8 +9,9 @@
 # Options:
 #   --rice NAME     the rice to make active (default: keep the current one, else nacre)
 #   --no-deps       don't install packages (just report what's missing)
-#   --no-fonts      don't download Italiana, Manrope and IBM Plex Mono (Paper's
-#                   fonts ship in the repo's fonts/ package and are always linked)
+#   --no-fonts      don't download Italiana, Manrope, IBM Plex Mono, Jura and
+#                   JetBrains Mono (Paper's fonts ship in the repo's fonts/
+#                   package and are always linked)
 #   --no-firefox    don't touch Firefox profiles
 #   --system        also theme Limine, the Plymouth splash and the greetd/ReGreet
 #                   login screen (runs sudo system/install --all; asks for sudo)
@@ -342,7 +343,8 @@ fi
 # ── fonts ───────────────────────────────────────────────────────────────
 # family|style|file: each style is checked on its own, so a weight added later
 # (the palettes use SemiBold and Bold) is fetched even if the family is there.
-# Manrope is one variable font holding every weight; Italiana has one weight.
+# Manrope, Jura and JetBrains Mono (Abyss) are variable fonts holding every
+# weight; Italiana has one weight.
 font_files=(
     "Italiana||italiana/Italiana-Regular.ttf"
     "Manrope||manrope/Manrope%5Bwght%5D.ttf"
@@ -353,6 +355,9 @@ font_files=(
     "IBM Plex Mono|SemiBold Italic|ibmplexmono/IBMPlexMono-SemiBoldItalic.ttf"
     "IBM Plex Mono|Bold|ibmplexmono/IBMPlexMono-Bold.ttf"
     "IBM Plex Mono|Bold Italic|ibmplexmono/IBMPlexMono-BoldItalic.ttf"
+    "Jura||jura/Jura%5Bwght%5D.ttf"
+    "JetBrains Mono||jetbrainsmono/JetBrainsMono%5Bwght%5D.ttf"
+    "JetBrains Mono|Italic|jetbrainsmono/JetBrainsMono-Italic%5Bwght%5D.ttf"
 )
 
 have_font() {   # have_font FAMILY [STYLE]
@@ -383,7 +388,7 @@ for entry in "${font_files[@]}"; do
     fi
 done
 [ -n "$missing" ] && warn "not installed: ${missing#, }"
-[ "$fetched" = 0 ] && [ -z "$missing" ] && ok "Italiana, Manrope, IBM Plex Mono"
+[ "$fetched" = 0 ] && [ -z "$missing" ] && ok "Italiana, Manrope, IBM Plex Mono, Jura, JetBrains Mono"
 [ "$fetched" = 1 ] && have fc-cache && run fc-cache -f "$fontdir" >/dev/null
 # Courier Prime, Kalam and Newsreader (Paper) are OFL fonts kept in the repo's
 # fonts/ package; stow links them below and fc-cache picks them up there

@@ -170,6 +170,33 @@ class Apps(unittest.TestCase):
         self.assertIn("adw-gtk3-dark", (RICE / "palette.toml").read_text())
 
 
+class Binds(unittest.TestCase):
+    """base.lua's shell binds reach a GlobalShortcut in every shell; the
+    reef's two are Abyss's alone."""
+
+    def test_every_global_has_a_shortcut(self):
+        base = (REPO / "hypr/.config/hypr/base.lua").read_text()
+        names = set(re.findall(r'global\("quickshell:([\w-]+)"\)', base))
+        self.assertIn("reef-interactive", names)
+        self.assertIn("reef-stats", names)
+        self.assertRegex(base, r'key\("CTRL \+ R"\),\s+hl\.dsp\.global\("quickshell:reef-interactive"\)')
+        self.assertRegex(base, r'key\("CTRL \+ SHIFT \+ R"\),\s+hl\.dsp\.global\("quickshell:reef-stats"\)')
+        # Super+Alt+R stays region recording
+        self.assertRegex(base, r'key\("ALT \+ R"\),\s+hl\.dsp\.exec_cmd\("rice-rec toggle region"\)')
+        for shell in ("abyss", "nacre", "paper"):
+            have = set()
+            for f in (SHELLS / shell).rglob("*.qml"):
+                have |= set(re.findall(r'GlobalShortcut \{(?:\s*id: \w+)?\s*name: "([\w-]+)"', f.read_text()))
+            want = names if shell == "abyss" else {n for n in names if not n.startswith("reef-")}
+            with self.subTest(shell):
+                self.assertEqual(want - have, set())
+
+    def test_the_fonts_are_installed(self):
+        install = (REPO / "install").read_text()
+        for family in ("Jura", "JetBrains Mono"):
+            self.assertIn(f'"{family}|', install)
+
+
 class Switch(unittest.TestCase):
     """Abyss floods in and drains out; its card is the reef at rest."""
 

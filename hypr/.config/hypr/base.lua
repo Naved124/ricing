@@ -165,6 +165,10 @@ bind(key("SHIFT + G"), hl.dsp.exec_cmd("rice grain toggle"), "Rice · Paper grai
 -- light and dark: the same everywhere (Paper's lamp, Nacre's black pearl)
 bind(key("ALT + D"),         hl.dsp.exec_cmd("rice mode toggle"), "Rice · Light/dark")
 bind(key("ALT + SHIFT + D"), hl.dsp.exec_cmd("rice mode auto"),   "Rice · Light and dark by the sun (auto)")
+-- the reef (Abyss's wallpaper): whether it feels the pointer, and its stats.
+-- Only Abyss's shell registers these; elsewhere they do nothing.
+bind(key("CTRL + R"),         hl.dsp.global("quickshell:reef-interactive"), "Rice · Reef: touch on/off (Abyss)")
+bind(key("CTRL + SHIFT + R"), hl.dsp.global("quickshell:reef-stats"),       "Rice · Reef: stats overlay (Abyss)")
 
 -- mouse
 bind(key("mouse:272"), hl.dsp.window.drag(),   "Mouse · Move window",   { mouse = true })

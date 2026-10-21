@@ -86,6 +86,7 @@ reads them from `hyprctl binds -j`):
 | Super+Shift+T / Super+Ctrl+T | rice chooser / next rice |
 | Super+Shift+G | `rice grain toggle`: the rice's screen shader (Paper's grain) on/off |
 | Super+Alt+D / Super+Alt+Shift+D | `rice mode toggle` / `rice mode auto` (light and dark by the sun) |
+| Super+Ctrl+R / Super+Ctrl+Shift+R | Abyss's reef: touch on/off (`quickshell:reef-interactive`, with a toast) / stats overlay (`quickshell:reef-stats`); only Abyss's shell registers them |
 | Media keys | `wpctl` (volume up to **150%**: `-l 1.5`), `brightnessctl`, `playerctl`; work while locked |
 
 **Monitor and scale**: `base.lua` has the fallback

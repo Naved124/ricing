@@ -201,6 +201,7 @@ rice-rec toggle      record the screen to ~/Videos, again to stop (also: region)
 | Super+L | lock |
 | Super+Shift+T / Super+Ctrl+T | rice chooser / next rice |
 | Super+Alt+D / Super+Alt+Shift+D | light ⇄ dark / auto (by the sun) |
+| Super+Ctrl+R / Super+Ctrl+Shift+R | Abyss: the reef feels the pointer or not / its stats overlay |
 | Super+Shift+G | Paper's grain on or off (it stops games and video skipping the compositor) |
 | Print, Shift+Print, Super+Print, Ctrl+Print | screenshot a region, the screen, the window, or into satty |
 | Super+Shift+C | colour picker |
