@@ -7,7 +7,9 @@ import Quickshell.Wayland
 // One per monitor: the screenshot `rice` took just before switching, held
 // above everything while the new rice loads underneath, then dissolved by
 // the incoming rice's transition shader (~/.config/rices/<name>/transition.frag.qsb),
-// or a plain fade when it has none.
+// or a plain fade when it has none. `rice mode` reveals the same way with the
+// rice's mode shader (lamp, orient), which also reads origin, dark, tint and
+// the target mode's gradient (c0–c4); shaders ignore what they don't declare.
 PanelWindow {
     id: win
 
@@ -17,6 +19,11 @@ PanelWindow {
     property url shader: Qt.resolvedUrl("shaders/fade.frag.qsb")
     property int duration: 600
     property real progress: 0
+    property var curve: null              // Easing.BezierSpline points, or linear
+    property point origin: Qt.point(0.5, 0.5)
+    property real dark: 0
+    property color tint: "transparent"
+    property var stops: []
 
     screen: modelData
     visible: frozen
@@ -38,12 +45,21 @@ PanelWindow {
     }
     property string frameDir: ""
 
-    function dissolve(shaderPath, ms) {
+    // params (for `rice mode`): { origin: [x, y], dark, tint, stops, curve }
+    function dissolve(shaderPath, ms, params) {
         if (!frozen) return;
+        const p = params ?? {};
+        const o = p.origin ?? [0.5, 0.5];
+        origin = Qt.point(o[0], o[1]);
+        dark = p.dark ?? 0;
+        tint = p.tint ?? "transparent";
+        stops = p.stops ?? [];
+        curve = p.curve ?? null;
         shader = shaderPath;
         duration = ms;
         anim.restart();
     }
+    function stop(i) { return stops.length ? stops[i % stops.length] : "transparent"; }
 
     Image {
         id: shot
@@ -65,6 +81,14 @@ PanelWindow {
         property variant source: shot
         property real progress: win.progress
         property real aspect: width / Math.max(1, height)
+        property point origin: win.origin
+        property real dark: win.dark
+        property color tint: win.tint
+        property color c0: win.stop(0)
+        property color c1: win.stop(1)
+        property color c2: win.stop(2)
+        property color c3: win.stop(3)
+        property color c4: win.stop(4)
         fragmentShader: win.shader
         // a broken shader must not leave the screen frozen
         onStatusChanged: if (status === ShaderEffect.Error) win.shader = Qt.resolvedUrl("shaders/fade.frag.qsb")
@@ -77,7 +101,8 @@ PanelWindow {
         from: 0
         to: 1
         duration: win.duration
-        easing.type: Easing.Linear
+        easing.type: win.curve ? Easing.BezierSpline : Easing.Linear
+        easing.bezierCurve: win.curve ?? []
         onFinished: {
             win.frozen = false;
             win.frame = "";

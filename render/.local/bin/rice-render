@@ -622,6 +622,17 @@ def mode_outputs(rice: Path, ctx: dict) -> dict[Path, bytes]:
         "modes": {m: {"roles": ctx[m]["roles"], "colors": ctx[m]["colors"],
                       "gradient": ctx[m]["gradient"]["stops"]} for m in MODES},
     }
+    if ctx["meta"].get("mode_transition"):
+        # `rice mode`'s reveal (the shared shell's Freeze): the shader in the rice
+        # folder, where it starts, how long, and its tint in each mode (a colour
+        # name or a hex)
+        m = ctx["meta"]
+        meta["mode_transition"] = {
+            "shader": m["mode_transition"], "origin": m.get("mode_origin", [0.5, 0.5]),
+            "ms": m.get("mode_ms", 800), "tint_alpha": m.get("mode_tint_alpha", 0.25),
+            "tint": {k: ctx[k]["colors"].get(m.get("mode_tint", ""), m.get("mode_tint", ""))
+                     for k in MODES},
+        }
     out[build / "meta.json"] = (json.dumps(meta, indent=2) + "\n").encode()
     if not (rice / "templates/fastfetch/logo.png").exists():
         out[build / "fastfetch/logo.png"] = pearl(ctx)

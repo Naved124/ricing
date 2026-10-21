@@ -25,7 +25,7 @@ user-facing guide; this file is the contract every rice has to keep.
 | `hypr/.config/hypr/hyprland.lua` | entry: `base` → `~/.local/share/rice/active/hypr.lua` → `local` |
 | `hypr/.config/hypr/base.lua` | **shared by every rice**: keybinds, input, layout, autostart, monitor default, window tags |
 | `~/.config/hypr/local.lua` | per machine, not in the repo: monitors, keyboard layout (see `local.example.lua`) |
-| `rices/.config/rices/<name>/` | one rice: `palette.toml`, `templates/`, `card.qml`, `transition.frag(.qsb)`, optional `wallpaper/`, `hooks/post-switch`, `preview.png` |
+| `rices/.config/rices/<name>/` | one rice: `palette.toml`, `templates/`, `card.qml`, `transition.frag(.qsb)`, optional mode shader (`lamp.frag`, `orient.frag`), optional `wallpaper/`, `hooks/post-switch`, `preview.png` |
 | `rices/.config/rices/current` | symlink to the active rice |
 | `~/.local/share/rice/active` | symlink to `current/build/<mode>`; every app config links through it |
 | `render/.local/bin/rice-render` | template engine: palette → `build/light/`, `build/dark/` + app configs |
@@ -184,7 +184,12 @@ battery under 20%: then the shells crossfade for 200 ms) → write `~/.local/sta
 (atomically) → re-point `active` → `hyprctl eval` of `active/hypr-mode.lua` (no reload) →
 gsettings colour scheme, GTK theme, icons → SIGUSR1 to kitty and cava, nvim's
 colourscheme, Spicetify's `rice-<mode>` scheme → `qs ipc call mode jump|fade` to the
-rice's shell and the shared one → `rice ipc call rice reveal`. So **everything that
+rice's shell and the shared one → `rice ipc call rice reveal <mode>`: the shared shell's
+`Freeze` dissolves with the rice's mode shader from `[meta] mode_transition` (`mode_origin`,
+`mode_tint` (a colour name or hex) with `mode_tint_alpha`, `mode_ms`; the shader also gets
+`dark` and the target mode's gradient as `c0`–`c4`), on the rice's bloom curve, or fades.
+Qt passes colours to shaders premultiplied. `mode_sound` (Paper's click) plays when
+`sound = true` in `mode.toml`. So **everything that
 changes with the mode in Hyprland goes in `templates/hypr-mode.lua`**; `hypr.lua` loads it
 and must render the same in both modes (a test checks), window rules included.
 

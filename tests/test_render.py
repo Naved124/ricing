@@ -422,6 +422,28 @@ class ShellModes(unittest.TestCase):
         self.assertEqual(meta["modes"]["light"]["roles"]["bg"], "#f4f1f6")
         self.assertEqual(len(meta["modes"]["dark"]["gradient"]), 5)
 
+    def test_each_rice_reveals_a_mode_change_with_its_own_shader(self):
+        for rice, shader in (("paper", "lamp"), ("nacre", "orient")):
+            with self.subTest(rice):
+                ctxs = rr.load_modes(RICES / rice)
+                with tempfile.TemporaryDirectory() as d:
+                    saved = rr.SHARED, rr.INSTALL_ROOT
+                    rr.SHARED, rr.INSTALL_ROOT = TEMPLATES, Path(d)
+                    try:
+                        out = rr.mode_outputs(RICES / rice, ctxs["dark"])
+                    finally:
+                        rr.SHARED, rr.INSTALL_ROOT = saved
+                t = json.loads(out[RICES / f"{rice}/build/dark/meta.json"])["mode_transition"]
+                self.assertEqual(t["shader"], shader)
+                self.assertEqual(len(t["origin"]), 2)
+                self.assertTrue(all(0 <= v <= 1 for v in t["origin"]))
+                for m in ("light", "dark"):
+                    self.assertRegex(t["tint"][m], r"^#[0-9a-f]{6}$")
+                src = RICES / rice / f"{shader}.frag"
+                qsb = RICES / rice / f"{shader}.frag.qsb"
+                self.assertTrue(qsb.exists(), "run tools/shaders")
+                self.assertGreaterEqual(qsb.stat().st_mtime, src.stat().st_mtime - 1, "recompile with tools/shaders")
+
 
 class Modes(unittest.TestCase):
     """Every rice renders in both modes, from the same templates."""

@@ -6,6 +6,7 @@
 //   qs -c rice ipc call rice dissolve <rice>   reveal the new rice with its transition
 //   qs -c rice ipc call rice reload            re-read the rice list
 //   qs -c rice ipc call rice reveal <mode>     reveal the desktop after `rice mode`
+//                                              with the rice's mode shader (lamp, orient)
 
 import QtQuick
 import Quickshell
@@ -17,7 +18,7 @@ ShellRoot {
 
     // how long each transition shader runs, by meta.transition
     readonly property var durations: ({ ripple: 900, peel: 950, fade: 450 })
-    // a mode change fades the frozen frame away (each rice's own reveal comes later)
+    // a mode change in a rice without a mode shader fades the frozen frame away
     readonly property int modeReveal: 600
 
     Chooser { id: chooser }
@@ -49,8 +50,24 @@ ShellRoot {
             Rices.refresh();
         }
 
+        // meta.json's mode_transition: { shader, origin, ms, tint: {light, dark}, tint_alpha }
         function reveal(mode: string): void {
-            for (const f of frames.instances) f.dissolve(Qt.resolvedUrl("shaders/fade.frag.qsb"), root.modeReveal);
+            const r = Rices.active;
+            const t = r?.meta?.mode_transition;
+            for (const f of frames.instances) {
+                if (!t) {
+                    f.dissolve(Qt.resolvedUrl("shaders/fade.frag.qsb"), root.modeReveal);
+                    continue;
+                }
+                const tint = t.tint?.[mode];
+                f.dissolve(`file://${Rices.dir}/${r.name}/${t.shader}.frag.qsb`, t.ms ?? 800, {
+                    origin: t.origin,
+                    dark: mode === "dark" ? 1 : 0,
+                    tint: tint ? Qt.alpha(tint, t.tint_alpha ?? 0.25) : "transparent",
+                    stops: (r.meta.modes?.[mode]?.gradient ?? []),
+                    curve: (r.meta.motion?.bloom ?? [0.2, 0.9, 0.2, 1.0]).concat([1, 1])
+                });
+            }
             Rices.refresh();
         }
     }

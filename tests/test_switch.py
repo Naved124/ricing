@@ -45,7 +45,7 @@ exit 0
 """
 FAKES = ["qs", "hyprctl", "grim", "gsettings", "swaync", "swaync-client",
          "pkill", "pgrep", "swww", "mpvpaper", "nvim", "systemctl", "hyprlock", "pidof",
-         "uwsm", "loginctl", "setsid"]
+         "uwsm", "loginctl", "setsid", "pw-play"]
 
 
 @unittest.skipUnless(shutil.which("jq"), "jq not installed")
@@ -222,6 +222,21 @@ class Switch(unittest.TestCase):
         self.log.unlink(missing_ok=True)
         self.rice("mode", "dark", RICE_POWER_SUPPLY=str(battery.parent))
         self.assertIn("qs -c rice ipc call rice reveal dark", self.calls())
+
+    def test_paper_clicks_only_when_sound_is_on(self):
+        self.assertEqual(self.rice("paper").returncode, 0)
+        conf = Path(self.env["HOME"]) / ".config/rice/mode.toml"
+        conf.parent.mkdir(parents=True, exist_ok=True)
+        for sound, mode in (("false", "dark"), ("true", "light")):
+            with self.subTest(sound=sound):
+                conf.write_text(f"sound = {sound}\n")
+                self.log.unlink(missing_ok=True)
+                self.assertEqual(self.rice("mode", mode).returncode, 0)
+                clicks = [c for c in self.calls() if c.startswith("pw-play")]
+                self.assertEqual(clicks, [f"pw-play {self.rices}/paper/assets/click.wav"] if sound == "true" else [])
+        self.to_nacre()                       # Nacre has no sound
+        self.rice("mode", "dark")
+        self.assertFalse(any(c.startswith("pw-play") for c in self.calls()))
 
     # ── auto mode ─────────────────────────────────────────────────────────
     def sun(self, *args, at, toml="lat = 51.5074\nlon = -0.1278\n"):

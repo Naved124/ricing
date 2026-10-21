@@ -38,6 +38,14 @@ class PaperAssets(unittest.TestCase):
                 a, b = (Image.open(r / name).convert("RGBA") for r in self.runs)
                 self.assertIsNone(ImageChops.difference(a, b).getbbox())
 
+    def test_click_is_repeatable_and_short(self):
+        import wave
+        a, b = ((r / "click.wav").read_bytes() for r in self.runs)
+        self.assertEqual(a, b)
+        self.assertEqual(a, (ASSETS / "click.wav").read_bytes(), "commit what gen.py draws")
+        with wave.open(str(ASSETS / "click.wav")) as w:
+            self.assertLess(w.getnframes() / w.getframerate(), 0.25)
+
     def test_sizes(self):
         self.assertEqual(Image.open(self.runs[0] / "wall.png").size, (640, 360))
         self.assertEqual(Image.open(ASSETS / "wall.png").size, (1920, 1080))

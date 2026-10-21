@@ -17,6 +17,14 @@ shell         = "nacre"       # Quickshell config: qs -c nacre
 notifications = "shell"       # the shell is the notification daemon (no swaync)
 wallpaper     = "shell"       # the shell draws the wallpaper (no mpvpaper/swww)
 lock          = "shell"       # the shell is the lock screen (no hyprlock)
+# `rice mode`: the pearl turns (orient.frag). An iridescent ring in the
+# target mode's gradient grows from the bar's orb (top left, x, y of the
+# screen) with the new mode inside it; a glint (colour gleam) runs round it.
+mode_transition = "orient"
+mode_origin     = [0.013, 0.02]
+mode_tint       = "gleam"
+mode_tint_alpha = 0.5
+mode_ms         = 800
 
 [fonts]
 display   = "Italiana"        # clock, lock screen, greetings, big numbers

@@ -252,7 +252,12 @@ dark. `rice mode dark` changes the light without reloading anything:
 4. sets GTK's colour scheme, theme and icons with `gsettings`;
 5. signals kitty and cava, re-applies nvim's colourscheme, and switches Spotify's scheme;
 6. tells the shells, which crossfade every colour (they also watch the state file);
-7. lets the frozen frame go.
+7. lets the frozen frame go with the rice's own reveal. In Paper the lamp clicks: going
+   dark, the night closes in from the edges to the desk lamp (top left) behind a warm amber
+   edge; going light, the lamp's pool grows until the room is lit (900 ms). Set
+   `sound = true` in `~/.config/rice/mode.toml` for the pull-chain click (`pw-play`). In
+   Nacre the pearl turns: a thin iridescent ring in the new mode's colours grows from the
+   bar's orb with a glint running round it (800 ms).
 
 What follows the change, and when:
 

@@ -567,6 +567,16 @@ mode_ipc() {
     done
 }
 
+# the rice's sound for a mode change (Paper's pull-chain click), when
+# ~/.config/rice/mode.toml says sound = true
+mode_sound() {
+    local f
+    f="$(palette "$1" meta mode_sound)"
+    [[ -n "$f" && -f "$RICE_DIR/$1/$f" ]] && have pw-play || return 0
+    grep -Eq '^[[:space:]]*sound[[:space:]]*=[[:space:]]*true' "${XDG_CONFIG_HOME:-$HOME/.config}/rice/mode.toml" 2>/dev/null || return 0
+    pw-play "$RICE_DIR/$1/$f" >/dev/null 2>&1 9>&- &
+}
+
 # mode_set MODE SOURCE INSTANT
 mode_set() {
     local target="$1" source="$2" instant="$3" cur how=(jump "$1") frozen=0 t0
@@ -588,6 +598,7 @@ mode_set() {
     fi
 
     t0="$(now_ms)"
+    [[ "$instant" == 1 ]] || mode_sound "$cur"
     write_state mode "$target"
     write_state mode-source "$source"
     point_active

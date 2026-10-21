@@ -12,6 +12,8 @@ Writes, next to this file:
                     the shell's sheets
     ink-wear.png    256x256 tileable alpha mask: where a rubber stamp's ink
                     took (opaque) and where the paper shows through
+    click.wav       the lamp's pull-chain, for `rice mode` (sound = true in
+                    ~/.config/rice/mode.toml): two band-passed noise clicks
 and ../templates/fastfetch/logo.png, a pencil typewriter that rice-render
 copies to fastfetch and the Plymouth splash.
 
@@ -24,7 +26,9 @@ import argparse
 import math
 import random
 import shutil
+import struct
 import subprocess
+import wave
 from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
@@ -262,6 +266,39 @@ def logo(size: int, seed: int) -> Image.Image:
     return big.resize((size, size), Image.LANCZOS)
 
 
+def click(seed: int, rate: int = 48000) -> bytes:
+    """A pull-chain click as 16-bit mono PCM: a noise burst band-passed around
+    2.4 kHz (4 ms attack, ~60 ms decay), and a softer one 35 ms later as the
+    chain swings back. Made from seeded noise, nothing sampled."""
+    rng = random.Random(seed)
+    n = int(rate * 0.14)
+    raw = [0.0] * n
+    for start, gain in ((0, 1.0), (int(rate * 0.035), 0.4)):
+        for i in range(n - start):
+            t = i / rate
+            env = min(1.0, t / 0.004) * math.exp(-t / 0.012)
+            raw[start + i] += gain * env * rng.uniform(-1, 1)
+    # RBJ band-pass, constant 0 dB peak, f0 2.4 kHz, Q 1.4
+    w = 2 * math.pi * 2400 / rate
+    alpha = math.sin(w) / (2 * 1.4)
+    b0, b2, a0, a1, a2 = alpha, -alpha, 1 + alpha, -2 * math.cos(w), 1 - alpha
+    out, x1, x2, y1, y2 = [], 0.0, 0.0, 0.0, 0.0
+    for x in raw:
+        y = (b0 * x + b2 * x2 - a1 * y1 - a2 * y2) / a0
+        x2, x1, y2, y1 = x1, x, y1, y
+        out.append(y)
+    peak = max(abs(v) for v in out) or 1.0
+    return b"".join(struct.pack("<h", round(v / peak * 0.5 * 32767)) for v in out)
+
+
+def write_wav(path: Path, pcm: bytes, rate: int = 48000) -> None:
+    with wave.open(str(path), "wb") as f:
+        f.setnchannels(1)
+        f.setsampwidth(2)
+        f.setframerate(rate)
+        f.writeframes(pcm)
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--size", default="1920x1080", help="wallpaper WIDTHxHEIGHT (default 1920x1080)")
@@ -274,10 +311,11 @@ def main() -> None:
     wall(w, h, a.seed).save(a.out / "wall.png", optimize=True)
     paper_tex(512, a.seed).save(a.out / "paper-tex.png", optimize=True)
     ink_wear(256, a.seed).save(a.out / "ink-wear.png", optimize=True)
+    write_wav(a.out / "click.wav", click(a.seed))
     lg = a.out.parent / "templates/fastfetch/logo.png" if a.out == HERE else a.out / "logo.png"
     lg.parent.mkdir(parents=True, exist_ok=True)
     logo(192, a.seed).save(lg, optimize=True)
-    for p in (a.out / "wall.png", a.out / "paper-tex.png", a.out / "ink-wear.png", lg):
+    for p in (a.out / "wall.png", a.out / "paper-tex.png", a.out / "ink-wear.png", a.out / "click.wav", lg):
         print(f"  {p}")
 
 

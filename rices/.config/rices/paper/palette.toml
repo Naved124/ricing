@@ -18,6 +18,17 @@ shell         = "paper"       # Quickshell config: qs -c paper
 notifications = "shell"       # sticky notes from the shell (no swaync)
 wallpaper     = "shell"       # the shell shows assets/wall.png (no swww)
 lock          = "shell"       # the torn envelope (no hyprlock)
+# `rice mode`: the lamp clicks (lamp.frag). Darkness closes in from the edges
+# to the lamp's pool, or the pool grows until the room is lit. The lamp sits
+# here on every output (x, y of the screen); the dark wallpaper's pool is
+# drawn in the same place. Its edge is warm amber at 25%.
+mode_transition = "lamp"
+mode_origin     = [0.18, 0.12]
+mode_tint       = "#ffb35c"
+mode_tint_alpha = 0.25
+mode_ms         = 900
+# the pull-chain click, played when sound = true in ~/.config/rice/mode.toml
+mode_sound      = "assets/click.wav"
 
 [fonts]
 display   = "Newsreader"      # clocks, the calendar's day, song titles
