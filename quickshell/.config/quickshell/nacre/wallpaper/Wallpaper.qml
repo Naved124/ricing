@@ -64,6 +64,7 @@ PanelWindow {
         readonly property real time: root.time
         readonly property point ripplePos: root.ripplePos
         readonly property real rippleAge: root.rippleAge
+        readonly property real dark: Theme.k
     }
 
     MouseArea {

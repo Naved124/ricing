@@ -8,56 +8,77 @@ import Quickshell
 Singleton {
     id: root
 
+    // ── light and dark ──────────────────────────────────────────────────────
+    // Both modes' palettes. Every colour below is mixed between them by k:
+    // 0 is light, 1 is dark, and in between while the mode crossfades.
+    readonly property var lightPalette: ({
+        colors: {"pearl": "#f4f1f6", "shell": "#e7e2ec", "lilac": "#c9bfd8", "ink": "#3b3548", "ink_soft": "#7a7189", "rose": "#f2c3d6", "sky": "#c3dff3", "mint": "#cdeedb", "sun": "#f3e2b0", "orchid": "#dcc6f2", "mist": "#f7f4f9", "plum": "#7d6a9a", "frost": "#eef2f8", "ink_deep": "#2e2a3d", "steel": "#6e82b4", "glaze": "#f4f6fb", "rim": "#a0aad2", "gleam": "#ffffff"},
+        roles: {"bg": "#f4f1f6", "surface": "#e7e2ec", "overlay": "#c9bfd8", "border": "#c9bfd8", "fg": "#3b3548", "muted": "#7a7189", "accent": "#dcc6f2", "urgent": "#f2c3d6", "selection": "#c3dff3", "success": "#cdeedb", "warning": "#f3e2b0", "cursor": "#dcc6f2", "link": "#c3dff3", "shadow": "#6e82b4", "term_bg": "#eef2f8", "term_fg": "#2e2a3d"},
+        gradient: ["#f2c3d6", "#c3dff3", "#cdeedb", "#f3e2b0", "#dcc6f2"],
+        opacity: {"terminal": 0.72, "active": 0.97, "inactive": 0.9, "glass": 0.55},
+        wallpaper: {"ground": ["#c9d3e6", "#d8cde6"], "blooms": ["#ed97ba", "#8ec4eb", "#8eebb6", "#ead086", "#c49bed"], "accents": ["#9fb8e0", "#c7a8e0", "#9fb8e0"]}
+    })
+    readonly property var darkPalette: ({
+        colors: {"pearl": "#f4f1f6", "shell": "#e7e2ec", "lilac": "#c9bfd8", "ink": "#3b3548", "ink_soft": "#7a7189", "rose": "#f2c3d6", "sky": "#c3dff3", "mint": "#cdeedb", "sun": "#f3e2b0", "orchid": "#dcc6f2", "mist": "#f7f4f9", "plum": "#7d6a9a", "frost": "#eef2f8", "ink_deep": "#2e2a3d", "steel": "#6e82b4", "glaze": "#f4f6fb", "rim": "#a0aad2", "gleam": "#ffffff"},
+        roles: {"bg": "#f4f1f6", "surface": "#e7e2ec", "overlay": "#c9bfd8", "border": "#c9bfd8", "fg": "#3b3548", "muted": "#7a7189", "accent": "#dcc6f2", "urgent": "#f2c3d6", "selection": "#c3dff3", "success": "#cdeedb", "warning": "#f3e2b0", "cursor": "#dcc6f2", "link": "#c3dff3", "shadow": "#6e82b4", "term_bg": "#eef2f8", "term_fg": "#2e2a3d"},
+        gradient: ["#f2c3d6", "#c3dff3", "#cdeedb", "#f3e2b0", "#dcc6f2"],
+        opacity: {"terminal": 0.72, "active": 0.97, "inactive": 0.9, "glass": 0.55},
+        wallpaper: {"ground": ["#c9d3e6", "#d8cde6"], "blooms": ["#ed97ba", "#8ec4eb", "#8eebb6", "#ead086", "#c49bed"], "accents": ["#9fb8e0", "#c7a8e0", "#9fb8e0"]}
+    })
+
     // ── named colours ───────────────────────────────────────────────────────
-    readonly property color pearl:   "#f4f1f6"
-    readonly property color shell:   "#e7e2ec"
-    readonly property color lilac:   "#c9bfd8"
-    readonly property color ink:     "#3b3548"
-    readonly property color inkSoft: "#7a7189"
-    readonly property color rose:    "#f2c3d6"
-    readonly property color sky:     "#c3dff3"
-    readonly property color mint:    "#cdeedb"
-    readonly property color sun:     "#f3e2b0"
-    readonly property color orchid:  "#dcc6f2"
-    readonly property color mist:    "#f7f4f9"
-    readonly property color gleam:   "#ffffff"   // highlights only
+    readonly property color pearl:   c("pearl")
+    readonly property color shell:   c("shell")
+    readonly property color lilac:   c("lilac")
+    readonly property color ink:     c("ink")
+    readonly property color inkSoft: c("ink_soft")
+    readonly property color rose:    c("rose")
+    readonly property color sky:     c("sky")
+    readonly property color mint:    c("mint")
+    readonly property color sun:     c("sun")
+    readonly property color orchid:  c("orchid")
+    readonly property color mist:    c("mist")
+    readonly property color gleam:   c("gleam")   // highlights only
 
     // ── roles ───────────────────────────────────────────────────────────────
-    readonly property color bg:        "#f4f1f6"
-    readonly property color surface:   "#e7e2ec"
-    readonly property color border:    "#c9bfd8"
-    readonly property color fg:        "#3b3548"
-    readonly property color muted:     "#7a7189"
-    readonly property color accent:    "#dcc6f2"
-    readonly property color urgent:    "#f2c3d6"
-    readonly property color selection: "#c3dff3"
-    readonly property color success:   "#cdeedb"
-    readonly property color warning:   "#f3e2b0"
+    readonly property color bg:        role("bg")
+    readonly property color surface:   role("surface")
+    readonly property color border:    role("border")
+    readonly property color fg:        role("fg")
+    readonly property color muted:     role("muted")
+    readonly property color accent:    role("accent")
+    readonly property color urgent:    role("urgent")
+    readonly property color selection: role("selection")
+    readonly property color success:   role("success")
+    readonly property color warning:   role("warning")
 
     // Frosted glass: a cool, half-clear pane over Hyprland's blur, so the
     // wallpaper's colour comes through. Never solid white.
-    readonly property color glass:       "#8cf4f6fb"
-    readonly property color glassStrong: "#d1f4f6fb"
-    readonly property color glassSoft:   "#73e7e2ec"
-    readonly property color hairline:    "#73a0aad2"
+    readonly property color glass:       Qt.alpha(c("glaze"), opacityOf("glass"))
+    readonly property color glassStrong: Qt.alpha(c("glaze"), 0.82)
+    readonly property color glassSoft:   Qt.alpha(role("surface"), 0.45)
+    readonly property color hairline:    Qt.alpha(c("rim"), 0.45)
     // the pane's light: a bright top lip and a faint sky glow at the bottom
-    readonly property color glassHighlight: "#e6ffffff"
-    readonly property color glassGlow:      "#59c3dff3"
+    readonly property color glassHighlight: Qt.alpha(c("gleam"), 0.9)
+    readonly property color glassGlow:      Qt.alpha(c("sky"), 0.35)
     // Shadows are cool steel, never black.
-    readonly property color shadow:      "#406e82b4"
-    readonly property color shadowSoft:  "#1f6e82b4"
+    readonly property color shadow:      Qt.alpha(role("shadow"), 0.25)
+    readonly property color shadowSoft:  Qt.alpha(role("shadow"), 0.12)
     // A rose → sky wash for selected rows.
-    readonly property color washFrom:    "#8cf2c3d6"
-    readonly property color washTo:      "#8cc3dff3"
+    readonly property color washFrom:    Qt.alpha(c("rose"), 0.55)
+    readonly property color washTo:      Qt.alpha(c("sky"), 0.55)
 
     // ── iridescence ─────────────────────────────────────────────────────────
     // rose → sky → mint → sun → orchid → rose. Only for focus and active state.
-    readonly property var gradient: ["#f2c3d6", "#c3dff3", "#cdeedb", "#f3e2b0", "#dcc6f2", "#f2c3d6"]
+    readonly property var gradient: {
+        const stops = mixList(lightPalette.gradient, darkPalette.gradient);
+        return stops.concat([stops[0]]);
+    }
 
     // ── wallpaper ───────────────────────────────────────────────────────────
-    readonly property var wallGround:  ["#c9d3e6", "#d8cde6"]
-    readonly property var wallBlooms:  ["#ed97ba", "#8ec4eb", "#8eebb6", "#ead086", "#c49bed"]
-    readonly property var wallAccents: ["#9fb8e0", "#c7a8e0", "#9fb8e0"]
+    readonly property var wallGround:  mixList(lightPalette.wallpaper.ground, darkPalette.wallpaper.ground)
+    readonly property var wallBlooms:  mixList(lightPalette.wallpaper.blooms, darkPalette.wallpaper.blooms)
+    readonly property var wallAccents: mixList(lightPalette.wallpaper.accents, darkPalette.wallpaper.accents)
 
     // ── type ────────────────────────────────────────────────────────────────
     readonly property string fontDisplay: "Italiana"
@@ -92,4 +113,16 @@ Singleton {
     readonly property int durPanelOut:  250
     readonly property int stagger:      30
     readonly property int borderLoop:   60000
+
+    // ── the mode ────────────────────────────────────────────────────────────
+    // ~/.local/state/rice/mode, read before the first frame; `rice mode` or
+    // the file changing crossfades k over 600 ms on the bloom curve.
+    readonly property Mode mode: Mode { curve: root.bloom }
+    readonly property bool dark: mode.dark
+    readonly property real k: mode.k
+
+    function c(name) { return mode.mix(lightPalette.colors[name], darkPalette.colors[name]); }
+    function role(name) { return mode.mix(lightPalette.roles[name], darkPalette.roles[name]); }
+    function opacityOf(name) { return mode.blend(lightPalette.opacity[name], darkPalette.opacity[name]); }
+    function mixList(a, b) { return a.map((x, i) => mode.mix(x, b[i] ?? x)); }
 }

@@ -144,6 +144,10 @@ greeter always use `build/light/`.
   (`Theme.qml`) must render the same in both modes, or the build fails. A template that
   genuinely differs by structure is a pair, `name@light.ext` + `name@dark.ext`; one
   without its twin fails the build.
+- **Shells follow the mode live.** `Theme.k` goes 0 → 1 (light → dark); a colour fixed to
+  one mode would never change, so Themes have none. Shaders that need it get
+  `uniform float dark` bound to `Theme.k`. The chooser's `rice/Theme.qml` mixes the
+  active rice's roles from `meta.json`'s `modes`.
 - **No colours in QML.** Every colour in a shell, the chooser or a `card.qml` comes from
   the generated `Theme.qml` (or a rice's rendered `meta.json`); add a named colour to the
   palette for anything new. `tests/test_qml_lint.py` fails on hex literals, numeric
@@ -193,7 +197,13 @@ under 3:1 on that fill and `bg` reads better.
      region, both through `rice-rec toggle`, started 350 ms after the panel closes) and
      something visible while recording (Nacre: the orb's dot; Paper: "rec m:ss" in the bar)
    - `Theme.qml` generated from the palette through `templates/quickshell/Theme.qml`
-     plus an `[install]` entry.
+     plus an `[install]` entry. It carries both modes (`lightPalette`, `darkPalette`
+     from `light.*`/`dark.*`), and every colour property is `c("name")` or
+     `role("name")`, mixed by `k`; it holds a `Mode` (`mode`, `dark`, `k`).
+   - a copy of `Mode.qml` next to `Theme.qml` (the tests keep every copy identical): it
+     reads `~/.local/state/rice/mode` before the first frame, watches it, crossfades `k`
+     over 600 ms, and answers the `mode` IpcHandler (`set`, `jump`, `fade`, `toggle`,
+     `get`).
 
    With no shell, set `shell = ""`, `notifications = "swaync"`, `lock = "hyprlock"`, and
    ship a `wallpaper/` folder.

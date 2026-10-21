@@ -331,6 +331,48 @@ class CommittedOutputs(unittest.TestCase):
                                      "run: tools/regen")
 
 
+class ShellModes(unittest.TestCase):
+    """Every shell follows the mode the same way."""
+    SHELLS = REPO / "quickshell/.config/quickshell"
+    MODE = ["nacre/Mode.qml", "paper/common/Mode.qml", "rice/Mode.qml"]
+
+    def test_the_mode_copies_are_identical(self):
+        first = (self.SHELLS / self.MODE[0]).read_text()
+        for rel in self.MODE[1:]:
+            with self.subTest(rel):
+                self.assertEqual((self.SHELLS / rel).read_text(), first, f"copy {self.MODE[0]} to {rel}")
+        for needle in ('target: "mode"', "function set(m: string)", "function jump(m: string)",
+                       "function fade(m: string, ms: int)", "function toggle()", "function get(): string",
+                       "blockLoading: true", "watchChanges: true", '"/rice/mode"'):
+            self.assertIn(needle, first)
+
+    def test_every_theme_mixes_both_modes(self):
+        for rel in ("nacre/Theme.qml", "paper/common/Theme.qml", "rice/Theme.qml"):
+            with self.subTest(rel):
+                text = (self.SHELLS / rel).read_text()
+                self.assertIn("readonly property Mode mode: Mode", text)
+                self.assertIn("readonly property bool dark: mode.dark", text)
+                self.assertIn("readonly property real k: mode.k", text)
+                # no colour is fixed to one mode: each one goes through the mix
+                for line in text.splitlines():
+                    if "readonly property color" in line:
+                        self.assertRegex(line, r"(c|role)\(\"\w+\"\)", line)
+
+    def test_meta_json_carries_both_modes(self):
+        ctxs = rr.load_modes(RICES / "nacre")
+        with tempfile.TemporaryDirectory() as d:
+            saved = rr.SHARED, rr.INSTALL_ROOT
+            rr.SHARED, rr.INSTALL_ROOT = TEMPLATES, Path(d)
+            try:
+                out = rr.mode_outputs(RICES / "nacre", ctxs["light"])
+            finally:
+                rr.SHARED, rr.INSTALL_ROOT = saved
+        meta = json.loads(out[RICES / "nacre/build/light/meta.json"])
+        self.assertEqual(sorted(meta["modes"]), ["dark", "light"])
+        self.assertEqual(meta["modes"]["light"]["roles"]["bg"], "#f4f1f6")
+        self.assertEqual(len(meta["modes"]["dark"]["gradient"]), 5)
+
+
 class Modes(unittest.TestCase):
     """Every rice renders in both modes, from the same templates."""
 

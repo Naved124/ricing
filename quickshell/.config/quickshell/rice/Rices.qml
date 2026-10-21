@@ -18,12 +18,6 @@ Singleton {
     property string schedule: ""
     readonly property var active: list.find(r => r.name === current) ?? null
 
-    // a role colour of the active rice, for the chooser's own chrome (every
-    // rendered rice has all of them; before the first render, nothing shows)
-    function role(name) {
-        return active?.meta?.roles?.[name] ?? "transparent";
-    }
-
     function find(name) {
         return list.find(r => r.name === name) ?? null;
     }

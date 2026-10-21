@@ -8,64 +8,78 @@ import Quickshell
 Singleton {
     id: root
 
+    // ── light and dark ──────────────────────────────────────────────────────
+    // Both modes' palettes. Every colour below is mixed between them by k:
+    // 0 is light, 1 is dark, and in between while the mode crossfades.
+    readonly property var lightPalette: ({
+        colors: {"desk": "#d9d6cc", "wall": "#ebe8df", "paper": "#f7f5ef", "card": "#fbfaf6", "kraft": "#d8b98a", "ink": "#1c2a6e", "pencil": "#4b4a46", "graphite": "#8d8a82", "red": "#c8372d", "rule": "#a8c3e4", "margin": "#e3958f", "sticky": "#f6e15f", "pink": "#ffb6c8", "mint": "#b8e5c8", "carbon": "#24231f", "fern": "#2f6b3d", "ochre": "#946617", "plum": "#8a3b7a", "teal": "#2d6f78", "umber": "#3c2d14", "crease": "#d9d4c6", "manila": "#3a2c14", "envelope": "#f3ead6", "chalk": "#ffffff", "soot": "#000000", "felt": "#2b2a1e", "binding": "#3b0f0b", "wad": "#f2efe6", "wad_crease": "#a9a59a", "basket": "#3c3c3a", "scrim": "#504632"},
+        roles: {"bg": "#f7f5ef", "surface": "#fbfaf6", "overlay": "#d9d6cc", "border": "#d9d4c6", "fg": "#4b4a46", "muted": "#8d8a82", "accent": "#1c2a6e", "urgent": "#c8372d", "selection": "#f6e15f", "success": "#2f6b3d", "warning": "#946617", "cursor": "#24231f", "link": "#1c2a6e", "shadow": "#3c2d14", "term_bg": "#f7f5ef", "term_fg": "#24231f"},
+        wallpaper: {"image": "assets/wall.png", "ground": ["wall", "desk"]}
+    })
+    readonly property var darkPalette: ({
+        colors: {"desk": "#d9d6cc", "wall": "#ebe8df", "paper": "#f7f5ef", "card": "#fbfaf6", "kraft": "#d8b98a", "ink": "#1c2a6e", "pencil": "#4b4a46", "graphite": "#8d8a82", "red": "#c8372d", "rule": "#a8c3e4", "margin": "#e3958f", "sticky": "#f6e15f", "pink": "#ffb6c8", "mint": "#b8e5c8", "carbon": "#24231f", "fern": "#2f6b3d", "ochre": "#946617", "plum": "#8a3b7a", "teal": "#2d6f78", "umber": "#3c2d14", "crease": "#d9d4c6", "manila": "#3a2c14", "envelope": "#f3ead6", "chalk": "#ffffff", "soot": "#000000", "felt": "#2b2a1e", "binding": "#3b0f0b", "wad": "#f2efe6", "wad_crease": "#a9a59a", "basket": "#3c3c3a", "scrim": "#504632"},
+        roles: {"bg": "#f7f5ef", "surface": "#fbfaf6", "overlay": "#d9d6cc", "border": "#d9d4c6", "fg": "#4b4a46", "muted": "#8d8a82", "accent": "#1c2a6e", "urgent": "#c8372d", "selection": "#f6e15f", "success": "#2f6b3d", "warning": "#946617", "cursor": "#24231f", "link": "#1c2a6e", "shadow": "#3c2d14", "term_bg": "#f7f5ef", "term_fg": "#24231f"},
+        wallpaper: {"image": "assets/wall.png", "ground": ["wall", "desk"]}
+    })
+
     // ── named colours ───────────────────────────────────────────────────────
-    readonly property color desk:     "#d9d6cc"
-    readonly property color wall:     "#ebe8df"
-    readonly property color paper:    "#f7f5ef"
-    readonly property color card:     "#fbfaf6"
-    readonly property color kraft:    "#d8b98a"
-    readonly property color ink:      "#1c2a6e"
-    readonly property color pencil:   "#4b4a46"
-    readonly property color graphite: "#8d8a82"
-    readonly property color red:      "#c8372d"
-    readonly property color rule:     "#a8c3e4"
-    readonly property color margin:   "#e3958f"
-    readonly property color sticky:   "#f6e15f"
-    readonly property color pink:     "#ffb6c8"
-    readonly property color mint:     "#b8e5c8"
-    readonly property color carbon:   "#24231f"
-    readonly property color fern:     "#2f6b3d"
-    readonly property color ochre:    "#946617"
-    readonly property color crease:   "#d9d4c6"
-    readonly property color manila:   "#3a2c14"
-    readonly property color envelope: "#f3ead6"
-    readonly property color chalk:    "#ffffff"
-    readonly property color soot:     "#000000"
-    readonly property color felt:     "#2b2a1e"
-    readonly property color binding:  "#3b0f0b"
-    readonly property color wad:      "#f2efe6"
-    readonly property color wadCrease: "#a9a59a"
-    readonly property color basket:   "#3c3c3a"
+    readonly property color desk:     c("desk")
+    readonly property color wall:     c("wall")
+    readonly property color paper:    c("paper")
+    readonly property color card:     c("card")
+    readonly property color kraft:    c("kraft")
+    readonly property color ink:      c("ink")
+    readonly property color pencil:   c("pencil")
+    readonly property color graphite: c("graphite")
+    readonly property color red:      c("red")
+    readonly property color rule:     c("rule")
+    readonly property color margin:   c("margin")
+    readonly property color sticky:   c("sticky")
+    readonly property color pink:     c("pink")
+    readonly property color mint:     c("mint")
+    readonly property color carbon:   c("carbon")
+    readonly property color fern:     c("fern")
+    readonly property color ochre:    c("ochre")
+    readonly property color crease:   c("crease")
+    readonly property color manila:   c("manila")
+    readonly property color envelope: c("envelope")
+    readonly property color chalk:    c("chalk")
+    readonly property color soot:     c("soot")
+    readonly property color felt:     c("felt")
+    readonly property color binding:  c("binding")
+    readonly property color wad:      c("wad")
+    readonly property color wadCrease: c("wad_crease")
+    readonly property color basket:   c("basket")
 
     // ── roles ───────────────────────────────────────────────────────────────
-    readonly property color bg:        "#f7f5ef"
-    readonly property color surface:   "#fbfaf6"
-    readonly property color border:    "#d9d4c6"
-    readonly property color fg:        "#4b4a46"
-    readonly property color muted:     "#8d8a82"
-    readonly property color accent:    "#1c2a6e"
-    readonly property color urgent:    "#c8372d"
-    readonly property color selection: "#f6e15f"
+    readonly property color bg:        role("bg")
+    readonly property color surface:   role("surface")
+    readonly property color border:    role("border")
+    readonly property color fg:        role("fg")
+    readonly property color muted:     role("muted")
+    readonly property color accent:    role("accent")
+    readonly property color urgent:    role("urgent")
+    readonly property color selection: role("selection")
 
     // ── paper's light ───────────────────────────────────────────────────────
     // Shadows are warm brown, in two layers: a tight contact shadow and a
     // soft one further out. A lifted sheet gets the larger pair.
     // MultiEffect wants an opaque shadow colour and the strength as
     // shadowOpacity (a translucent colour comes out lighter, not darker)
-    readonly property color umber:       "#3c2d14"
+    readonly property color umber:       role("shadow")
     readonly property real  shadowTightOpacity: 0.22
     readonly property real  shadowSoftOpacity:  0.16
     readonly property real  shadowLiftOpacity:  0.28
-    readonly property color shadowTight: "#383c2d14"
-    readonly property color shadowSoft:  "#293c2d14"
-    readonly property color shadowLift:  "#473c2d14"
-    readonly property color scrim:       "#2e504632"   // behind the launcher
-    readonly property color ruleLine:    "#a8c3e4"
-    readonly property color marginLine:  "#e3958f"
-    readonly property color hatch:       "#bf1c2a6e"
-    readonly property color tapeA:       "#bfffb6c8"
-    readonly property color tapeB:       "#99ffffff"
-    readonly property color cursorLine:  "#2ea8c3e4"
+    readonly property color shadowTight: Qt.alpha(role("shadow"), 0.22)
+    readonly property color shadowSoft:  Qt.alpha(role("shadow"), 0.16)
+    readonly property color shadowLift:  Qt.alpha(role("shadow"), 0.28)
+    readonly property color scrim:       Qt.alpha(c("scrim"), 0.18)   // behind the launcher
+    readonly property color ruleLine:    c("rule")
+    readonly property color marginLine:  c("margin")
+    readonly property color hatch:       Qt.alpha(c("ink"), 0.75)
+    readonly property color tapeA:       Qt.alpha(c("pink"), 0.75)
+    readonly property color tapeB:       Qt.alpha(c("chalk"), 0.6)
+    readonly property color cursorLine:  Qt.alpha(c("rule"), 0.18)
 
     // ── type ────────────────────────────────────────────────────────────────
     readonly property string fontType:  "Courier Prime"
@@ -103,7 +117,17 @@ Singleton {
 
     // ── where the rice's files are (read at run time, never baked in) ──────
     readonly property string riceDir: (Quickshell.env("XDG_CONFIG_HOME") || Quickshell.env("HOME") + "/.config") + "/rices/paper"
-    readonly property string wallpaper: riceDir + "/assets/wall.png"
+    readonly property string wallpaper: riceDir + "/" + (dark ? darkPalette : lightPalette).wallpaper.image
     readonly property string paperTex:  riceDir + "/assets/paper-tex.png"
     readonly property string inkWear:   riceDir + "/assets/ink-wear.png"
+
+    // ── the mode ────────────────────────────────────────────────────────────
+    // ~/.local/state/rice/mode, read before the first frame; `rice mode` or
+    // the file changing crossfades k over 600 ms on the drop curve.
+    readonly property Mode mode: Mode { curve: root.drop }
+    readonly property bool dark: mode.dark
+    readonly property real k: mode.k
+
+    function c(name) { return mode.mix(lightPalette.colors[name], darkPalette.colors[name]); }
+    function role(name) { return mode.mix(lightPalette.roles[name], darkPalette.roles[name]); }
 }

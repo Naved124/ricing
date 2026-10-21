@@ -24,6 +24,7 @@ layout(std140, binding = 0) uniform buf {
     float time;         // seconds, frozen while paused
     vec2 ripplePos;     // 0..1 uv of the last click
     float rippleAge;    // seconds since the click, < 0 when none
+    float dark;         // Theme.k: 0 light, 1 dark (the colours above are already mixed)
 };
 
 vec3 bloomColor(int i) {

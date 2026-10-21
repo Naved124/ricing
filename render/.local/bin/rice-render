@@ -618,6 +618,9 @@ def mode_outputs(rice: Path, ctx: dict) -> dict[Path, bytes]:
         "motion": ctx.get("motion", {}),
         "variant": ctx["derived"]["variant"],
         "mode": ctx["mode"],
+        # both modes, for the chooser to crossfade between and draw cards in
+        "modes": {m: {"roles": ctx[m]["roles"], "colors": ctx[m]["colors"],
+                      "gradient": ctx[m]["gradient"]["stops"]} for m in MODES},
     }
     out[build / "meta.json"] = (json.dumps(meta, indent=2) + "\n").encode()
     if not (rice / "templates/fastfetch/logo.png").exists():

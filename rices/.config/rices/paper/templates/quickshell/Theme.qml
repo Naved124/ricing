@@ -8,64 +8,78 @@ import Quickshell
 Singleton {
     id: root
 
+    // ── light and dark ──────────────────────────────────────────────────────
+    // Both modes' palettes. Every colour below is mixed between them by k:
+    // 0 is light, 1 is dark, and in between while the mode crossfades.
+    readonly property var lightPalette: ({
+        colors: {{ light.colors | json }},
+        roles: {{ light.roles | json }},
+        wallpaper: {{ light.wallpaper | json }}
+    })
+    readonly property var darkPalette: ({
+        colors: {{ dark.colors | json }},
+        roles: {{ dark.roles | json }},
+        wallpaper: {{ dark.wallpaper | json }}
+    })
+
     // ── named colours ───────────────────────────────────────────────────────
-    readonly property color desk:     "{{ colors.desk }}"
-    readonly property color wall:     "{{ colors.wall }}"
-    readonly property color paper:    "{{ colors.paper }}"
-    readonly property color card:     "{{ colors.card }}"
-    readonly property color kraft:    "{{ colors.kraft }}"
-    readonly property color ink:      "{{ colors.ink }}"
-    readonly property color pencil:   "{{ colors.pencil }}"
-    readonly property color graphite: "{{ colors.graphite }}"
-    readonly property color red:      "{{ colors.red }}"
-    readonly property color rule:     "{{ colors.rule }}"
-    readonly property color margin:   "{{ colors.margin }}"
-    readonly property color sticky:   "{{ colors.sticky }}"
-    readonly property color pink:     "{{ colors.pink }}"
-    readonly property color mint:     "{{ colors.mint }}"
-    readonly property color carbon:   "{{ colors.carbon }}"
-    readonly property color fern:     "{{ colors.fern }}"
-    readonly property color ochre:    "{{ colors.ochre }}"
-    readonly property color crease:   "{{ colors.crease }}"
-    readonly property color manila:   "{{ colors.manila }}"
-    readonly property color envelope: "{{ colors.envelope }}"
-    readonly property color chalk:    "{{ colors.chalk }}"
-    readonly property color soot:     "{{ colors.soot }}"
-    readonly property color felt:     "{{ colors.felt }}"
-    readonly property color binding:  "{{ colors.binding }}"
-    readonly property color wad:      "{{ colors.wad }}"
-    readonly property color wadCrease: "{{ colors.wad_crease }}"
-    readonly property color basket:   "{{ colors.basket }}"
+    readonly property color desk:     c("desk")
+    readonly property color wall:     c("wall")
+    readonly property color paper:    c("paper")
+    readonly property color card:     c("card")
+    readonly property color kraft:    c("kraft")
+    readonly property color ink:      c("ink")
+    readonly property color pencil:   c("pencil")
+    readonly property color graphite: c("graphite")
+    readonly property color red:      c("red")
+    readonly property color rule:     c("rule")
+    readonly property color margin:   c("margin")
+    readonly property color sticky:   c("sticky")
+    readonly property color pink:     c("pink")
+    readonly property color mint:     c("mint")
+    readonly property color carbon:   c("carbon")
+    readonly property color fern:     c("fern")
+    readonly property color ochre:    c("ochre")
+    readonly property color crease:   c("crease")
+    readonly property color manila:   c("manila")
+    readonly property color envelope: c("envelope")
+    readonly property color chalk:    c("chalk")
+    readonly property color soot:     c("soot")
+    readonly property color felt:     c("felt")
+    readonly property color binding:  c("binding")
+    readonly property color wad:      c("wad")
+    readonly property color wadCrease: c("wad_crease")
+    readonly property color basket:   c("basket")
 
     // ── roles ───────────────────────────────────────────────────────────────
-    readonly property color bg:        "{{ roles.bg }}"
-    readonly property color surface:   "{{ roles.surface }}"
-    readonly property color border:    "{{ roles.border }}"
-    readonly property color fg:        "{{ roles.fg }}"
-    readonly property color muted:     "{{ roles.muted }}"
-    readonly property color accent:    "{{ roles.accent }}"
-    readonly property color urgent:    "{{ roles.urgent }}"
-    readonly property color selection: "{{ roles.selection }}"
+    readonly property color bg:        role("bg")
+    readonly property color surface:   role("surface")
+    readonly property color border:    role("border")
+    readonly property color fg:        role("fg")
+    readonly property color muted:     role("muted")
+    readonly property color accent:    role("accent")
+    readonly property color urgent:    role("urgent")
+    readonly property color selection: role("selection")
 
     // ── paper's light ───────────────────────────────────────────────────────
     // Shadows are warm brown, in two layers: a tight contact shadow and a
     // soft one further out. A lifted sheet gets the larger pair.
     // MultiEffect wants an opaque shadow colour and the strength as
     // shadowOpacity (a translucent colour comes out lighter, not darker)
-    readonly property color umber:       "{{ roles.shadow }}"
+    readonly property color umber:       role("shadow")
     readonly property real  shadowTightOpacity: 0.22
     readonly property real  shadowSoftOpacity:  0.16
     readonly property real  shadowLiftOpacity:  0.28
-    readonly property color shadowTight: "{{ roles.shadow | argb(0.22) }}"
-    readonly property color shadowSoft:  "{{ roles.shadow | argb(0.16) }}"
-    readonly property color shadowLift:  "{{ roles.shadow | argb(0.28) }}"
-    readonly property color scrim:       "{{ colors.scrim | argb(0.18) }}"   // behind the launcher
-    readonly property color ruleLine:    "{{ colors.rule }}"
-    readonly property color marginLine:  "{{ colors.margin }}"
-    readonly property color hatch:       "{{ colors.ink | argb(0.75) }}"
-    readonly property color tapeA:       "{{ colors.pink | argb(0.75) }}"
-    readonly property color tapeB:       "{{ colors.chalk | argb(0.6) }}"
-    readonly property color cursorLine:  "{{ colors.rule | argb(0.18) }}"
+    readonly property color shadowTight: Qt.alpha(role("shadow"), 0.22)
+    readonly property color shadowSoft:  Qt.alpha(role("shadow"), 0.16)
+    readonly property color shadowLift:  Qt.alpha(role("shadow"), 0.28)
+    readonly property color scrim:       Qt.alpha(c("scrim"), 0.18)   // behind the launcher
+    readonly property color ruleLine:    c("rule")
+    readonly property color marginLine:  c("margin")
+    readonly property color hatch:       Qt.alpha(c("ink"), 0.75)
+    readonly property color tapeA:       Qt.alpha(c("pink"), 0.75)
+    readonly property color tapeB:       Qt.alpha(c("chalk"), 0.6)
+    readonly property color cursorLine:  Qt.alpha(c("rule"), 0.18)
 
     // ── type ────────────────────────────────────────────────────────────────
     readonly property string fontType:  "{{ fonts.type }}"
@@ -103,7 +117,17 @@ Singleton {
 
     // ── where the rice's files are (read at run time, never baked in) ──────
     readonly property string riceDir: (Quickshell.env("XDG_CONFIG_HOME") || Quickshell.env("HOME") + "/.config") + "/rices/paper"
-    readonly property string wallpaper: riceDir + "/{{ wallpaper.image }}"
+    readonly property string wallpaper: riceDir + "/" + (dark ? darkPalette : lightPalette).wallpaper.image
     readonly property string paperTex:  riceDir + "/assets/paper-tex.png"
     readonly property string inkWear:   riceDir + "/assets/ink-wear.png"
+
+    // ── the mode ────────────────────────────────────────────────────────────
+    // ~/.local/state/rice/mode, read before the first frame; `rice mode` or
+    // the file changing crossfades k over 600 ms on the drop curve.
+    readonly property Mode mode: Mode { curve: root.drop }
+    readonly property bool dark: mode.dark
+    readonly property real k: mode.k
+
+    function c(name) { return mode.mix(lightPalette.colors[name], darkPalette.colors[name]); }
+    function role(name) { return mode.mix(lightPalette.roles[name], darkPalette.roles[name]); }
 }

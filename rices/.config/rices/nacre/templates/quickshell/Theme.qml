@@ -8,56 +8,77 @@ import Quickshell
 Singleton {
     id: root
 
+    // ── light and dark ──────────────────────────────────────────────────────
+    // Both modes' palettes. Every colour below is mixed between them by k:
+    // 0 is light, 1 is dark, and in between while the mode crossfades.
+    readonly property var lightPalette: ({
+        colors: {{ light.colors | json }},
+        roles: {{ light.roles | json }},
+        gradient: {{ light.gradient.stops | json }},
+        opacity: {{ light.opacity | json }},
+        wallpaper: {{ light.wallpaper | json }}
+    })
+    readonly property var darkPalette: ({
+        colors: {{ dark.colors | json }},
+        roles: {{ dark.roles | json }},
+        gradient: {{ dark.gradient.stops | json }},
+        opacity: {{ dark.opacity | json }},
+        wallpaper: {{ dark.wallpaper | json }}
+    })
+
     // ── named colours ───────────────────────────────────────────────────────
-    readonly property color pearl:   "{{ colors.pearl }}"
-    readonly property color shell:   "{{ colors.shell }}"
-    readonly property color lilac:   "{{ colors.lilac }}"
-    readonly property color ink:     "{{ colors.ink }}"
-    readonly property color inkSoft: "{{ colors.ink_soft }}"
-    readonly property color rose:    "{{ colors.rose }}"
-    readonly property color sky:     "{{ colors.sky }}"
-    readonly property color mint:    "{{ colors.mint }}"
-    readonly property color sun:     "{{ colors.sun }}"
-    readonly property color orchid:  "{{ colors.orchid }}"
-    readonly property color mist:    "{{ colors.mist }}"
-    readonly property color gleam:   "{{ colors.gleam }}"   // highlights only
+    readonly property color pearl:   c("pearl")
+    readonly property color shell:   c("shell")
+    readonly property color lilac:   c("lilac")
+    readonly property color ink:     c("ink")
+    readonly property color inkSoft: c("ink_soft")
+    readonly property color rose:    c("rose")
+    readonly property color sky:     c("sky")
+    readonly property color mint:    c("mint")
+    readonly property color sun:     c("sun")
+    readonly property color orchid:  c("orchid")
+    readonly property color mist:    c("mist")
+    readonly property color gleam:   c("gleam")   // highlights only
 
     // ── roles ───────────────────────────────────────────────────────────────
-    readonly property color bg:        "{{ roles.bg }}"
-    readonly property color surface:   "{{ roles.surface }}"
-    readonly property color border:    "{{ roles.border }}"
-    readonly property color fg:        "{{ roles.fg }}"
-    readonly property color muted:     "{{ roles.muted }}"
-    readonly property color accent:    "{{ roles.accent }}"
-    readonly property color urgent:    "{{ roles.urgent }}"
-    readonly property color selection: "{{ roles.selection }}"
-    readonly property color success:   "{{ roles.success }}"
-    readonly property color warning:   "{{ roles.warning }}"
+    readonly property color bg:        role("bg")
+    readonly property color surface:   role("surface")
+    readonly property color border:    role("border")
+    readonly property color fg:        role("fg")
+    readonly property color muted:     role("muted")
+    readonly property color accent:    role("accent")
+    readonly property color urgent:    role("urgent")
+    readonly property color selection: role("selection")
+    readonly property color success:   role("success")
+    readonly property color warning:   role("warning")
 
     // Frosted glass: a cool, half-clear pane over Hyprland's blur, so the
     // wallpaper's colour comes through. Never solid white.
-    readonly property color glass:       "{{ colors.glaze | argb(opacity.glass) }}"
-    readonly property color glassStrong: "{{ colors.glaze | argb(0.82) }}"
-    readonly property color glassSoft:   "{{ roles.surface | argb(0.45) }}"
-    readonly property color hairline:    "{{ colors.rim | argb(0.45) }}"
+    readonly property color glass:       Qt.alpha(c("glaze"), opacityOf("glass"))
+    readonly property color glassStrong: Qt.alpha(c("glaze"), 0.82)
+    readonly property color glassSoft:   Qt.alpha(role("surface"), 0.45)
+    readonly property color hairline:    Qt.alpha(c("rim"), 0.45)
     // the pane's light: a bright top lip and a faint sky glow at the bottom
-    readonly property color glassHighlight: "{{ colors.gleam | argb(0.9) }}"
-    readonly property color glassGlow:      "{{ colors.sky | argb(0.35) }}"
+    readonly property color glassHighlight: Qt.alpha(c("gleam"), 0.9)
+    readonly property color glassGlow:      Qt.alpha(c("sky"), 0.35)
     // Shadows are cool steel, never black.
-    readonly property color shadow:      "{{ roles.shadow | argb(0.25) }}"
-    readonly property color shadowSoft:  "{{ roles.shadow | argb(0.12) }}"
+    readonly property color shadow:      Qt.alpha(role("shadow"), 0.25)
+    readonly property color shadowSoft:  Qt.alpha(role("shadow"), 0.12)
     // A rose → sky wash for selected rows.
-    readonly property color washFrom:    "{{ colors.rose | argb(0.55) }}"
-    readonly property color washTo:      "{{ colors.sky | argb(0.55) }}"
+    readonly property color washFrom:    Qt.alpha(c("rose"), 0.55)
+    readonly property color washTo:      Qt.alpha(c("sky"), 0.55)
 
     // ── iridescence ─────────────────────────────────────────────────────────
     // rose → sky → mint → sun → orchid → rose. Only for focus and active state.
-    readonly property var gradient: [{{ gradient.stops | closed | quote | join(", ") }}]
+    readonly property var gradient: {
+        const stops = mixList(lightPalette.gradient, darkPalette.gradient);
+        return stops.concat([stops[0]]);
+    }
 
     // ── wallpaper ───────────────────────────────────────────────────────────
-    readonly property var wallGround:  [{{ wallpaper.ground | quote | join(", ") }}]
-    readonly property var wallBlooms:  [{{ wallpaper.blooms | quote | join(", ") }}]
-    readonly property var wallAccents: [{{ wallpaper.accents | quote | join(", ") }}]
+    readonly property var wallGround:  mixList(lightPalette.wallpaper.ground, darkPalette.wallpaper.ground)
+    readonly property var wallBlooms:  mixList(lightPalette.wallpaper.blooms, darkPalette.wallpaper.blooms)
+    readonly property var wallAccents: mixList(lightPalette.wallpaper.accents, darkPalette.wallpaper.accents)
 
     // ── type ────────────────────────────────────────────────────────────────
     readonly property string fontDisplay: "{{ fonts.display }}"
@@ -92,4 +113,16 @@ Singleton {
     readonly property int durPanelOut:  {{ motion.panel_out }}
     readonly property int stagger:      {{ motion.stagger }}
     readonly property int borderLoop:   {{ motion.border_loop }}
+
+    // ── the mode ────────────────────────────────────────────────────────────
+    // ~/.local/state/rice/mode, read before the first frame; `rice mode` or
+    // the file changing crossfades k over 600 ms on the bloom curve.
+    readonly property Mode mode: Mode { curve: root.bloom }
+    readonly property bool dark: mode.dark
+    readonly property real k: mode.k
+
+    function c(name) { return mode.mix(lightPalette.colors[name], darkPalette.colors[name]); }
+    function role(name) { return mode.mix(lightPalette.roles[name], darkPalette.roles[name]); }
+    function opacityOf(name) { return mode.blend(lightPalette.opacity[name], darkPalette.opacity[name]); }
+    function mixList(a, b) { return a.map((x, i) => mode.mix(x, b[i] ?? x)); }
 }
