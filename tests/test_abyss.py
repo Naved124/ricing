@@ -117,6 +117,30 @@ class Reef(unittest.TestCase):
             self.assertNotIn("FrameAnimation", f.read_text(), f)
 
 
+class Switch(unittest.TestCase):
+    """Abyss floods in and drains out; its card is the reef at rest."""
+
+    def test_flood_and_drain(self):
+        meta = tomllib.loads((RICE / "palette.toml").read_text())["meta"]
+        self.assertEqual((meta["transition"], meta["transition_out"]), ("flood", "drain"))
+        for shader in ("transition", "drain"):
+            with self.subTest(shader):
+                src, qsb = RICE / f"{shader}.frag", RICE / f"{shader}.frag.qsb"
+                self.assertTrue(qsb.exists(), "run tools/shaders")
+                self.assertGreaterEqual(qsb.stat().st_mtime, src.stat().st_mtime - 1, "recompile with tools/shaders")
+        rice = (REPO / "switcher/.local/bin/rice").read_text()
+        self.assertIn('dissolve "$target" "$from"', rice)
+        chooser = (SHELLS / "rice/shell.qml").read_text()
+        for needle in ("transition_out", "flood: 1100", "drain: 1000"):
+            self.assertIn(needle, chooser)
+
+    def test_the_card(self):
+        card = (RICE / "card.qml").read_text()
+        self.assertIn("source: root.base", card)
+        self.assertIn("running: root.visible", card)
+        self.assertTrue((RICE / "preview.png").exists())
+
+
 @unittest.skipUnless(has_pyside(), "needs PySide6")
 class Shells(unittest.TestCase):
     """Every shell starts without a QML error against the Quickshell stand-ins."""
@@ -150,6 +174,16 @@ class Shells(unittest.TestCase):
                 self.assertEqual((by[state]["rate"], by[state]["throttle"]), (30, "full"))
         self.assertEqual(by["half covered"]["coverage"], 0.5)
         self.assertFalse(by["pointer off"]["interactive"])
+
+    def test_every_surface_opens_clean(self):
+        import qs_smoke
+        found, pokes = qs_smoke.smoke(ABYSS, 8, REPO / "tests/pokes/abyss-walk.qml")
+        self.assertEqual(found, [])
+        self.assertEqual(len(pokes), 1, pokes)
+        self.assertEqual(pokes[0]["mode"], "dark")
+        self.assertTrue(pokes[0]["locked"])
+        # every screen's wallpaper reef stops while the lock's own runs
+        self.assertEqual({s["throttle"] for s in pokes[0]["stats"].values()}, {"stopped: locked"})
 
 
 if __name__ == "__main__":

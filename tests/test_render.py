@@ -467,8 +467,9 @@ class SystemCard(unittest.TestCase):
 
     def test_the_sys_copies_are_identical(self):
         paper = (self.SHELLS / "paper/services/Sys.qml").read_text()
-        self.assertEqual((self.SHELLS / "nacre/services/Sys.qml").read_text(), paper,
-                         "copy paper/services/Sys.qml to nacre/services/Sys.qml")
+        for shell in ("nacre", "abyss"):
+            self.assertEqual((self.SHELLS / f"{shell}/services/Sys.qml").read_text(), paper,
+                             f"copy paper/services/Sys.qml to {shell}/services/Sys.qml")
         # one long-lived reader, not a process per sample
         self.assertEqual(paper.count("Process {"), 1)
         self.assertIn("while :; do", paper)
@@ -478,7 +479,7 @@ class SystemCard(unittest.TestCase):
         self.assertIn("Sys.cpu", (self.SHELLS / "paper/services/Cpu.qml").read_text())
 
     def test_both_shells_put_it_on_the_desk(self):
-        for shell, ns in (("paper", "paper-stats"), ("nacre", "nacre-stats")):
+        for shell, ns in (("paper", "paper-stats"), ("nacre", "nacre-stats"), ("abyss", "abyss-stats")):
             with self.subTest(shell):
                 self.assertRegex((self.SHELLS / shell / "shell.qml").read_text(), r"\n\s*Stats \{\}")
                 card = (self.SHELLS / shell / "desk/Stats.qml").read_text()
@@ -499,17 +500,18 @@ class Island(unittest.TestCase):
 
     def test_one_cava_per_shell(self):
         beat = (self.SHELLS / "paper/services/Beat.qml").read_text()
-        self.assertEqual((self.SHELLS / "nacre/services/Beat.qml").read_text(), beat,
-                         "copy paper/services/Beat.qml to nacre/services/Beat.qml")
+        for shell in ("nacre", "abyss"):
+            self.assertEqual((self.SHELLS / f"{shell}/services/Beat.qml").read_text(), beat,
+                             f"copy paper/services/Beat.qml to {shell}/services/Beat.qml")
         self.assertIn("running: Media.playing", beat)
-        for shell in ("paper", "nacre"):
+        for shell in ("paper", "nacre", "abyss"):
             with self.subTest(shell):
                 runs = [f.relative_to(self.SHELLS / shell).as_posix()
                         for f in (self.SHELLS / shell).rglob("*.qml") if "exec cava" in f.read_text()]
                 self.assertEqual(runs, ["services/Beat.qml"])
 
     def test_each_shell_has_an_island(self):
-        for shell in ("paper", "nacre"):
+        for shell in ("paper", "nacre", "abyss"):
             with self.subTest(shell):
                 self.assertIn("Island {}", (self.SHELLS / shell / "shell.qml").read_text())
                 island = (self.SHELLS / shell / "bar/Island.qml").read_text()
@@ -531,7 +533,7 @@ class Island(unittest.TestCase):
         self.assertFalse((self.SHELLS / "nacre/bar/MediaMini.qml").exists())
 
     def test_notifications_go_to_the_island(self):
-        for shell in ("paper", "nacre"):
+        for shell in ("paper", "nacre", "abyss"):
             with self.subTest(shell):
                 notifs = (self.SHELLS / shell / "services/Notifs.qml").read_text()
                 self.assertIn("readonly property int lifetime: 4000", notifs)
@@ -551,11 +553,12 @@ class Island(unittest.TestCase):
 
     def test_title_follows_hyprland_events(self):
         hypr = (self.SHELLS / "paper/services/Hypr.qml").read_text()
-        self.assertEqual((self.SHELLS / "nacre/services/Hypr.qml").read_text(), hypr,
-                         "copy paper/services/Hypr.qml to nacre/services/Hypr.qml")
+        for shell in ("nacre", "abyss"):
+            self.assertEqual((self.SHELLS / f"{shell}/services/Hypr.qml").read_text(), hypr,
+                             f"copy paper/services/Hypr.qml to {shell}/services/Hypr.qml")
         for event in ('"activewindow"', '"activewindowv2"', '"windowtitlev2"'):
             self.assertIn(event, hypr)
-        for shell in ("paper", "nacre"):
+        for shell in ("paper", "nacre", "abyss"):
             with self.subTest(shell):
                 title = (self.SHELLS / shell / "bar/Title.qml").read_text()
                 self.assertIn("Hypr.activeTitle", title)

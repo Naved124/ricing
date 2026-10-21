@@ -78,7 +78,8 @@ Item {
         height: root.rows
     }
 
-    Layer { id: field; sourceItem: last; recursive: true }
+    // smooth: the water reads its slope between cells, as the mock's texture did
+    Layer { id: field; sourceItem: last; recursive: true; smooth: true }
     Pass { id: first; src: field; index: 0 }
     Layer { id: s1; sourceItem: first }
     Pass { id: p2; src: s1; index: 1 }

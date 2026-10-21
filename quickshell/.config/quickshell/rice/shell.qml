@@ -3,7 +3,10 @@
 // which per-rice shells can't. The `rice` script drives it:
 //   qs -c rice ipc call rice toggle            open/close the chooser
 //   qs -c rice ipc call rice freeze <dir>      pin <dir>/<monitor>.png on every output
-//   qs -c rice ipc call rice dissolve <rice>   reveal the new rice with its transition
+//   qs -c rice ipc call rice dissolve <rice> <from> <how>
+//                                              reveal the new rice: with the old one's
+//                                              way out if it has one (Abyss drains), else
+//                                              the new one's transition; how = fade fades
 //   qs -c rice ipc call rice reload            re-read the rice list
 //   qs -c rice ipc call rice reveal <mode>     reveal the desktop after `rice mode`
 //                                              with the rice's mode shader (lamp, orient)
@@ -16,8 +19,8 @@ import qs
 ShellRoot {
     id: root
 
-    // how long each transition shader runs, by meta.transition
-    readonly property var durations: ({ ripple: 900, peel: 950, fade: 450 })
+    // how long each transition shader runs, by meta.transition (or transition_out)
+    readonly property var durations: ({ ripple: 900, peel: 950, fade: 450, flood: 1100, drain: 1000 })
     // a mode change in a rice without a mode shader fades the frozen frame away
     readonly property int modeReveal: 600
 
@@ -41,12 +44,26 @@ ShellRoot {
             for (const f of frames.instances) f.freeze(dir);
         }
 
-        function dissolve(name: string): void {
+        function dissolve(name: string, from: string, how: string): void {
             const meta = Rices.find(name)?.meta;
-            const transition = meta?.transition ?? "fade";
-            const own = `file://${Rices.dir}/${name}/transition.frag.qsb`;
-            const ms = root.durations[transition] ?? 700;
-            for (const f of frames.instances) f.dissolve(own, ms);
+            const out = from ? Rices.find(from)?.meta?.transition_out ?? "" : "";
+            let shader, ms, curve = null;
+            if (how === "fade") {
+                // animations off, or a low battery
+                shader = Qt.resolvedUrl("shaders/fade.frag.qsb");
+                ms = root.durations.fade;
+            } else if (out) {
+                shader = `file://${Rices.dir}/${from}/${out}.frag.qsb`;
+                ms = root.durations[out] ?? 900;
+                curve = (Rices.find(from)?.meta?.motion?.bloom ?? null);
+            } else {
+                const transition = meta?.transition ?? "fade";
+                shader = `file://${Rices.dir}/${name}/transition.frag.qsb`;
+                ms = root.durations[transition] ?? 700;
+                // a rice that floods in rides its own drift curve
+                if (transition === "flood") curve = meta?.motion?.bloom ?? null;
+            }
+            for (const f of frames.instances) f.dissolve(shader, ms, curve ? { curve: curve.concat([1, 1]) } : undefined);
             Rices.refresh();
         }
 

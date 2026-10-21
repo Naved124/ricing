@@ -6,3 +6,4 @@ IpcHandler 1.0 IpcHandler.qml
 SplitParser 1.0 SplitParser.qml
 StdioCollector 1.0 StdioCollector.qml
 singleton FileViewError 1.0 FileViewError.qml
+singleton IpcRegistry 1.0 IpcRegistry.qml

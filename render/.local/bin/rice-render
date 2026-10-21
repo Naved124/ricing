@@ -652,6 +652,8 @@ def mode_outputs(rice: Path, ctx: dict) -> dict[Path, bytes]:
         "title": ctx["meta"]["title"],
         "tagline": ctx["meta"].get("tagline", ""),
         "transition": ctx["meta"]["transition"],
+        # a way out of its own (Abyss's water draining away), if it has one
+        "transition_out": ctx["meta"].get("transition_out", ""),
         "shell": ctx["meta"].get("shell", ""),
         "roles": ctx["roles"],
         "colors": ctx["colors"],
