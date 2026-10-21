@@ -544,6 +544,8 @@ class Island(unittest.TestCase):
                 title = (self.SHELLS / shell / "bar/Title.qml").read_text()
                 self.assertIn("Hypr.activeTitle", title)
                 self.assertNotIn("activeToplevel", title)
+                # a PropertyAction bound to the title swaps in the previous one
+                self.assertNotIn("PropertyAction", title)
 
     def test_nacre_tray_is_always_out(self):
         tray = (self.SHELLS / "nacre/bar/Tray.qml").read_text()

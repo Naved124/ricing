@@ -35,7 +35,9 @@ Item {
     SequentialAnimation {
         id: swap
         NumberAnimation { target: line; property: "opacity"; to: 0; duration: 120 }
-        PropertyAction { target: line; property: "text"; value: root.title }
+        // read the title when the swap gets here, not when it was queued (a
+        // bound value can still hold the previous window's)
+        ScriptAction { script: line.text = root.title }
         NumberAnimation { target: line; property: "opacity"; to: 1; duration: Theme.durFocus; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.bloom }
     }
 }
