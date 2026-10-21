@@ -10,13 +10,14 @@ local iridescent = {
 -- the ice edge: a bright near-white stop where light catches the top-left
 -- corner, then the iridescence, then white again; it turns with the loop
 local rim = {
-    colors = { "{{ colors.gleam | hypr(ee) }}", "{{ colors.rose | hypr(ff) }}", "{{ colors.sky | hypr(ff) }}",
-               "{{ colors.mint | hypr(ff) }}", "{{ colors.orchid | hypr(ff) }}", "{{ colors.gleam | hypr(cc) }}" },
+    colors = { "{{ colors.gleam | hypr(meta.hypr_rim_gleam.0) }}", "{{ colors.rose | hypr(ff) }}", "{{ colors.sky | hypr(ff) }}",
+               "{{ colors.mint | hypr(ff) }}", "{{ colors.orchid | hypr(ff) }}", "{{ colors.gleam | hypr(meta.hypr_rim_gleam.1) }}" },
     angle  = 45,
 }
--- unfocused panes: white along the top fading to lilac, still glass
+-- unfocused panes: white along the top fading to lilac, still glass (at
+-- night a faint glint fading to dark lilac)
 local pane = {
-    colors = { "{{ colors.gleam | hypr(99) }}", "{{ colors.lilac | hypr(55) }}" },
+    colors = { "{{ colors.gleam | hypr(meta.hypr_pane.0) }}", "{{ colors.lilac | hypr(meta.hypr_pane.1) }}" },
     angle  = 90,
 }
 
@@ -35,11 +36,12 @@ hl.config({
             brightness = {{ meta.hypr_blur_brightness }},
             vibrancy   = {{ meta.hypr_blur_vibrancy }},
         },
-        -- cool ice-blue shadows, never black; softer on inactive windows
+        -- cool ice-blue shadows, never black; softer on inactive windows (at
+        -- night deep, with a faint aubergine tint)
         shadow = {
             range          = {{ meta.hypr_shadow_range }},
-            color          = "{{ roles.shadow | hypr(0.30) }}",
-            color_inactive = "{{ roles.shadow | hypr(0.18) }}",
+            color          = "{{ roles.shadow | hypr(meta.hypr_shadow_alpha.0) }}",
+            color_inactive = "{{ roles.shadow | hypr(meta.hypr_shadow_alpha.1) }}",
         },
     },
 

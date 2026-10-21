@@ -63,7 +63,7 @@ CONF
                 radius: width / 2
                 // the bars walk along the gradient, left to right
                 color: Theme.gradient[Math.floor(index / root.bars * (Theme.gradient.length - 1))]
-                border.color: Qt.alpha(Theme.gleam, 0.4)
+                border.color: Theme.gleamAt(0.4)
                 Behavior on height { NumberAnimation { duration: 60 } }
             }
         }

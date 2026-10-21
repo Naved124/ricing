@@ -159,6 +159,11 @@ Item {
                         fillMode: Image.PreserveAspectCrop
                         asynchronous: true
                     }
+                    Rectangle {           // 92% brightness at night
+                        anchors.fill: parent
+                        radius: parent.radius
+                        color: Theme.imageShade
+                    }
                 }
             }
 

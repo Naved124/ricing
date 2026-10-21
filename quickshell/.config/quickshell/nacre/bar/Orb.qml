@@ -5,7 +5,8 @@ import qs.common
 import qs.services
 
 // The orb: a rotating iridescent pearl. Click opens the launcher (which
-// blooms out of here); right-click opens the rice chooser.
+// blooms out of here); right-click turns the pearl: light ⇄ black pearl
+// (the rice chooser is on Super+Shift+T).
 // A moon means Do Not Disturb; a pulsing rose dot means the screen is
 // being recorded.
 Item {
@@ -31,7 +32,18 @@ Item {
         width: 8; height: 6
         radius: 4
         rotation: -30
-        color: Qt.alpha(Theme.gleam, 0.75)
+        color: Theme.gleamAt(0.75)
+    }
+
+    Label {
+        anchors.left: parent.right
+        anchors.leftMargin: 8
+        anchors.verticalCenter: parent.verticalCenter
+        visible: tip.running === false && mouse.containsMouse
+        text: Theme.dark ? "black pearl" : "right-click: black pearl"
+        size: Theme.uiSize
+        color: Theme.inkSoft
+        Timer { id: tip; interval: 600; running: mouse.containsMouse }
     }
 
     Icon {
@@ -72,7 +84,7 @@ Item {
         acceptedButtons: Qt.LeftButton | Qt.RightButton
         onClicked: event => {
             if (event.button === Qt.RightButton) {
-                Quickshell.execDetached(["rice", "choose"]);
+                Quickshell.execDetached(["rice", "mode", "toggle"]);
                 return;
             }
             const p = root.mapToItem(null, root.width / 2, root.height / 2);

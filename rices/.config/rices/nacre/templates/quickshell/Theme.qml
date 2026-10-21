@@ -59,14 +59,20 @@ Singleton {
     readonly property color glassSoft:   Qt.alpha(role("surface"), 0.45)
     readonly property color hairline:    Qt.alpha(c("rim"), 0.45)
     // the pane's light: a bright top lip and a faint sky glow at the bottom
-    readonly property color glassHighlight: Qt.alpha(c("gleam"), 0.9)
-    readonly property color glassGlow:      Qt.alpha(c("sky"), 0.35)
-    // Shadows are cool steel, never black.
-    readonly property color shadow:      Qt.alpha(role("shadow"), 0.25)
-    readonly property color shadowSoft:  Qt.alpha(role("shadow"), 0.12)
-    // A rose → sky wash for selected rows.
-    readonly property color washFrom:    Qt.alpha(c("rose"), 0.55)
-    readonly property color washTo:      Qt.alpha(c("sky"), 0.55)
+    // (at night a 1 px specular edge, the pearl's own light, never a glare)
+    readonly property color glassHighlight: Qt.alpha(c("gleam"), mode.blend(0.9, 0.16))
+    readonly property color glassGlow:      Qt.alpha(c("sky"), mode.blend(0.35, 0.18))
+    // the specular dot on pearls and glass: bright by day, 10–18% at night
+    function gleamAt(a) { return Qt.alpha(c("gleam"), mode.blend(a, Math.min(a, 0.16))); }
+    // Shadows are cool steel, never black (at night deep, faintly aubergine).
+    readonly property color shadow:      Qt.alpha(role("shadow"), mode.blend(0.25, 0.5))
+    readonly property color shadowSoft:  Qt.alpha(role("shadow"), mode.blend(0.12, 0.3))
+    // A rose → sky wash for selected rows (rose → sapphire at ~22% at night).
+    readonly property color washFrom:    Qt.alpha(c("rose"), mode.blend(0.55, 0.22))
+    readonly property color washTo:      Qt.alpha(c("sky"), mode.blend(0.55, 0.22))
+    // a wrong password, notification images at 92% brightness at night
+    readonly property color alert:       cc("rose", "rose_alert")
+    readonly property color imageShade:  Qt.alpha(role("bg"), 0.08 * k)
 
     // ── iridescence ─────────────────────────────────────────────────────────
     // rose → sky → mint → sun → orchid → rose. Only for focus and active state.
@@ -123,6 +129,8 @@ Singleton {
 
     function c(name) { return mode.mix(lightPalette.colors[name], darkPalette.colors[name]); }
     function role(name) { return mode.mix(lightPalette.roles[name], darkPalette.roles[name]); }
+    // one colour by day, another at night
+    function cc(day, night) { return mode.mix(lightPalette.colors[day], darkPalette.colors[night]); }
     function opacityOf(name) { return mode.blend(lightPalette.opacity[name], darkPalette.opacity[name]); }
     function mixList(a, b) { return a.map((x, i) => mode.mix(x, b[i] ?? x)); }
 }

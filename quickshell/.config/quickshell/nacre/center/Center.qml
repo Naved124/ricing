@@ -197,17 +197,28 @@ PanelWindow {
                             available: !!Audio.source
                             onToggled: Audio.toggleMic()
                         }
+                        // power-profiles-daemon: performance ⇄ balanced; right-click for the saver
                         Toggle {
                             readonly property int profile: PowerProfiles.profile
-                            readonly property var profiles: PowerProfiles.hasPerformanceProfile
-                                ? [PowerProfile.PowerSaver, PowerProfile.Balanced, PowerProfile.Performance]
-                                : [PowerProfile.PowerSaver, PowerProfile.Balanced]
                             width: parent.tile
                             icon: profile === PowerProfile.PowerSaver ? "leaf" : profile === PowerProfile.Performance ? "rocket" : "gauge"
-                            name: "Power"
-                            detail: profile === PowerProfile.PowerSaver ? "Saver" : profile === PowerProfile.Performance ? "Performance" : "Balanced"
-                            on: profile !== PowerProfile.Balanced
-                            onToggled: PowerProfiles.profile = profiles[(profiles.indexOf(profile) + 1) % profiles.length]
+                            name: "Performance"
+                            detail: profile === PowerProfile.PowerSaver ? "Saver · right: off" : on ? "On" : "Balanced · right: saver"
+                            on: profile === PowerProfile.Performance
+                            available: PowerProfiles.hasPerformanceProfile
+                            onToggled: PowerProfiles.profile = on ? PowerProfile.Balanced : PowerProfile.Performance
+                            onSecondary: PowerProfiles.profile = profile === PowerProfile.PowerSaver
+                                         ? PowerProfile.Balanced : PowerProfile.PowerSaver
+                        }
+                        // light → black pearl → auto (by the sun) → light; right-click: auto on/off
+                        Toggle {
+                            width: parent.tile
+                            orient: true
+                            name: "Black pearl"
+                            detail: Theme.mode.auto ? Theme.mode.next.replace("auto · ", "Auto · ") : Theme.dark ? "On · tap: auto" : "Off"
+                            on: Theme.dark
+                            onToggled: Theme.mode.cycle()
+                            onSecondary: Quickshell.execDetached(["rice", "mode", "auto", Theme.mode.auto ? "off" : "on"])
                         }
                         Toggle {
                             width: parent.tile

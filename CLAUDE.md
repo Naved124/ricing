@@ -160,7 +160,9 @@ greeter always use `build/light/`.
   L* 25; `fg` 7–14:1 on `bg` and `surface` (above 14 it shimmers), `muted`, accents,
   `success` and `warning` at least 4.5:1; `accent`/`urgent`/`link` less saturated than in
   light; normal ANSI at least 4.5:1 on `term_bg`; the dark wallpaper's mean L* at most 16
-  and its 99.9th percentile at most 45.
+  and its 99.9th percentile at most 45 (Paper's from `assets/gen.py`, Nacre's from
+  `tools/render-wall dark`). Accents used as text that must stay pale (Nacre's
+  pastels) get their own dark-only `*_ink` colours; gradient stops can stay saturated.
 
 `tests/snapshots/light.sha256` pins every light-mode output; refresh it
 (`RICE_SNAPSHOT_UPDATE=1 python3 -m unittest tests.test_snapshot`) only when a change

@@ -19,11 +19,11 @@ Singleton {
         wallpaper: {"ground": ["#c9d3e6", "#d8cde6"], "blooms": ["#ed97ba", "#8ec4eb", "#8eebb6", "#ead086", "#c49bed"], "accents": ["#9fb8e0", "#c7a8e0", "#9fb8e0"]}
     })
     readonly property var darkPalette: ({
-        colors: {"pearl": "#f4f1f6", "shell": "#e7e2ec", "lilac": "#c9bfd8", "ink": "#3b3548", "ink_soft": "#7a7189", "rose": "#f2c3d6", "sky": "#c3dff3", "mint": "#cdeedb", "sun": "#f3e2b0", "orchid": "#dcc6f2", "mist": "#f7f4f9", "plum": "#7d6a9a", "frost": "#eef2f8", "ink_deep": "#2e2a3d", "steel": "#6e82b4", "glaze": "#f4f6fb", "rim": "#a0aad2", "gleam": "#ffffff"},
-        roles: {"bg": "#f4f1f6", "surface": "#e7e2ec", "overlay": "#c9bfd8", "border": "#c9bfd8", "fg": "#3b3548", "muted": "#7a7189", "accent": "#dcc6f2", "urgent": "#f2c3d6", "selection": "#c3dff3", "success": "#cdeedb", "warning": "#f3e2b0", "cursor": "#dcc6f2", "link": "#c3dff3", "shadow": "#6e82b4", "term_bg": "#eef2f8", "term_fg": "#2e2a3d"},
-        gradient: ["#f2c3d6", "#c3dff3", "#cdeedb", "#f3e2b0", "#dcc6f2"],
-        opacity: {"terminal": 0.72, "active": 0.97, "inactive": 0.9, "glass": 0.55},
-        wallpaper: {"ground": ["#c9d3e6", "#d8cde6"], "blooms": ["#ed97ba", "#8ec4eb", "#8eebb6", "#ead086", "#c49bed"], "accents": ["#9fb8e0", "#c7a8e0", "#9fb8e0"]}
+        colors: {"pearl": "#18171e", "shell": "#211f29", "lilac": "#4a4458", "line": "#34303f", "ink": "#e0dce8", "ink_soft": "#a39cb1", "rose": "#c06b94", "sky": "#5a86c8", "mint": "#46a394", "sun": "#bdb39a", "orchid": "#9367b8", "mist": "#1f1d27", "plum": "#8a78a8", "frost": "#1a1920", "ink_deep": "#d6d1df", "steel": "#1a1521", "glaze": "#1b1a22", "rim": "#4a4458", "gleam": "#f4f1f6", "orchid_ink": "#b3a3cb", "rose_ink": "#cfa6b6", "sky_ink": "#a8b8cc", "rose_alert": "#e48aa8", "sapphire_deep": "#2b3a57"},
+        roles: {"bg": "#18171e", "surface": "#211f29", "overlay": "#34303f", "border": "#34303f", "fg": "#e0dce8", "muted": "#a39cb1", "accent": "#b3a3cb", "urgent": "#cfa6b6", "selection": "#2b3a57", "success": "#46a394", "warning": "#bdb39a", "cursor": "#9367b8", "link": "#a8b8cc", "shadow": "#1a1521", "term_bg": "#1a1920", "term_fg": "#d6d1df"},
+        gradient: ["#c06b94", "#5a86c8", "#46a394", "#bdb39a", "#9367b8"],
+        opacity: {"terminal": 0.86, "active": 0.97, "inactive": 0.9, "glass": 0.74},
+        wallpaper: {"ground": ["#15131b", "#0f0e14"], "blooms": ["#2f6f65", "#304a6f", "#56346f", "#6f3453", "#3a3f6a"], "accents": ["#1d2235", "#2a1f33", "#1d2235"]}
     })
 
     // ── named colours ───────────────────────────────────────────────────────
@@ -59,14 +59,20 @@ Singleton {
     readonly property color glassSoft:   Qt.alpha(role("surface"), 0.45)
     readonly property color hairline:    Qt.alpha(c("rim"), 0.45)
     // the pane's light: a bright top lip and a faint sky glow at the bottom
-    readonly property color glassHighlight: Qt.alpha(c("gleam"), 0.9)
-    readonly property color glassGlow:      Qt.alpha(c("sky"), 0.35)
-    // Shadows are cool steel, never black.
-    readonly property color shadow:      Qt.alpha(role("shadow"), 0.25)
-    readonly property color shadowSoft:  Qt.alpha(role("shadow"), 0.12)
-    // A rose → sky wash for selected rows.
-    readonly property color washFrom:    Qt.alpha(c("rose"), 0.55)
-    readonly property color washTo:      Qt.alpha(c("sky"), 0.55)
+    // (at night a 1 px specular edge, the pearl's own light, never a glare)
+    readonly property color glassHighlight: Qt.alpha(c("gleam"), mode.blend(0.9, 0.16))
+    readonly property color glassGlow:      Qt.alpha(c("sky"), mode.blend(0.35, 0.18))
+    // the specular dot on pearls and glass: bright by day, 10–18% at night
+    function gleamAt(a) { return Qt.alpha(c("gleam"), mode.blend(a, Math.min(a, 0.16))); }
+    // Shadows are cool steel, never black (at night deep, faintly aubergine).
+    readonly property color shadow:      Qt.alpha(role("shadow"), mode.blend(0.25, 0.5))
+    readonly property color shadowSoft:  Qt.alpha(role("shadow"), mode.blend(0.12, 0.3))
+    // A rose → sky wash for selected rows (rose → sapphire at ~22% at night).
+    readonly property color washFrom:    Qt.alpha(c("rose"), mode.blend(0.55, 0.22))
+    readonly property color washTo:      Qt.alpha(c("sky"), mode.blend(0.55, 0.22))
+    // a wrong password, notification images at 92% brightness at night
+    readonly property color alert:       cc("rose", "rose_alert")
+    readonly property color imageShade:  Qt.alpha(role("bg"), 0.08 * k)
 
     // ── iridescence ─────────────────────────────────────────────────────────
     // rose → sky → mint → sun → orchid → rose. Only for focus and active state.
@@ -123,6 +129,8 @@ Singleton {
 
     function c(name) { return mode.mix(lightPalette.colors[name], darkPalette.colors[name]); }
     function role(name) { return mode.mix(lightPalette.roles[name], darkPalette.roles[name]); }
+    // one colour by day, another at night
+    function cc(day, night) { return mode.mix(lightPalette.colors[day], darkPalette.colors[night]); }
     function opacityOf(name) { return mode.blend(lightPalette.opacity[name], darkPalette.opacity[name]); }
     function mixList(a, b) { return a.map((x, i) => mode.mix(x, b[i] ?? x)); }
 }

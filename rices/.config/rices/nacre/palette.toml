@@ -91,6 +91,9 @@ color_scheme  = "prefer-light"
 hypr_blur_brightness = 0.92
 hypr_blur_vibrancy   = 0.4
 hypr_shadow_range    = 34
+hypr_shadow_alpha    = [0.30, 0.18]     # focused, unfocused
+hypr_rim_gleam       = ["ee", "cc"]     # the ice edge's bright stops (hex alpha)
+hypr_pane            = ["99", "55"]     # unfocused: gleam at the top, lilac below
 
 [modes.light.colors]
 pearl    = "#f4f1f6"   # base surfaces
@@ -169,3 +172,104 @@ glass    = 0.55    # Quickshell panel fill over Hyprland blur
 ground  = ["#c9d3e6", "#d8cde6"]
 blooms  = ["#ed97ba", "#8ec4eb", "#8eebb6", "#ead086", "#c49bed"]
 accents = ["#9fb8e0", "#c7a8e0", "#9fb8e0"]
+
+# ── dark: Black Pearl ───────────────────────────────────────────────────────
+# A Tahitian black pearl: a dark body with peacock, sapphire, aubergine and
+# rose in its orient. Same names as light; the gradient stops keep their
+# order (rose, sky, mint, sun, orchid → rose, sapphire, peacock, champagne,
+# aubergine), so every gradient maps one to one. The orient stops are for
+# rings, borders and washes; text uses paler *_ink colours, less saturated
+# than the day's pastels (tests/test_night.py).
+
+[modes.dark.meta]
+gtk_theme     = "adw-gtk3-dark"
+icon_theme    = "Colloid-Dark"
+color_scheme  = "prefer-dark"
+# smoked pearl, not grey fog
+hypr_blur_brightness = 0.82
+hypr_blur_vibrancy   = 0.15
+hypr_shadow_range    = 40
+hypr_shadow_alpha    = [0.60, 0.35]
+hypr_rim_gleam       = ["2e", "1a"]     # the specular stop, at 18% and 10%
+hypr_pane            = ["14", "80"]     # rgba(4a445880) below a faint glint
+
+[modes.dark.colors]
+pearl    = "#18171e"   # base (the spec's #131219 is L* 5.8, under 7)
+shell    = "#211f29"   # surfaces
+lilac    = "#4a4458"   # inactive borders
+line     = "#34303f"   # dividers, hairlines
+ink      = "#e0dce8"   # text (#ebe7f1 is 15:1, over the 14:1 halation limit)
+ink_soft = "#a39cb1"
+rose     = "#c06b94"   # orient stops
+sky      = "#5a86c8"   # sapphire
+mint     = "#46a394"   # peacock
+sun      = "#bdb39a"   # champagne-silver: yellow turns brown on dark
+orchid   = "#9367b8"   # aubergine
+mist     = "#1f1d27"   # solid panels
+plum     = "#8a78a8"
+frost    = "#1a1920"   # terminal glass
+ink_deep = "#d6d1df"   # terminal text
+steel    = "#1a1521"   # shadows: near black with ~12% aubergine
+glaze    = "#1b1a22"   # Quickshell glass fill (at opacity.glass)
+rim      = "#4a4458"   # glass hairline
+gleam    = "#f4f1f6"   # specular only, at 10–18%
+# text versions of the orient, paler than the day's pastels
+orchid_ink = "#b3a3cb"
+rose_ink   = "#cfa6b6"
+sky_ink    = "#a8b8cc"
+rose_alert = "#e48aa8" # a wrong password
+sapphire_deep = "#2b3a57"   # selection behind text
+
+[modes.dark.roles]
+bg        = "pearl"
+surface   = "shell"
+overlay   = "line"
+border    = "line"
+fg        = "ink"
+muted     = "ink_soft"
+accent    = "orchid_ink"
+urgent    = "rose_ink"
+selection = "sapphire_deep"
+success   = "mint"
+warning   = "sun"
+cursor    = "orchid"
+link      = "sky_ink"
+shadow    = "steel"
+term_bg   = "frost"
+term_fg   = "ink_deep"
+
+[modes.dark.gradient]
+stops = ["rose", "sky", "mint", "sun", "orchid"]
+angle = 45
+
+[modes.dark.ansi]
+color0  = "#131219"
+color1  = "#e48aa8"
+color2  = "#7cc4a2"
+color3  = "#d8bd7a"
+color4  = "#82a9dc"
+color5  = "#b892d6"
+color6  = "#6fc0bc"
+color7  = "#c9c3d3"
+color8  = "#4d4859"
+color9  = "#f0a6bf"
+color10 = "#99d6b9"
+color11 = "#e8d199"
+color12 = "#a1c1e8"
+color13 = "#cfb0e6"
+color14 = "#8fd3cf"
+color15 = "#ebe7f1"
+
+[modes.dark.opacity]
+terminal = 0.86    # smoked glass
+active   = 0.97    # window rules are shared by both modes (hypr.lua)
+inactive = 0.90
+glass    = 0.74
+
+# The black pearl (shaders/wallpaper.frag with dark = 1): a #15131b → #0f0e14
+# ground; the blooms walk through peacock, sapphire, aubergine and rose at
+# ~40% saturation and 28–34% lightness; the accents are deep and faint.
+[modes.dark.wallpaper]
+ground  = ["#15131b", "#0f0e14"]
+blooms  = ["#2f6f65", "#304a6f", "#56346f", "#6f3453", "#3a3f6a"]
+accents = ["#1d2235", "#2a1f33", "#1d2235"]

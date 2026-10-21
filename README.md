@@ -267,9 +267,18 @@ fibres lighten instead of darkening, under a faint lamp vignette (`lamp_vignette
 `[modes.dark.meta]`, 0 turns it off). Pull the chain hanging from the bar's right-hand
 tape to switch; the control centre's "lamp" goes light → dark → auto.
 
+**Black Pearl** is Nacre at night: a Tahitian black pearl. Smoked-pearl glass over a
+dark body whose blooms drift through peacock, sapphire, aubergine and rose, silver growth
+lines and a faint orient sheen that crosses every 40 s; borders and rings in the dark
+orient stops, and a 1 px specular edge instead of white highlights. The screenshot flash
+becomes an iridescent outline pulse, never white. Right-click the orb, or use the
+control centre's "Black pearl" tile (light → dark → auto; right-click for auto on or off).
+`tools/render-wall dark` renders the wallpaper's still (`assets/wall-static-dark.png`),
+which the luminance test checks.
+
 Both control centres also have **performance** (power-profiles-daemon: click for
-performance or balanced, right-click for the power saver in Paper) and **microphone**
-(mute) toggles.
+performance or balanced, right-click for the power saver) and **microphone** (mute)
+toggles.
 
 What follows the change, and when:
 

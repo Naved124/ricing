@@ -12,6 +12,7 @@ Item {
     property string detail: ""
     property bool on: false
     property bool available: true
+    property bool orient: false          // a small pearl turning its orient instead of the icon
 
     signal toggled()
     signal secondary()       // right-click
@@ -56,9 +57,19 @@ Item {
         }
         Icon {
             anchors.centerIn: parent
+            visible: !root.orient
             name: root.icon
             size: 17
             color: Theme.ink
+        }
+        Pearl {
+            anchors.centerIn: parent
+            visible: root.orient
+            width: 16
+            height: 16
+            gloss: 0.6
+            iri: 1
+            spinning: root.orient && Theme.dark
         }
     }
 

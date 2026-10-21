@@ -40,6 +40,10 @@ Item {
                 sourceSize: Qt.size(44, 44)
                 asynchronous: true
             }
+            Rectangle {               // 92% brightness at night
+                anchors.fill: parent
+                color: Theme.imageShade
+            }
             Rectangle {
                 anchors.centerIn: parent
                 width: 5; height: 5; radius: 2.5

@@ -204,7 +204,7 @@ class Palettes(unittest.TestCase):
             with self.assertRaisesRegex(rr.RenderError, r"\[colors\] belongs under \[modes.<mode>.colors\]"):
                 rr.load_palette(rice)
             # no [modes.dark.*]: dark wears the light tables
-            (rice / "palette.toml").write_text(text)
+            (rice / "palette.toml").write_text(text.split("\n# ── dark")[0])
             dark = rr.load_palette(rice, "dark")
             self.assertEqual((dark["mode"], dark["has_mode"], dark["roles"]["bg"]), ("dark", False, "#f4f1f6"))
             with self.assertRaisesRegex(rr.RenderError, r"no mode called 'dusk'"):
@@ -443,6 +443,26 @@ class ShellModes(unittest.TestCase):
                 qsb = RICES / rice / f"{shader}.frag.qsb"
                 self.assertTrue(qsb.exists(), "run tools/shaders")
                 self.assertGreaterEqual(qsb.stat().st_mtime, src.stat().st_mtime - 1, "recompile with tools/shaders")
+
+
+class BlackPearl(unittest.TestCase):
+    """Nacre at night: the Hyprland half and the wallpaper's still."""
+
+    def test_hypr_mode_at_night(self):
+        ctx = rr.load_modes(RICES / "nacre")["dark"]
+        mode = rr.render_text((RICES / "nacre/templates/hypr-mode.lua").read_text(), ctx, "hypr-mode.lua")
+        for want in ('"rgba(c06b94ff)", "rgba(5a86c8ff)", "rgba(46a394ff)", "rgba(bdb39aff)", "rgba(9367b8ff)"',
+                     '"rgba(4a445880)"', 'brightness = 0.82', 'vibrancy   = 0.15', 'range          = 40',
+                     'background_color = "rgba(18171eff)"', '"rgba(f4f1f62e)"'):
+            self.assertIn(want, mode)
+        self.assertNotIn("ffffff", mode, "no white at night")
+
+    def test_the_wallpaper_still_is_committed(self):
+        still = RICES / "nacre/assets/wall-static-dark.png"
+        self.assertTrue(still.exists(), "tools/render-wall dark")
+        src = REPO / "quickshell/.config/quickshell/nacre/shaders/wallpaper.frag"
+        self.assertIn("uniform", src.read_text())
+        self.assertIn("orientWalk", src.read_text())
 
 
 class Modes(unittest.TestCase):

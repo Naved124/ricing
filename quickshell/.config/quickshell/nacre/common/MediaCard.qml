@@ -57,6 +57,10 @@ Item {
                         asynchronous: true
                         sourceSize: Qt.size(root.artSize * 2, root.artSize * 2)
                     }
+                    Rectangle {           // 92% brightness at night
+                        anchors.fill: parent
+                        color: Theme.imageShade
+                    }
 
                     RotationAnimator on rotation {
                         running: root.spinArt && !!root.player && root.player.isPlaying && root.visible

@@ -152,7 +152,7 @@ Item {
                 anchors.fill: parent
                 radius: height / 2
                 fill: Theme.glassStrong
-                hairline: root.lock.failed ? Theme.rose : field2.activeFocus ? Theme.orchid : Theme.hairline
+                hairline: root.lock.failed ? Theme.alert : field2.activeFocus ? Theme.orchid : Theme.hairline
             }
             // the rose ring on failure
             Rectangle {
@@ -161,7 +161,7 @@ Item {
                 radius: height / 2
                 color: "transparent"
                 border.width: 2
-                border.color: Theme.rose
+                border.color: Theme.alert
                 opacity: root.lock.failed ? 1 : 0
                 Behavior on opacity { NumberAnimation { duration: Theme.durFocus } }
             }

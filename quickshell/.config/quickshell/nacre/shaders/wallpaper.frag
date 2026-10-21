@@ -4,6 +4,12 @@
 // streaks, a fine crystalline grain, shell growth-lines in the lower-right
 // corner, and a soft ripple where the desktop was clicked. The colour and the
 // shapes are there so Hyprland's blur has something to frost.
+//
+// At night (dark → 1) it is a Tahitian black pearl: a #15131b → #0f0e14
+// ground, blooms whose hue walks only through the orient stops (peacock →
+// sapphire → aubergine → rose, muted and half-clear), silver growth lines at
+// 7%, no frost light, and a broad, faint orient sheen drifting across on a
+// 40 s sine (at most +4%). Everything crossfades with dark.
 layout(location = 0) in vec2 qt_TexCoord0;
 layout(location = 0) out vec4 fragColor;
 layout(std140, binding = 0) uniform buf {
@@ -39,6 +45,17 @@ vec3 accentColor(int i) {
     if (i == 0) return a0.rgb;
     if (i == 1) return a1.rgb;
     return a2.rgb;
+}
+
+// the night's blooms: a hue walk through the first four orient stops
+// (c0–c3 at dark = 1: peacock, sapphire, aubergine, rose), round and back
+vec3 orientWalk(float s) {
+    s = fract(s) * 4.0;
+    int i = int(floor(s));
+    float f = smoothstep(0.0, 1.0, fract(s));
+    vec3 a = i == 0 ? c0.rgb : i == 1 ? c1.rgb : i == 2 ? c2.rgb : c3.rgb;
+    vec3 b = i == 0 ? c1.rgb : i == 1 ? c2.rgb : i == 2 ? c3.rgb : c0.rgb;
+    return mix(a, b, f);
 }
 
 float blob(vec2 uv, vec2 c, float r) {
@@ -108,7 +125,8 @@ void main() {
             (0.5 + 0.42 * sin(t * (0.9 + fi * 0.17) + fi * 1.9)) * aspect,
             0.5 + 0.38 * cos(t * (0.7 + fi * 0.13) + fi * 2.7));
         float w = blob(p, c, 0.30 + 0.05 * sin(t * 1.3 + fi));
-        col = mix(col, bloomColor(i), w * 0.7);
+        vec3 bc = mix(bloomColor(i), orientWalk(t * 0.35 + fi * 0.8), dark);
+        col = mix(col, bc, w * mix(0.7, 0.5, dark));
     }
 
     // three deeper accents, smaller and slower, laid on like tinted glass
@@ -121,11 +139,11 @@ void main() {
         float w = blob(p, c, 0.24 + 0.03 * sin(t * 0.9 + fi * 2.0));
         vec3 tint = accentColor(i) / max(ground0.rgb, vec3(0.2));
         vec3 tinted = col * pow(tint, vec3(1.8));
-        col = mix(col, tinted, w);
+        col = mix(col, tinted, w * (1.0 - 0.6 * dark));
     }
 
     // a cold sheen in the top-left corner, as if light falls on the ice there
-    col = mix(col, vec3(0.97, 0.98, 1.0), 0.32 * smoothstep(0.75, 0.0, length(uv - vec2(0.0, 0.0))));
+    col = mix(col, vec3(0.97, 0.98, 1.0), 0.32 * (1.0 - dark) * smoothstep(0.75, 0.0, length(uv - vec2(0.0, 0.0))));
 
     // frost streaks: faint diagonal scratches, patchy, drifting with the blooms
     vec2 dir = normalize(vec2(1.0, -0.62));
@@ -134,11 +152,11 @@ void main() {
     float streak = abs(fract(along * 38.0 + noise(vec2(across * 3.0, along * 6.0)) * 1.6) - 0.5);
     streak = (1.0 - smoothstep(0.0, 0.035, streak));
     float patchy = smoothstep(0.55, 0.85, noise(p * 2.2 + vec2(t * 0.2, 0.0)));
-    col = mix(col, vec3(1.0), streak * patchy * 0.10);
+    col = mix(col, vec3(1.0), streak * patchy * 0.10 * (1.0 - 0.8 * dark));
 
     // crystalline grain, 2–3%: brighter facet edges, slightly darker cells
     float e = crystal(uv * resolution / 5.0);
-    col += (1.0 - smoothstep(0.0, 0.12, e)) * 0.025 - 0.006;
+    col += ((1.0 - smoothstep(0.0, 0.12, e)) * 0.025 - 0.006) * (1.0 - 0.6 * dark);
 
     // growth lines: concentric arcs from the lower-right corner, very faint
     vec2 corner = vec2(aspect + 0.08, 1.12);
@@ -146,11 +164,17 @@ void main() {
     float a = atan(p.y - corner.y, p.x - corner.x);
     float lines = abs(fract(r * 26.0 + 0.04 * sin(a * 9.0 + r * 4.0)) - 0.5);
     float lineMask = (1.0 - smoothstep(0.0, 0.06, lines)) * smoothstep(0.75, 0.15, r);
-    col = mix(col, lilac.rgb, lineMask * 0.16);
+    // silver at night, at 7%
+    col = mix(col, mix(lilac.rgb, vec3(0.66, 0.65, 0.70), dark), lineMask * mix(0.16, 0.07, dark));
+
+    // the black pearl's orient: a broad, low band of light drifting across
+    // and back every 40 s, at most +4%
+    float band = dot(uv - 0.5, normalize(vec2(1.0, 0.45))) - 0.55 * sin(time * 6.2831853 / 40.0);
+    col += vec3(0.04) * exp(-band * band / 0.03) * dark;
 
     // the ripple ring itself catches a little iridescence
     vec3 irid = bloomColor(int(mod(floor(atan(p.y - rp.y, p.x - rp.x) * 0.8 + 5.0), 5.0)));
-    col = mix(col, mix(irid, vec3(1.0), 0.4), ring * 0.35);
+    col = mix(col, mix(irid, vec3(1.0), 0.4 * (1.0 - dark)), ring * 0.35);
 
     fragColor = vec4(clamp(col, 0.0, 1.0), 1.0) * qt_Opacity;
 }
