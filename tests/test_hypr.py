@@ -42,6 +42,10 @@ class VerifyConfig(unittest.TestCase):
         if current.is_symlink():
             current.unlink()
         current.symlink_to(rice)
+        active = self.home / ".local/share/rice/active"
+        if not active.is_symlink():
+            active.parent.mkdir(parents=True, exist_ok=True)
+            active.symlink_to(current / "build/light")
         args = [HYPRLAND, "--verify-config", "-c", str(self.home / ".config/hypr/hyprland.lua")]
         if os.geteuid() == 0:
             args.insert(1, "--i-am-really-stupid")
@@ -108,10 +112,10 @@ class LuaSmoke(unittest.TestCase):
             subprocess.run([str(REPO / "render/.local/bin/rice-render"), "--all", "-q"], env=env, check=True)
             stub = Path(d) / "stub.lua"
             stub.write_text(HL_STUB)
-            files = [REPO / "hypr/.config/hypr/base.lua"] + sorted(rices.glob("*/build/hypr.lua"))
-            self.assertGreaterEqual(len(files), 3)   # base.lua and each rice
+            files = [REPO / "hypr/.config/hypr/base.lua"] + sorted(rices.glob("*/build/*/hypr.lua"))
+            self.assertGreaterEqual(len(files), 5)   # base.lua and each rice in both modes
             for f in files:
-                with self.subTest(f.parent.parent.name):
+                with self.subTest(f"{f.parent.parent.parent.name} {f.parent.name}"):
                     r = subprocess.run([LUA, str(stub), str(f)], capture_output=True, text=True, env=env)
                     self.assertEqual(r.returncode, 0, r.stderr)
 

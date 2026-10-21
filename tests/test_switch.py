@@ -112,7 +112,7 @@ class Switch(unittest.TestCase):
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertEqual(os.readlink(self.rices / "current"), "nacre")
         # rendered before anything froze
-        self.assertTrue((self.rices / "nacre/build/meta.json").exists())
+        self.assertTrue((self.rices / "nacre/build/light/meta.json").exists())
 
         calls = self.calls()
         grim = self.index(calls, "grim")
@@ -127,6 +127,17 @@ class Switch(unittest.TestCase):
         self.assertEqual(dissolve, len(calls) - 1, "dissolve should be the last thing")
         # one shot per monitor
         self.assertEqual(sum(c.startswith("grim -l 0 -o") for c in calls), 2)
+
+    def test_active_follows_the_rice_and_the_mode(self):
+        active = Path(self.env["HOME"]) / ".local/share/rice/active"
+        self.assertEqual(self.rice("nacre").returncode, 0)
+        self.assertEqual(Path(os.readlink(active)), self.rices / "current/build/light")
+        self.assertTrue((active / "kitty.conf").is_file())
+        # the mode is remembered across rice switches
+        (Path(self.env["XDG_STATE_HOME"]) / "rice/mode").write_text("dark\n")
+        self.assertEqual(self.rice("paper").returncode, 0)
+        self.assertEqual(Path(os.readlink(active)), self.rices / "current/build/dark")
+        self.assertIn("paper", (active / "kitty.conf").resolve().as_posix())
 
     def test_shell_rice_stops_swaync_and_wallpaper_daemons(self):
         self.rice("nacre")

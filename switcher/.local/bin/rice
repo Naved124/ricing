@@ -31,10 +31,12 @@ set -euo pipefail
 RICE_DIR="${RICE_DIR:-${XDG_CONFIG_HOME:-$HOME/.config}/rices}"
 STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/rice"
 RUN_DIR="${XDG_RUNTIME_DIR:-/tmp}/rice"
+# the active rice's build in the active mode; every app's config links through it
+ACTIVE="${XDG_DATA_HOME:-$HOME/.local/share}/rice/active"
 SHARED_SHELL="rice"            # qs -c rice: the chooser and the switch overlay
 AUTO_TIMER="rice-auto.timer"
 
-mkdir -p "$STATE_DIR" "$RUN_DIR"
+mkdir -p "$STATE_DIR" "$RUN_DIR" "${ACTIVE%/*}"
 
 log()  { printf '\033[2mrice:\033[0m %s\n' "$*" >&2; }
 die()  { printf '\033[31mrice:\033[0m %s\n' "$*" >&2; exit 1; }
@@ -62,8 +64,22 @@ toml_get() {
 }
 
 palette() { toml_get "$RICE_DIR/$1/palette.toml" "$2" "$3"; }
-# look RICE KEY: a key from the rice's [modes.light.meta] (GTK theme, icons, screen shader)
-look() { palette "$1" modes.light.meta "$2"; }
+
+# light or dark, from ~/.local/state/rice/mode (light when unset)
+mode() {
+    local m
+    m="$(cat "$STATE_DIR/mode" 2>/dev/null || true)"
+    [[ "$m" == dark ]] && echo dark || echo light
+}
+
+# look RICE KEY: a key from the rice's [modes.<mode>.meta] (GTK theme, icons,
+# screen shader); a rice without dark tables wears its light ones
+look() {
+    local m
+    m="$(mode)"
+    grep -q "^\[modes\.$m\." "$RICE_DIR/$1/palette.toml" || m=light
+    palette "$1" "modes.$m.meta" "$2"
+}
 
 rices() {
     local d
@@ -337,6 +353,17 @@ swap_link() {
     # atomic: build the new link beside the old one, then rename over it
     ln -sfn "$1" "$RICE_DIR/.current.tmp"
     mv -T "$RICE_DIR/.current.tmp" "$RICE_DIR/current"
+    point_active
+}
+
+# active → current/build/<mode>, the same way; it goes through `current`, so
+# a rice switch alone doesn't have to touch it
+point_active() {
+    local want
+    want="$RICE_DIR/current/build/$(mode)"
+    [[ "$(readlink "$ACTIVE" 2>/dev/null)" == "$want" ]] && return 0
+    ln -sfn "$want" "${ACTIVE%/*}/.active.tmp"
+    mv -T "${ACTIVE%/*}/.active.tmp" "$ACTIVE"
 }
 
 switch_to() {
@@ -436,6 +463,7 @@ session() {
         [[ -n "$cur" ]] || die "no rices in $RICE_DIR"
         swap_link "$cur"
     fi
+    point_active
     step render "$cur"
     step apply_gtk "$cur"
     step apply_notifications "$cur"
@@ -518,7 +546,7 @@ json() {
         "$([[ "$(auto status)" == on ]] && echo true || echo false)" \
         "$(json_str "$sched")"
     while read -r r; do
-        meta="$RICE_DIR/$r/build/meta.json"
+        meta="$RICE_DIR/$r/build/$(mode)/meta.json"
         [[ -f "$meta" ]] || render "$r" >/dev/null 2>&1 || true
         (( first )) || printf ','
         first=0

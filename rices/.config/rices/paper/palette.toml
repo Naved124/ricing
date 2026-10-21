@@ -113,6 +113,14 @@ umber    = "#3c2d14"   # shadow colour: warm brown
 crease   = "#d9d4c6"   # hairlines and dividers
 manila   = "#3a2c14"   # text on kraft
 envelope = "#f3ead6"   # the lock screen's envelope
+chalk    = "#ffffff"   # bright stock: tear-off pages, photo borders, a note's sheen
+soot     = "#000000"   # only ever faint: vignettes, punched holes, the lift under tape
+felt     = "#2b2a1e"   # felt-tip on the sticky notes
+binding  = "#3b0f0b"   # the tear-off pad's binding holes
+wad      = "#f2efe6"   # crumpled balls in the bin
+wad_crease = "#a9a59a" # the creases in them
+basket   = "#3c3c3a"   # the shade inside the wire bin (used at 8%)
+scrim    = "#504632"   # behind the launcher (used at 18%)
 
 # Roles name a colour above; templates shared by every rice only use roles.
 [modes.light.roles]

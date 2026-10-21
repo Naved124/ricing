@@ -138,7 +138,7 @@ How each app follows the rice:
 | Firefox, Zen, LibreWolf | `userChrome.css` / `userContent.css` linked into every profile, with the pref turned on in `user.js` | on restart; websites keep their own colours |
 | Spotify | Spicetify's Rice theme (Spicetify comes from its official release, set up and applied for you when Spotify is installed) | next time Spotify starts |
 | mpv | `include="~~/rice.conf"` in `mpv.conf` for the on-screen text, `osc.conf` for the built-in controls, `uosc.conf` if you use uosc | next file opened |
-| Telegram Desktop | `~/.config/rices/current/build/telegram/rice.tdesktop-theme`: open it in Telegram | only when you open it again; Telegram can't follow by itself |
+| Telegram Desktop | `~/.local/share/rice/active/telegram/rice.tdesktop-theme`: open it in Telegram | only when you open it again; Telegram can't follow by itself |
 | kitty, nvim | include line / colorscheme; reloaded live | at once |
 
 A few more include the theme rather than having it replaced; the installer prints the one
@@ -266,7 +266,8 @@ the Nerd Font symbols; kitty 0.36+ also has them built in). Make zsh your shell 
 ## Theme files
 
 `rice-render` reads `palette.toml` and writes every app's theme into the rice's `build/`
-folder. Templates live in `render/.local/share/rice/templates/`, and a rice's own
+folder, once per mode (`build/light/` and `build/dark/`). Apps read them through
+`~/.local/share/rice/active`, which points at the active rice's build in the active mode. Templates live in `render/.local/share/rice/templates/`, and a rice's own
 `templates/` folder overrides any of them. It writes themes for kitty, nvim (with
 lualine), starship, zsh highlighting, btop, yazi, fastfetch, GTK 3 and 4, qt6ct, Firefox (chrome
 and a start page), Vesktop, Spicetify, mpv/uosc, imv, zathura, cava (in a terminal),

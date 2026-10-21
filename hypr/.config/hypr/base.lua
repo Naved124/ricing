@@ -1,7 +1,7 @@
 -- Base layer: everything that stays the same in every rice.
 -- Keybinds, input, layout, autostart, and *which* windows are which.
 -- How those windows look (opacity, borders, rounding) belongs to the rice:
--- this file only tags windows, and ~/.config/rices/current/build/hypr.lua
+-- this file only tags windows, and ~/.local/share/rice/active/hypr.lua
 -- styles the tags.
 --
 -- Targets Hyprland 0.56 (Lua config).

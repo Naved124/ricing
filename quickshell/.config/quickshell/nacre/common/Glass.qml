@@ -41,8 +41,8 @@ Item {
         anchors.margins: 1
         radius: Math.max(0, root.radius - 1)
         gradient: Gradient {
-            GradientStop { position: 0.0; color: Qt.rgba(1, 1, 1, 0.18) }
-            GradientStop { position: 0.4; color: Qt.rgba(1, 1, 1, 0.0) }
+            GradientStop { position: 0.0; color: Qt.alpha(Theme.gleam, 0.18) }
+            GradientStop { position: 0.4; color: Qt.alpha(Theme.gleam, 0) }
         }
     }
 

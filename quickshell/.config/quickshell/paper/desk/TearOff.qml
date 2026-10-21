@@ -49,7 +49,7 @@ Item {
     Sheet {
         id: sheet
         anchors.fill: parent
-        fill: "#ffffff"
+        fill: Theme.chalk
         tilt: 1.6
         tiltContent: true
         seed: 1015
@@ -73,8 +73,8 @@ Item {
                             width: 9
                             height: 9
                             radius: 4.5
-                            color: "#3b0f0b"
-                            border.color: "#22000000"
+                            color: Theme.binding
+                            border.color: Qt.alpha(Theme.soot, 0.135)
                         }
                     }
                 }
@@ -104,7 +104,7 @@ Item {
             y: falling ? 34 : 0
             width: root.width
             height: root.height - 34
-            color: "#ffffff"
+            color: Theme.chalk
             transformOrigin: Item.TopLeft
             antialiasing: true
 

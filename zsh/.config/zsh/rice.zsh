@@ -40,12 +40,12 @@ bindkey '^[[1;5C' forward-word    '^[[1;5D' backward-word
 bindkey '^H' backward-kill-word   # Ctrl+Backspace
 
 # ── the rice's colours ────────────────────────────────────────────────────
-# reloaded on the next prompt whenever `rice <name>` re-renders it
-_rice_colours="${XDG_CONFIG_HOME:-$HOME/.config}/rices/current/build/zsh.zsh"
+# reloaded on the next prompt whenever `rice <name>` re-renders it or the mode changes
+_rice_colours="${XDG_DATA_HOME:-$HOME/.local/share}/rice/active/zsh.zsh"
 _rice_colours_loaded=""
 _rice_colours_reload() {
     [[ -r $_rice_colours ]] || return 0
-    # which rice's file (current is a symlink) and when it was last rendered
+    # which rice and mode (active is a symlink) and when it was last rendered
     local now="${_rice_colours:A} $(zstat +mtime -- "$_rice_colours" 2>/dev/null)"
     [[ $now == "$_rice_colours_loaded" ]] && return 0
     _rice_colours_loaded=$now

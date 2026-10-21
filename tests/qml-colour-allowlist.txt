@@ -1,0 +1,7 @@
+# Colours that may be written into QML, each with why. Format:
+#   path: text on the line  # reason
+# The text only has to appear on the flagged line. tests/test_qml_lint.py fails
+# on an entry that no longer matches anything, so this list can't go stale.
+
+quickshell/.config/quickshell/nacre/common/Glass.qml: GradientStop { position: 0.0; color: "white" }  # the highlight's mask: only its alpha is read, never shown
+quickshell/.config/quickshell/nacre/lock/LockSurface.qml: color: "black"  # hidden digits used as the clock's mask (visible: false)

@@ -19,8 +19,8 @@ Item {
         id: face
         anchors.fill: parent
         radius: root.radius
-        color: root.r.surface ?? "#222"
-        border.color: root.selected ? (root.r.accent ?? "#888") : (root.r.border ?? "#444")
+        color: root.r.surface ?? "transparent"
+        border.color: root.selected ? (root.r.accent ?? "transparent") : (root.r.border ?? "transparent")
         border.width: root.selected ? 2 : 1
         Behavior on border.color { ColorAnimation { duration: 250 } }
     }
@@ -35,7 +35,7 @@ Item {
             width: parent.width
             height: 150
             radius: Math.max(4, root.radius - 6)
-            color: root.r.bg ?? "#111"
+            color: root.r.bg ?? "transparent"
             clip: true
 
             Image {
@@ -56,7 +56,7 @@ Item {
                     width: parent.width
                     height: 10
                     radius: 5
-                    color: root.r.surface ?? "#333"
+                    color: root.r.surface ?? "transparent"
                 }
                 Rectangle {
                     id: focused
@@ -65,9 +65,9 @@ Item {
                     anchors.bottom: parent.bottom
                     width: parent.width * 0.55 - 4
                     radius: Math.max(2, (root.m.shape?.window ?? 8) / 3)
-                    color: root.r.term_bg ?? root.r.bg ?? "#111"
+                    color: root.r.term_bg ?? root.r.bg ?? "transparent"
                     border.width: 2
-                    border.color: root.grad[0] ?? root.r.accent ?? "#888"
+                    border.color: root.grad[0] ?? root.r.accent ?? "transparent"
                     Column {
                         x: 8; y: 10; spacing: 5
                         Repeater {
@@ -77,7 +77,7 @@ Item {
                                 width: [60, 42, 70, 30, 52][index]
                                 height: 4
                                 radius: 2
-                                color: root.grad[index % Math.max(1, root.grad.length)] ?? root.r.fg ?? "#ccc"
+                                color: root.grad[index % Math.max(1, root.grad.length)] ?? root.r.fg ?? "transparent"
                                 opacity: 0.85
                             }
                         }
@@ -97,9 +97,9 @@ Item {
                             width: parent.width
                             height: (parent.height - 8) / 2
                             radius: focused.radius
-                            color: root.r.surface ?? "#222"
+                            color: root.r.surface ?? "transparent"
                             border.width: 1
-                            border.color: root.r.border ?? "#444"
+                            border.color: root.r.border ?? "transparent"
                         }
                     }
                 }
@@ -116,7 +116,7 @@ Item {
                     height: 18
                     radius: 9
                     color: modelData
-                    border.color: root.r.border ?? "#444"
+                    border.color: root.r.border ?? "transparent"
                 }
             }
         }
@@ -126,7 +126,7 @@ Item {
             spacing: 2
             Text {
                 text: root.m.title ?? root.rice?.name ?? ""
-                color: root.r.fg ?? "#eee"
+                color: root.r.fg ?? "transparent"
                 font.family: root.m.fonts?.display ?? "sans-serif"
                 font.weight: root.m.fonts?.display_weight ?? Font.Normal
                 font.pixelSize: 27
@@ -134,7 +134,7 @@ Item {
             Text {
                 width: parent.width
                 text: root.m.tagline ?? ""
-                color: root.r.muted ?? "#999"
+                color: root.r.muted ?? "transparent"
                 font.family: root.m.fonts?.ui ?? "sans-serif"
                 font.weight: root.m.fonts?.weight ?? Font.DemiBold
                 font.pixelSize: 14
@@ -148,7 +148,7 @@ Item {
         anchors.bottom: parent.bottom
         anchors.margins: 14
         text: root.active ? "● active" : `↵ ${root.m.transition ?? "fade"}`
-        color: root.active ? (root.r.fg ?? "#eee") : (root.r.muted ?? "#999")
+        color: root.active ? (root.r.fg ?? "transparent") : (root.r.muted ?? "transparent")
         font.family: root.m.fonts?.ui ?? "sans-serif"
         font.weight: root.m.fonts?.weight ?? Font.DemiBold
         font.pixelSize: 13

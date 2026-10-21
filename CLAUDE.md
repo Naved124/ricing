@@ -22,19 +22,20 @@ user-facing guide; this file is the contract every rice has to keep.
 
 | Path | What it is |
 |---|---|
-| `hypr/.config/hypr/hyprland.lua` | entry: `base` → `~/.config/rices/current/build/hypr.lua` → `local` |
+| `hypr/.config/hypr/hyprland.lua` | entry: `base` → `~/.local/share/rice/active/hypr.lua` → `local` |
 | `hypr/.config/hypr/base.lua` | **shared by every rice**: keybinds, input, layout, autostart, monitor default, window tags |
 | `~/.config/hypr/local.lua` | per machine, not in the repo: monitors, keyboard layout (see `local.example.lua`) |
 | `rices/.config/rices/<name>/` | one rice: `palette.toml`, `templates/`, `card.qml`, `transition.frag(.qsb)`, optional `wallpaper/`, `hooks/post-switch`, `preview.png` |
 | `rices/.config/rices/current` | symlink to the active rice |
-| `render/.local/bin/rice-render` | template engine: palette → `build/` + app configs |
+| `~/.local/share/rice/active` | symlink to `current/build/<mode>`; every app config links through it |
+| `render/.local/bin/rice-render` | template engine: palette → `build/light/`, `build/dark/` + app configs |
 | `render/.local/share/rice/templates/` | templates shared by all rices (use `roles.*` only) |
 | `switcher/.local/bin/rice` | `rice <name>`, `rice next`, `rice choose`, `rice lock`, `rice session`, … |
 | `quickshell/.config/quickshell/rice/` | shared shell (`qs -c rice`): chooser + switch freeze/dissolve overlay, survives switches |
 | `quickshell/.config/quickshell/nacre/` | Nacre's own shell: bar, launcher, centre, OSD, notifs, lock, power, key sheet, wallpaper |
 | `quickshell/.config/quickshell/paper/` | Paper's own shell (same entry points); `common/Theme.qml` is generated, `common/Sheet.qml` is the paper every panel is cut from |
 | `fonts/.local/share/fonts/paper/` | Paper's vendored OFL fonts with their licences |
-| `zsh/.config/zsh/rice.zsh` | **shared** zsh setup (one line in `~/.zshrc` sources it); colours from `build/zsh.zsh`, reloaded on the next prompt after a switch |
+| `zsh/.config/zsh/rice.zsh` | **shared** zsh setup (one line in `~/.zshrc` sources it); colours from `active/zsh.zsh`, reloaded on the next prompt after a switch |
 | `install` | user installer (`--fresh` for a bare Arch install) |
 | `system/install` | sudo part: Limine theme, Plymouth, greetd/ReGreet, keyring PAM, with backup/`--undo` |
 
@@ -128,6 +129,32 @@ Per mode (`[modes.light.*]`):
 - `ansi` `color0`–`color15`; keep normal colours ≥ 4.5:1 against the terminal background.
 - `opacity` `terminal active inactive glass`.
 - `wallpaper` only when the shell draws the wallpaper.
+
+## Light and dark
+
+Every rice renders both modes, `build/light/` and `build/dark/`, from the same
+templates; `~/.local/share/rice/active` → `current/build/<mode>` (the mode is
+`~/.local/state/rice/mode`, light when unset), and every linked app config, kitty's
+include, `hyprland.lua` and `rice.zsh` go through `active/`. A rice without
+`[modes.dark.*]` renders its light tables into `dark/` too. Boot screens and the
+greeter always use `build/light/`.
+
+- Templates stay mode-agnostic: roles, colours, `gtk.*`, `meta.*` and `{{ mode }}`.
+  A file that must hold both modes reads `light.*` and `dark.*`; every `[install]` file
+  (`Theme.qml`) must render the same in both modes, or the build fails. A template that
+  genuinely differs by structure is a pair, `name@light.ext` + `name@dark.ext`; one
+  without its twin fails the build.
+- **No colours in QML.** Every colour in a shell, the chooser or a `card.qml` comes from
+  the generated `Theme.qml` (or a rice's rendered `meta.json`); add a named colour to the
+  palette for anything new. `tests/test_qml_lint.py` fails on hex literals, numeric
+  `Qt.rgba`, named colours other than `transparent`, and font weights under 400. A
+  justified exception goes in `tests/qml-colour-allowlist.txt` with its reason.
+- **Night rules** (`tests/test_night.py`, on `[modes.dark.*]`): no `#000000` or
+  `#ffffff`; `bg`/`term_bg` at L* 7–12, `surface` at L* 10–16, no large surface above
+  L* 25; `fg` 7–14:1 on `bg` and `surface` (above 14 it shimmers), `muted`, accents,
+  `success` and `warning` at least 4.5:1; `accent`/`urgent`/`link` less saturated than in
+  light; normal ANSI at least 4.5:1 on `term_bg`; the dark wallpaper's mean L* at most 16
+  and its 99.9th percentile at most 45.
 
 `tests/snapshots/light.sha256` pins every light-mode output; refresh it
 (`RICE_SNAPSHOT_UPDATE=1 python3 -m unittest tests.test_snapshot`) only when a change

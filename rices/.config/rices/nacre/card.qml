@@ -10,6 +10,9 @@ Item {
     property bool active: false
     property url base
 
+    // the rice's gradient, from its rendered meta.json
+    readonly property var stops: rice?.meta?.gradient ?? []
+
     Loader {
         id: inner
         anchors.fill: parent
@@ -36,10 +39,10 @@ Item {
             gradient: Gradient {
                 orientation: Gradient.Horizontal
                 GradientStop { position: 0.0; color: "transparent" }
-                GradientStop { position: 0.3; color: "#f2c3d6" }
-                GradientStop { position: 0.45; color: "#c3dff3" }
-                GradientStop { position: 0.6; color: "#cdeedb" }
-                GradientStop { position: 0.75; color: "#dcc6f2" }
+                GradientStop { position: 0.3; color: root.stops[0] ?? "transparent" }
+                GradientStop { position: 0.45; color: root.stops[1] ?? "transparent" }
+                GradientStop { position: 0.6; color: root.stops[2] ?? "transparent" }
+                GradientStop { position: 0.75; color: root.stops[4] ?? "transparent" }
                 GradientStop { position: 1.0; color: "transparent" }
             }
             NumberAnimation on x {

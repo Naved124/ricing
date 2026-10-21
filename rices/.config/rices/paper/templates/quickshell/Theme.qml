@@ -29,6 +29,13 @@ Singleton {
     readonly property color crease:   "{{ colors.crease }}"
     readonly property color manila:   "{{ colors.manila }}"
     readonly property color envelope: "{{ colors.envelope }}"
+    readonly property color chalk:    "{{ colors.chalk }}"
+    readonly property color soot:     "{{ colors.soot }}"
+    readonly property color felt:     "{{ colors.felt }}"
+    readonly property color binding:  "{{ colors.binding }}"
+    readonly property color wad:      "{{ colors.wad }}"
+    readonly property color wadCrease: "{{ colors.wad_crease }}"
+    readonly property color basket:   "{{ colors.basket }}"
 
     // ── roles ───────────────────────────────────────────────────────────────
     readonly property color bg:        "{{ roles.bg }}"
@@ -52,12 +59,12 @@ Singleton {
     readonly property color shadowTight: "{{ roles.shadow | argb(0.22) }}"
     readonly property color shadowSoft:  "{{ roles.shadow | argb(0.16) }}"
     readonly property color shadowLift:  "{{ roles.shadow | argb(0.28) }}"
-    readonly property color scrim:       "#2e504632"   // rgba(80, 70, 50, .18) behind the launcher
+    readonly property color scrim:       "{{ colors.scrim | argb(0.18) }}"   // behind the launcher
     readonly property color ruleLine:    "{{ colors.rule }}"
     readonly property color marginLine:  "{{ colors.margin }}"
     readonly property color hatch:       "{{ colors.ink | argb(0.75) }}"
     readonly property color tapeA:       "{{ colors.pink | argb(0.75) }}"
-    readonly property color tapeB:       "#99ffffff"
+    readonly property color tapeB:       "{{ colors.chalk | argb(0.6) }}"
     readonly property color cursorLine:  "{{ colors.rule | argb(0.18) }}"
 
     // ── type ────────────────────────────────────────────────────────────────

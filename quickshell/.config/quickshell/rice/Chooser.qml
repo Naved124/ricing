@@ -65,7 +65,7 @@ PanelWindow {
     Rectangle {
         id: veil
         anchors.fill: parent
-        color: Qt.alpha(Rices.role("bg", "#000000"), 0.55)
+        color: Qt.alpha(Rices.role("bg"), 0.55)
         opacity: win.open ? 1 : 0
         Behavior on opacity { NumberAnimation { duration: win.open ? 320 : 220; easing.type: Easing.OutCubic } }
 
@@ -111,7 +111,7 @@ PanelWindow {
 
         Text {
             text: "choose a rice"
-            color: Rices.role("fg", "#eeeeee")
+            color: Rices.role("fg")
             font.family: win.fontDisplay
             font.weight: Rices.active?.meta?.fonts?.display_weight ?? Font.Normal
             font.pixelSize: 35
@@ -161,7 +161,7 @@ PanelWindow {
                         anchors.top: parent.bottom
                         anchors.topMargin: 8
                         text: slot.index < 9 ? String(slot.index + 1) : ""
-                        color: Rices.role("muted", "#999999")
+                        color: Rices.role("muted")
                         font.family: win.fontUi
                         font.weight: Font.DemiBold
                         font.pixelSize: 13
@@ -193,8 +193,8 @@ PanelWindow {
                     width: 44
                     height: 24
                     radius: 12
-                    color: Rices.auto ? Rices.role("accent", "#888888") : Rices.role("surface", "#333333")
-                    border.color: Rices.role("border", "#555555")
+                    color: Rices.auto ? Rices.role("accent") : Rices.role("surface")
+                    border.color: Rices.role("border")
                     Behavior on color { ColorAnimation { duration: 200 } }
                     Rectangle {
                         y: 3
@@ -202,8 +202,8 @@ PanelWindow {
                         width: 18
                         height: 18
                         radius: 9
-                        color: Rices.role("bg", "#ffffff")
-                        border.color: Rices.role("border", "#555555")
+                        color: Rices.role("bg")
+                        border.color: Rices.role("border")
                         Behavior on x { NumberAnimation { duration: 220; easing.type: Easing.OutBack } }
                     }
                     MouseArea {
@@ -214,8 +214,8 @@ PanelWindow {
                 }
                 Column {
                     anchors.verticalCenter: parent.verticalCenter
-                    Text { text: "auto mode"; color: Rices.role("fg", "#eeeeee"); font.family: win.fontUi; font.pixelSize: 14; font.weight: Font.Bold }
-                    Text { text: Rices.schedule; color: Rices.role("muted", "#999999"); font.family: win.fontUi; font.pixelSize: 13; font.weight: Font.DemiBold }
+                    Text { text: "auto mode"; color: Rices.role("fg"); font.family: win.fontUi; font.pixelSize: 14; font.weight: Font.Bold }
+                    Text { text: Rices.schedule; color: Rices.role("muted"); font.family: win.fontUi; font.pixelSize: 13; font.weight: Font.DemiBold }
                 }
             }
 
@@ -223,7 +223,7 @@ PanelWindow {
                 anchors.right: parent.right
                 anchors.verticalCenter: parent.verticalCenter
                 text: "←→ move   ↵ apply   1–9 pick   a auto   esc close"
-                color: Rices.role("muted", "#999999")
+                color: Rices.role("muted")
                 font.family: win.fontUi
                 font.weight: Font.DemiBold
                 font.pixelSize: 13

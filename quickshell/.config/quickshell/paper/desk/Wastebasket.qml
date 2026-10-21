@@ -52,7 +52,7 @@ Item {
                     anchors.fill: parent
                     preferredRendererType: Shape.CurveRenderer
                     ShapePath {
-                        fillColor: "#f2efe6"
+                        fillColor: Theme.wad
                         strokeColor: Theme.graphite
                         strokeWidth: 1
                         joinStyle: ShapePath.RoundJoin
@@ -60,7 +60,7 @@ Item {
                     }
                     ShapePath {
                         fillColor: "transparent"
-                        strokeColor: "#a9a59a"
+                        strokeColor: Theme.wadCrease
                         strokeWidth: 0.8
                         PathSvg { path: ball.shape.creases }
                     }
@@ -97,7 +97,7 @@ Item {
         anchors.fill: parent
         preferredRendererType: Shape.CurveRenderer
         ShapePath {
-            fillColor: "#143c3c3a"
+            fillColor: Qt.alpha(Theme.basket, 0.08)
             strokeColor: Theme.pencil
             strokeWidth: 2.2
             joinStyle: ShapePath.RoundJoin

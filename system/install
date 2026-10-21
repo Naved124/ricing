@@ -152,7 +152,9 @@ else
 fi
 rice=$(readlink -f "$home/.config/rices/current") || die "no active rice in $home/.config/rices"
 name=$(basename "$rice")
-build="$rice/build"
+# the boot screens and the greeter run before anyone logs in, so they can't
+# know the mode: they always wear the rice's light build
+build="$rice/build/light"
 [ -f "$build/meta.json" ] || die "$name isn't rendered; run 'rice-render' (as yourself) first"
 
 # the wallpaper's still frame: the shell saves one; else the rice's own image,

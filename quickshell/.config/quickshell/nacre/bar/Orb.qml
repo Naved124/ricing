@@ -31,7 +31,7 @@ Item {
         width: 8; height: 6
         radius: 4
         rotation: -30
-        color: Qt.rgba(1, 1, 1, 0.75)
+        color: Qt.alpha(Theme.gleam, 0.75)
     }
 
     Icon {

@@ -20,6 +20,7 @@ Singleton {
     readonly property color sun:     "#f3e2b0"
     readonly property color orchid:  "#dcc6f2"
     readonly property color mist:    "#f7f4f9"
+    readonly property color gleam:   "#ffffff"   // highlights only
 
     // ── roles ───────────────────────────────────────────────────────────────
     readonly property color bg:        "#f4f1f6"

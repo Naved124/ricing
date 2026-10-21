@@ -95,7 +95,7 @@ PanelWindow {
                     height: 16
                     radius: 8
                     color: Theme.desk
-                    border.color: "#30000000"
+                    border.color: Qt.alpha(Theme.soot, 0.19)
                     border.width: 1
                     // a shadow inside the hole's top edge
                     Rectangle {
@@ -103,8 +103,8 @@ PanelWindow {
                         anchors.margins: 1
                         radius: width / 2
                         gradient: Gradient {
-                            GradientStop { position: 0; color: "#40000000" }
-                            GradientStop { position: 0.5; color: "#00000000" }
+                            GradientStop { position: 0; color: Qt.alpha(Theme.soot, 0.25) }
+                            GradientStop { position: 0.5; color: Qt.alpha(Theme.soot, 0) }
                         }
                     }
                 }

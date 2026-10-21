@@ -101,15 +101,15 @@ Item {
                 anchors.fill: parent
                 gradient: Gradient {
                     orientation: Gradient.Horizontal
-                    GradientStop { position: 0; color: "#33ffffff" }
-                    GradientStop { position: 0.4; color: "#00ffffff" }
+                    GradientStop { position: 0; color: Qt.alpha(Theme.chalk, 0.2) }
+                    GradientStop { position: 0.4; color: Qt.alpha(Theme.chalk, 0) }
                 }
             }
             // the adhesive band
             Rectangle {
                 width: parent.width
                 height: 14 * root.ui
-                color: "#0d000000"
+                color: Qt.alpha(Theme.soot, 0.05)
             }
             Image {
                 anchors.fill: parent
@@ -131,7 +131,7 @@ Item {
                 text: root.notification?.summary || root.notification?.appName || ""
                 size: 16 * root.ui
                 weight: 700
-                color: "#2b2a1e"
+                color: Theme.felt
                 wrapMode: Text.Wrap
                 maximumLineCount: 2
                 elide: Text.ElideRight
@@ -141,7 +141,7 @@ Item {
                 visible: text.length > 0
                 text: root.notification?.body ?? ""
                 size: 16 * root.ui
-                color: "#2b2a1e"
+                color: Theme.felt
                 lineHeight: 0.95
                 wrapMode: Text.Wrap
                 maximumLineCount: root.popup ? 5 : 3
@@ -207,7 +207,7 @@ Item {
             anchors.bottomMargin: 6 * root.ui
             text: root.critical ? "important · tap to peel" : "tap to peel"
             size: 12 * root.ui
-            color: "#2b2a1e"
+            color: Theme.felt
             opacity: 0.55
         }
 
@@ -222,7 +222,7 @@ Item {
             Rectangle {
                 anchors.fill: parent
                 anchors.margins: -3
-                color: "#ffffff"
+                color: Theme.chalk
             }
             Image {
                 anchors.fill: parent

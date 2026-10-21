@@ -17,7 +17,7 @@ Item {
     readonly property var m: rice?.meta ?? {}
     readonly property var c: m.colors ?? {}
     readonly property var f: m.fonts ?? {}
-    readonly property color umber: c.umber ?? "#3c2d14"
+    readonly property color umber: c.umber ?? "transparent"
     readonly property int ease: 420
 
     // the sheet and its two shadows tilt and lift together
@@ -51,7 +51,7 @@ Item {
             id: page
             anchors.fill: parent
             radius: 3
-            color: root.c.paper ?? "#f7f5ef"
+            color: root.c.paper ?? "transparent"
             clip: true
 
             // ruled every 24 px below the heading, and the red margin
@@ -62,7 +62,7 @@ Item {
                     y: 96 + index * 24
                     width: page.width
                     height: 1
-                    color: root.c.rule ?? "#a8c3e4"
+                    color: root.c.rule ?? "transparent"
                     opacity: 0.55
                 }
             }
@@ -70,7 +70,7 @@ Item {
                 x: 34
                 width: 1.5
                 height: page.height
-                color: root.c.margin ?? "#e3958f"
+                color: root.c.margin ?? "transparent"
                 opacity: 0.8
             }
 
@@ -79,7 +79,7 @@ Item {
                 id: title
                 x: 46; y: 26
                 text: root.m.title ?? "Paper"
-                color: root.c.ink ?? "#1c2a6e"
+                color: root.c.ink ?? "transparent"
                 font.family: root.f.serif ?? "Newsreader"
                 font.weight: root.f.display_weight ?? 600
                 font.pixelSize: 38
@@ -91,7 +91,7 @@ Item {
                 anchors.baselineOffset: -2
                 text: "desk"
                 rotation: -5
-                color: root.c.red ?? "#c8372d"
+                color: root.c.red ?? "transparent"
                 font.family: root.f.hand ?? "Kalam"
                 font.weight: 700
                 font.pixelSize: 30
@@ -104,7 +104,7 @@ Item {
                 y: 96 + 24 - 17
                 width: page.width - 58
                 text: root.m.tagline ?? ""
-                color: root.c.pencil ?? "#4b4a46"
+                color: root.c.pencil ?? "transparent"
                 font.family: root.f.type ?? "Courier Prime"
                 font.pixelSize: 12
                 wrapMode: Text.Wrap
@@ -135,7 +135,7 @@ Item {
                         preferredRendererType: Shape.CurveRenderer
                         ShapePath {
                             strokeWidth: -1
-                            fillColor: root.c[dab.modelData] ?? "#888"
+                            fillColor: root.c[dab.modelData] ?? "transparent"
                             PathPolyline {
                                 path: {
                                     const pts = [];
@@ -154,7 +154,7 @@ Item {
                             x: dab.s * 0.18; y: dab.s * 0.22
                             width: dab.s * 0.3; height: dab.s * 0.18
                             radius: height / 2
-                            color: "#ffffff"
+                            color: root.c.chalk ?? "transparent"
                             opacity: 0.22
                         }
                     }
@@ -168,7 +168,7 @@ Item {
                 anchors.margins: 12
                 text: root.active ? "✓ on the desk" : "↵ peel"
                 rotation: root.active ? -3 : 0
-                color: root.active ? (root.c.red ?? "#c8372d") : (root.c.graphite ?? "#8d8a82")
+                color: root.active ? (root.c.red ?? "transparent") : (root.c.graphite ?? "transparent")
                 font.family: root.active ? (root.f.hand ?? "Kalam") : (root.f.type ?? "Courier Prime")
                 font.weight: root.active ? 700 : 400
                 font.pixelSize: root.active ? 18 : 13
@@ -188,9 +188,9 @@ Item {
                 opacity: 0.82
                 gradient: Gradient {
                     orientation: Gradient.Horizontal
-                    GradientStop { position: 0; color: root.c.pink ?? "#ffb6c8" }
-                    GradientStop { position: 0.5; color: Qt.lighter(root.c.pink ?? "#ffb6c8", 1.08) }
-                    GradientStop { position: 1; color: root.c.pink ?? "#ffb6c8" }
+                    GradientStop { position: 0; color: root.c.pink ?? "transparent" }
+                    GradientStop { position: 0.5; color: Qt.lighter(root.c.pink ?? "transparent", 1.08) }
+                    GradientStop { position: 1; color: root.c.pink ?? "transparent" }
                 }
             }
         }

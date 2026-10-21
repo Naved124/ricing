@@ -20,6 +20,7 @@ Singleton {
     readonly property color sun:     "{{ colors.sun }}"
     readonly property color orchid:  "{{ colors.orchid }}"
     readonly property color mist:    "{{ colors.mist }}"
+    readonly property color gleam:   "{{ colors.gleam }}"   // highlights only
 
     // ── roles ───────────────────────────────────────────────────────────────
     readonly property color bg:        "{{ roles.bg }}"
@@ -40,7 +41,7 @@ Singleton {
     readonly property color glassSoft:   "{{ roles.surface | argb(0.45) }}"
     readonly property color hairline:    "{{ colors.rim | argb(0.45) }}"
     // the pane's light: a bright top lip and a faint sky glow at the bottom
-    readonly property color glassHighlight: "#e6ffffff"
+    readonly property color glassHighlight: "{{ colors.gleam | argb(0.9) }}"
     readonly property color glassGlow:      "{{ colors.sky | argb(0.35) }}"
     // Shadows are cool steel, never black.
     readonly property color shadow:      "{{ roles.shadow | argb(0.25) }}"

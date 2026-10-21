@@ -2,6 +2,7 @@
 
 import importlib.machinery
 import importlib.util
+import json
 import os
 import re
 import shutil
@@ -152,9 +153,12 @@ class Palettes(unittest.TestCase):
             (rice / "palette.toml").write_text(text + '\n[colors]\nextra = "#000000"\n')
             with self.assertRaisesRegex(rr.RenderError, r"\[colors\] belongs under \[modes.<mode>.colors\]"):
                 rr.load_palette(rice)
+            # no [modes.dark.*]: dark wears the light tables
             (rice / "palette.toml").write_text(text)
-            with self.assertRaisesRegex(rr.RenderError, r"no \[modes.dark.\*\] tables"):
-                rr.load_palette(rice, "dark")
+            dark = rr.load_palette(rice, "dark")
+            self.assertEqual((dark["mode"], dark["has_mode"], dark["roles"]["bg"]), ("dark", False, "#f4f1f6"))
+            with self.assertRaisesRegex(rr.RenderError, r"no mode called 'dusk'"):
+                rr.load_palette(rice, "dusk")
 
 
 class EndToEnd(unittest.TestCase):
@@ -177,27 +181,28 @@ class EndToEnd(unittest.TestCase):
     def test_renders_every_rice_and_check_is_clean_after(self):
         p = self.run_render("--all", "-q")
         self.assertEqual(p.returncode, 0, p.stderr)
-        for name in ("nacre", "paper"):
-            build = self.rices / name / "build"
+        for name, mode in ((n, m) for n in ("nacre", "paper") for m in ("light", "dark")):
+            name_ = f"{name} {mode}"
+            build = self.rices / name / "build" / mode
             for f in ("kitty.conf", "nvim/rice.lua", "gtk/gtk.css", "meta.json", "fastfetch/logo.png",
                       "limine/theme.conf", "plymouth/rice.script", "plymouth/rice.plymouth",
                       "plymouth/logo.png", "plymouth/bar.png"):
-                self.assertTrue((build / f).is_file(), f"{name}: {f}")
+                self.assertTrue((build / f).is_file(), f"{name_}: {f}")
             for f in ("kitty.conf", "limine/theme.conf", "plymouth/rice.script"):
-                self.assertNotIn("{{", (build / f).read_text(), f"{name}: {f}")
+                self.assertNotIn("{{", (build / f).read_text(), f"{name_}: {f}")
             limine = (build / "limine/theme.conf").read_text()
             for key in ("term_palette", "term_palette_bright"):
                 line = next(l for l in limine.splitlines() if l.startswith(key + ":"))
                 colours = line.split(":", 1)[1].strip().split(";")
-                self.assertEqual(len(colours), 8, f"{name}: {key}")
-                self.assertTrue(all(len(c) == 6 for c in colours), f"{name}: {key}")
+                self.assertEqual(len(colours), 8, f"{name_}: {key}")
+                self.assertTrue(all(len(c) == 6 for c in colours), f"{name_}: {key}")
         self.assertTrue((self.home / ".config/quickshell/nacre/Theme.qml").is_file())
         self.assertEqual(self.run_render("--all", "--check").returncode, 0)
 
     def test_zsh_colours_and_prompt_glyphs(self):
         self.assertEqual(self.run_render("--all", "-q").returncode, 0)
         for name in ("nacre", "paper"):
-            build = self.rices / name / "build"
+            build = self.rices / name / "build/light"
             zsh = (build / "zsh.zsh").read_text()
             self.assertNotIn("{{", zsh, name)
             self.assertRegex(zsh, r"ZSH_HIGHLIGHT_STYLES\[command\]='fg=#[0-9a-f]{6}'", name)
@@ -207,12 +212,20 @@ class EndToEnd(unittest.TestCase):
             self.assertIn("Downloads", prompt["directory"]["substitutions"])
             self.assertIn("github.com", prompt["custom"]["github"]["when"])
         if shutil.which("zsh"):
-            p = subprocess.run(["zsh", "-n", str(self.rices / "nacre/build/zsh.zsh")])
+            p = subprocess.run(["zsh", "-n", str(self.rices / "nacre/build/light/zsh.zsh")])
             self.assertEqual(p.returncode, 0)
+
+    def test_leftovers_from_the_flat_build_are_removed(self):
+        old = self.rices / "nacre/build"
+        (old / "nvim").mkdir(parents=True)
+        (old / "kitty.conf").write_text("old\n")
+        (old / "nvim/rice.lua").write_text("old\n")
+        self.assertEqual(self.run_render("nacre", "-q").returncode, 0)
+        self.assertEqual(sorted(p.name for p in old.iterdir()), ["dark", "light"])
 
     def test_check_reports_stale_output(self):
         self.run_render("--all", "-q")
-        (self.rices / "nacre/build/kitty.conf").write_text("stale\n")
+        (self.rices / "nacre/build/dark/kitty.conf").write_text("stale\n")
         p = self.run_render("nacre", "--check")
         self.assertEqual(p.returncode, 1)
         self.assertIn("kitty.conf", p.stderr)
@@ -221,7 +234,7 @@ class EndToEnd(unittest.TestCase):
         (self.rices / "paper/templates").mkdir(parents=True, exist_ok=True)
         (self.rices / "paper/templates/kitty.conf").write_text("bg {{ roles.bg }}\n")
         self.run_render("paper", "-q")
-        self.assertEqual((self.rices / "paper/build/kitty.conf").read_text(), "bg #f7f5ef\n")
+        self.assertEqual((self.rices / "paper/build/light/kitty.conf").read_text(), "bg #f7f5ef\n")
 
     def test_install_writes_through_stow_symlinks(self):
         real = self.home / "repo-theme.qml"
@@ -242,6 +255,15 @@ class EndToEnd(unittest.TestCase):
         self.assertEqual(out.returncode, 0, out.stderr)
         self.assertIn("skip", out.stdout)
         self.assertFalse(mine.is_symlink())
+        # apps link through active/, which follows the rice (current) and the mode
+        active = self.home / ".local/share/rice/active"
+        self.assertEqual(Path(os.readlink(active)), self.rices / "current/build/light")
+        self.assertEqual(Path(os.readlink(self.home / ".config/btop/themes/rice.theme")),
+                         active / "btop.theme")
+        (self.home / ".local/state/rice").mkdir(parents=True)
+        (self.home / ".local/state/rice/mode").write_text("dark\n")
+        self.run_render("--link")
+        self.assertEqual(Path(os.readlink(active)), self.rices / "current/build/dark")
 
         backup = self.home / "backup"
         self.run_render("--link", "--backup", str(backup))
@@ -250,7 +272,7 @@ class EndToEnd(unittest.TestCase):
 
     def test_telegram_theme_is_a_stable_zip(self):
         self.run_render("nacre", "-q")
-        theme = self.rices / "nacre/build/telegram/rice.tdesktop-theme"
+        theme = self.rices / "nacre/build/light/telegram/rice.tdesktop-theme"
         with zipfile.ZipFile(theme) as z:
             self.assertEqual(sorted(z.namelist()), ["colors.tdesktop-theme", "tiled.png"])
             colors = z.read("colors.tdesktop-theme").decode()
@@ -294,16 +316,82 @@ class EndToEnd(unittest.TestCase):
 
 class CommittedOutputs(unittest.TestCase):
     def test_committed_theme_qml_matches_palette(self):
-        """Each shell's committed Theme.qml must be regenerated after palette edits."""
+        """Each shell's committed Theme.qml must be regenerated after palette edits,
+        and serves both modes, so it renders the same from either."""
         for name, rel in (("nacre", "nacre/Theme.qml"), ("paper", "paper/common/Theme.qml")):
+            ctxs = rr.load_modes(RICES / name)
+            committed = REPO / "quickshell/.config/quickshell" / rel
+            # the [install] entry is what puts it there
+            self.assertEqual(ctxs["light"]["install"]["quickshell/Theme.qml"], f".config/quickshell/{rel}")
+            src = RICES / name / "templates/quickshell/Theme.qml"
+            for mode in rr.MODES:
+                with self.subTest(f"{name} {mode}"):
+                    self.assertEqual(committed.read_text(),
+                                     rr.render_text(src.read_text(), ctxs[mode], str(src)),
+                                     "run: tools/regen")
+
+
+class Modes(unittest.TestCase):
+    """Every rice renders in both modes, from the same templates."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        root = Path(self.tmp.name)
+        self.rices = root / "rices"
+        shutil.copytree(RICES, self.rices, ignore=shutil.ignore_patterns("build", "current"))
+        self.saved = rr.SHARED, rr.INSTALL_ROOT
+        rr.SHARED, rr.INSTALL_ROOT = TEMPLATES, root / "home"
+
+    def tearDown(self):
+        rr.SHARED, rr.INSTALL_ROOT = self.saved
+        self.tmp.cleanup()
+
+    def outputs(self, name: str) -> dict[str, bytes]:
+        rice = self.rices / name
+        return {p.relative_to(rice).as_posix(): d
+                for p, d in rr.outputs_for(rice, rr.load_modes(rice)).items() if p.is_relative_to(rice)}
+
+    def test_every_template_renders_in_both_modes(self):
+        for name in ("nacre", "paper"):
             with self.subTest(name):
-                committed = REPO / "quickshell/.config/quickshell" / rel
-                ctx = ctx_for(name)
-                # the [install] entry is what puts it there
-                self.assertEqual(ctx["install"]["quickshell/Theme.qml"], f".config/quickshell/{rel}")
-                src = RICES / name / "templates/quickshell/Theme.qml"
-                self.assertEqual(committed.read_text(), rr.render_text(src.read_text(), ctx, str(src)),
-                                 "run: tools/regen")
+                out = self.outputs(name)   # an unresolved key would raise here
+                light = {k.removeprefix("build/light/") for k in out if k.startswith("build/light/")}
+                dark = {k.removeprefix("build/dark/") for k in out if k.startswith("build/dark/")}
+                self.assertGreater(len(light), 30)
+                self.assertEqual(light, dark)
+                self.assertEqual(len(out), len(light) + len(dark))
+                meta = json.loads(out["build/dark/meta.json"])
+                self.assertEqual(meta["mode"], "dark")
+
+    def test_templates_see_the_mode_and_both_palettes(self):
+        ctxs = rr.load_modes(self.rices / "paper")
+        text = "{{ mode }} {{ light.roles.bg }} {{ dark.mode }} {{ light.gtk.theme }}"
+        self.assertEqual(rr.render_text(text, ctxs["dark"], "t"), "dark #f7f5ef dark adw-gtk3")
+        self.assertEqual(rr.render_text(text, ctxs["light"], "t"), "light #f7f5ef dark adw-gtk3")
+
+    def test_a_template_that_differs_by_mode_is_a_pair(self):
+        tpl = self.rices / "paper/templates/notes"
+        tpl.mkdir()
+        (tpl / "pad@light.conf").write_text("{{ mode }} pad {{ roles.bg }}\n")
+        (tpl / "pad@dark.conf").write_text("{{ mode }} blotter\n")
+        (tpl / "pad.conf").write_text("the plain one loses\n")
+        out = self.outputs("paper")
+        self.assertEqual(out["build/light/notes/pad.conf"], b"light pad #f7f5ef\n")
+        self.assertEqual(out["build/dark/notes/pad.conf"], b"dark blotter\n")
+        self.assertNotIn("build/light/notes/pad@light.conf", out)
+        # a light-only template fails the build, whichever mode is rendered
+        (tpl / "pad@dark.conf").unlink()
+        with self.assertRaisesRegex(rr.RenderError, r"pad@light.conf: has no dark twin"):
+            self.outputs("paper")
+        (tpl / "pad@dark.conf").write_text("x\n")
+        (tpl / "pad@dusk.conf").write_text("x\n")
+        with self.assertRaisesRegex(rr.RenderError, r"no mode called 'dusk'"):
+            self.outputs("paper")
+
+    def test_an_installed_file_has_to_serve_both_modes(self):
+        (self.rices / "paper/templates/quickshell/Theme.qml").write_text("// {{ mode }}\n")
+        with self.assertRaisesRegex(rr.RenderError, r"\[install\] 'quickshell/Theme.qml' differs between modes"):
+            self.outputs("paper")
 
 
 def contrast(a: str, b: str) -> float:

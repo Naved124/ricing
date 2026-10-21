@@ -47,11 +47,16 @@ def light_hashes() -> dict[str, str]:
             hashes = {}
             for name in rice_names():
                 rice = rices / name
-                outputs = rr.outputs_for(rice, rr.load_palette(rice))
+                outputs = rr.outputs_for(rice, rr.load_modes(rice))
                 for path, data in outputs.items():
                     rel = path.relative_to(root).as_posix()
+                    if "/build/dark/" in rel:
+                        continue
+                    # light's build moved into build/light/; hash it where it
+                    # used to be, so the pins stay comparable
+                    rel = rel.replace("/build/light/", "/build/")
                     # the scratch paths differ on every run
-                    data = data.replace(str(root).encode(), b"@ROOT@")
+                    data = data.replace(str(root).encode(), b"@ROOT@").replace(b"/build/light", b"/build")
                     hashes[rel] = hashlib.sha256(data).hexdigest()
             return dict(sorted(hashes.items()))
         finally:

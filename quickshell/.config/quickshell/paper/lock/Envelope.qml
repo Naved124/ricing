@@ -35,10 +35,10 @@ Item {
     Rectangle {
         anchors.fill: parent
         gradient: Gradient {
-            GradientStop { position: 0; color: "#33000000" }
-            GradientStop { position: 0.35; color: "#00000000" }
-            GradientStop { position: 0.75; color: "#00000000" }
-            GradientStop { position: 1; color: "#40000000" }
+            GradientStop { position: 0; color: Qt.alpha(Theme.soot, 0.2) }
+            GradientStop { position: 0.35; color: Qt.alpha(Theme.soot, 0) }
+            GradientStop { position: 0.75; color: Qt.alpha(Theme.soot, 0) }
+            GradientStop { position: 1; color: Qt.alpha(Theme.soot, 0.25) }
         }
     }
 
@@ -65,7 +65,7 @@ Item {
                     weight: 500
                     color: Theme.card
                     style: Text.Raised
-                    styleColor: "#55000000"
+                    styleColor: Qt.alpha(Theme.soot, 0.333)
                 }
                 Hand {
                     anchors.baseline: time.baseline
@@ -140,7 +140,7 @@ Item {
                 preferredRendererType: Shape.CurveRenderer
                 ShapePath {
                     fillColor: Theme.envelope
-                    strokeColor: "#1f3c2d14"
+                    strokeColor: Qt.alpha(Theme.umber, 0.12)
                     strokeWidth: 1
                     PathSvg {
                         path: `M 0 0 L ${envelope.width / 2} ${envelope.height * 0.54} L ${envelope.width} 0 L ${envelope.width} ${envelope.height} L 0 ${envelope.height} Z`
@@ -149,7 +149,7 @@ Item {
                 // the side folds
                 ShapePath {
                     fillColor: "transparent"
-                    strokeColor: "#263c2d14"
+                    strokeColor: Qt.alpha(Theme.umber, 0.15)
                     strokeWidth: 1
                     PathSvg { path: `M 0 ${envelope.height} L ${envelope.width * 0.42} ${envelope.height * 0.58} M ${envelope.width} ${envelope.height} L ${envelope.width * 0.58} ${envelope.height * 0.58}` }
                 }
@@ -170,7 +170,7 @@ Item {
                     preferredRendererType: Shape.CurveRenderer
                     ShapePath {
                         fillColor: Qt.darker(Theme.envelope, 1.04)
-                        strokeColor: "#2b3c2d14"
+                        strokeColor: Qt.alpha(Theme.umber, 0.17)
                         strokeWidth: 1
                         // a torn edge along the flap's two sides
                         PathSvg {

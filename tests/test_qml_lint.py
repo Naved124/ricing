@@ -1,0 +1,99 @@
+"""No colour is written into the shells' QML: every one comes from the generated
+Theme.qml (or, in the chooser and the cards, from a rice's rendered meta.json).
+A colour typed into a QML file stays the same in dark mode, so this is what
+keeps anything from staying light by accident.
+
+Flagged, outside the generated Theme.qml files:
+  · "#rgb", "#rrggbb" and "#aarrggbb" literals
+  · Qt.rgba/hsla/hsva with numbers for the colour
+  · named colours ("white", "black", …) given to a colour property;
+    "transparent" is fine
+  · font weights under 400 (Font.Thin, ExtraLight, Light or a number), which
+    get too thin to read on dark at small sizes
+
+The few that are justified are listed, with why, in
+tests/qml-colour-allowlist.txt as `path: text on the line  # reason`.
+"""
+
+import re
+import unittest
+from pathlib import Path
+
+REPO = Path(__file__).resolve().parent.parent
+ALLOWLIST = REPO / "tests/qml-colour-allowlist.txt"
+ROOTS = [REPO / "quickshell/.config/quickshell", REPO / "rices/.config/rices"]
+
+NAMED = ("white|black|red|green|blue|yellow|cyan|magenta|gray|grey|silver|"
+         "orange|pink|purple|brown|navy|teal|olive|maroon|lime|gold|ivory|beige")
+RULES = [
+    ("a hex colour", re.compile(r"""["']#[0-9a-fA-F]{3,8}["']""")),
+    ("a colour made of numbers", re.compile(r"Qt\.(?:rgba|hsla|hsva)\(\s*[\d.]+\s*,\s*[\d.]+\s*,\s*[\d.]+")),
+    ("a named colour", re.compile(rf"""(?:[cC]olor|fill\w*|stroke\w*)\s*:.*["']({NAMED})["']""")),
+    ("a weight under 400", re.compile(r"\bweight\s*:\s*(?:Font\.(?:Thin|ExtraLight|Light)\b|[1-3]\d\d\b)")),
+]
+
+
+def qml_files() -> list[Path]:
+    files = []
+    for root in ROOTS:
+        for f in sorted(root.rglob("*.qml")):
+            if f.name == "Theme.qml" or "build" in f.relative_to(root).parts:
+                continue
+            files.append(f)
+    return files
+
+
+def allowlist() -> list[tuple[str, str]]:
+    entries = []
+    for line in ALLOWLIST.read_text().splitlines():
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        entry, _, reason = line.partition("  #")
+        path, _, text = entry.partition(": ")
+        assert reason.strip(), f"allowlist entry without a reason: {line}"
+        entries.append((path.strip(), text.strip()))
+    return entries
+
+
+def hits() -> list[tuple[str, int, str, str]]:
+    found = []
+    for f in qml_files():
+        rel = f.relative_to(REPO).as_posix()
+        for n, line in enumerate(f.read_text().splitlines(), 1):
+            code = line.split("//", 1)[0]
+            for what, rule in RULES:
+                if rule.search(code):
+                    found.append((rel, n, line.strip(), what))
+    return found
+
+
+class QmlColours(unittest.TestCase):
+    def test_no_colours_outside_theme(self):
+        allowed = allowlist()
+        bad = [f"{rel}:{n}: {what}: {line}" for rel, n, line, what in hits()
+               if not any(rel == p and t in line for p, t in allowed)]
+        self.assertEqual(bad, [], "use a Theme colour (add one to the palette if it's new), "
+                                  "or list it in tests/qml-colour-allowlist.txt with a reason")
+
+    def test_every_allowlist_entry_is_still_needed(self):
+        found = hits()
+        stale = [f"{p}: {t}" for p, t in allowlist()
+                 if not any(rel == p and t in line for rel, _, line, _ in found)]
+        self.assertEqual(stale, [], "remove these from tests/qml-colour-allowlist.txt")
+
+    def test_the_rules_catch_what_they_should(self):
+        for line in ('color: "#fff"', "border.color: '#33000000'", "color: Qt.rgba(1, 1, 1, 0.5)",
+                     'fillColor: "white"', 'color: x ? "black" : Theme.ink', "font.weight: Font.Light",
+                     "weight: 300"):
+            with self.subTest(line):
+                self.assertTrue(any(rule.search(line) for _, rule in RULES))
+        for line in ('color: "transparent"', "color: Qt.alpha(Theme.soot, 0.2)", 'model: ["ink", "red"]',
+                     "font.weight: 700", "font.weight: Font.Bold", "weight: Theme.weight",
+                     "color: Qt.rgba(Theme.ink.r, Theme.ink.g, Theme.ink.b, 0.4)"):
+            with self.subTest(line):
+                self.assertFalse(any(rule.search(line) for _, rule in RULES))
+
+
+if __name__ == "__main__":
+    unittest.main()

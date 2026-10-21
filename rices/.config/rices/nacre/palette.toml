@@ -98,6 +98,7 @@ ink_deep = "#2e2a3d"   # terminal text: darker, so it reads on lighter glass
 steel    = "#6e82b4"   # window and panel shadows: cool, never black
 glaze    = "#f4f6fb"   # Quickshell glass fill (used at 55%)
 rim      = "#a0aad2"   # glass hairline (used at 45%)
+gleam    = "#ffffff"   # specular highlights only, never a surface
 
 # Roles name a colour above; templates shared by every rice only use roles.
 [modes.light.roles]

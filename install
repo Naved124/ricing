@@ -500,8 +500,13 @@ run rice-render "${link_args[@]}"
 
 # kitty includes the active rice's colours (and reloads them on SIGUSR1)
 kitty_conf="$HOME/.config/kitty/kitty.conf"
-include="include ~/.config/rices/current/build/kitty.conf"
-if ! grep -qsxF "$include" "$kitty_conf"; then
+include="include ~/.local/share/rice/active/kitty.conf"
+old_include="include ~/.config/rices/current/build/kitty.conf"
+if grep -qsxF "$old_include" "$kitty_conf"; then
+    # the include from before light and dark builds
+    run sed -i "s|^$old_include\$|$include|" "$kitty_conf"
+    ok "kitty.conf now includes the rice through ~/.local/share/rice/active"
+elif ! grep -qsxF "$include" "$kitty_conf"; then
     run mkdir -p "$(dirname "$kitty_conf")"
     if [ "$dry" = 1 ]; then run echo "$include" '>>' "$kitty_conf"; else printf '\n%s\n' "$include" >> "$kitty_conf"; fi
     ok "kitty.conf now includes the rice"

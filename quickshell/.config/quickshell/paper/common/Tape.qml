@@ -18,7 +18,7 @@ Item {
         anchors.fill: parent
         anchors.topMargin: 1
         anchors.bottomMargin: -1
-        color: "#14000000"
+        color: Qt.alpha(Theme.soot, 0.08)
     }
 
     Item {

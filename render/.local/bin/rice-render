@@ -8,8 +8,18 @@
     rice-render --check         exit 1 if any output would change (for tests/CI)
 
 Templates live in ~/.local/share/rice/templates (shared by every rice) and
-<rice>/templates (a rice's own overrides or extra files). Output goes to
-<rice>/build/, plus the paths listed in the palette's [install] table.
+<rice>/templates (a rice's own overrides or extra files). Every rice is
+rendered in both modes, into <rice>/build/light/ and <rice>/build/dark/, plus
+the paths listed in the palette's [install] table. A rice with no
+[modes.dark.*] tables renders its light tables into dark/ too.
+~/.local/share/rice/active points at the build of the active rice and mode,
+and every app's config links through it.
+
+Templates are mode-agnostic: they read the active mode's palette (roles,
+colors, gtk, meta) and {{ mode }}; a file that needs both modes at once (an
+installed Theme.qml, CSS with a dark @media block) reads light.* and dark.*.
+A template that has to differ by mode is a pair, name@light.ext and
+name@dark.ext; one without its twin fails the build.
 
 Template syntax:
     {{ roles.accent }}                    a value from the palette
@@ -115,6 +125,7 @@ def contrast(a: str, b: str) -> float:
 
 # ── palette loading ──────────────────────────────────────────────────────────
 
+MODES = ("light", "dark")
 # tables that live under [modes.<mode>.*]; the rest of the palette is shared
 MODE_TABLES = ("colors", "roles", "gradient", "ansi", "opacity", "wallpaper")
 # [modes.<mode>.meta] keys that templates and `rice` know by their old [gtk] names
@@ -131,9 +142,10 @@ def flatten_mode(data: dict, mode: str, path: Path) -> dict:
     stray = [t for t in MODE_TABLES if t in data]
     if stray:
         raise RenderError(f"{path}: [{stray[0]}] belongs under [modes.<mode>.{stray[0]}]")
-    if mode not in modes:
-        raise RenderError(f"{path}: no [modes.{mode}.*] tables")
-    m = modes[mode]
+    if mode not in MODES:
+        raise RenderError(f"{path}: no mode called {mode!r} (modes are {', '.join(MODES)})")
+    # a rice without its own dark tables wears its light ones at night
+    m = modes.get(mode) or modes["light"]
     for t in MODE_TABLES:
         if t in m:
             data[t] = m[t]
@@ -141,6 +153,7 @@ def flatten_mode(data: dict, mode: str, path: Path) -> dict:
     data["meta"] = {**data.get("meta", {}), **look}
     data["gtk"] = {**data.get("gtk", {}), **{GTK_KEYS[k]: v for k, v in look.items() if k in GTK_KEYS}}
     data["mode"] = mode
+    data["has_mode"] = mode in modes
     return data
 
 
@@ -187,12 +200,13 @@ def load_palette(rice: Path, mode: str = "light") -> dict:
     grad["stops"] = [resolve(s, "gradient.stops") for s in grad["stops"]]
 
     # a few derived values templates commonly want
+    build = rice / "build" / mode
     data["derived"] = {
         "is_light": luminance(data["roles"]["bg"]) > 0.5,
         "variant": "light" if luminance(data["roles"]["bg"]) > 0.5 else "dark",
         "is_dark": luminance(data["roles"]["bg"]) <= 0.5,
         "rice_dir": str(rice),
-        "build_dir": str(rice / "build"),
+        "build_dir": str(build),
         "home": str(HOME),
         # the backdrop for boot screens: the live wallpaper's ground when the
         # rice has one, else its background shading into its surface colour
@@ -200,6 +214,15 @@ def load_palette(rice: Path, mode: str = "light") -> dict:
                   or [data["roles"]["bg"], data["roles"]["surface"]],
     }
     return data
+
+
+def load_modes(rice: Path) -> dict[str, dict]:
+    """Both modes of a rice. Each context can also reach the other's palette
+    as light.* and dark.*, for files that carry both."""
+    ctxs = {m: load_palette(rice, m) for m in MODES}
+    for ctx in ctxs.values():
+        ctx.update(ctxs)
+    return ctxs
 
 
 # ── template engine ──────────────────────────────────────────────────────────
@@ -519,22 +542,62 @@ def pearl(ctx: dict, size: int = 192) -> bytes:
 
 # ── rendering a rice ─────────────────────────────────────────────────────────
 
-def template_files(rice: Path) -> dict[str, Path]:
-    """relative path → template file; a rice's own templates win."""
+MODE_FILE = re.compile(r"^(?P<stem>[^.]*)@(?P<mode>[a-z]+)(?P<ext>(\.[^/]*)?)$")
+
+
+def template_files(rice: Path, mode: str = "light") -> dict[str, Path]:
+    """relative path → template file for one mode; a rice's own templates win,
+    and name@<mode>.ext beats name.ext from the same folder."""
     found: dict[str, Path] = {}
     for root in (SHARED, rice / "templates"):
         if not root.is_dir():
             continue
+        plain: dict[str, Path] = {}
+        moded: dict[str, dict[str, Path]] = {}
         for f in sorted(root.rglob("*")):
-            if f.is_file() and not f.name.startswith(".") and not f.name.endswith("~"):
-                found[f.relative_to(root).as_posix()] = f
+            if not f.is_file() or f.name.startswith(".") or f.name.endswith("~"):
+                continue
+            rel = f.relative_to(root)
+            m = MODE_FILE.match(rel.name)
+            if not m:
+                plain[rel.as_posix()] = f
+                continue
+            if m["mode"] not in MODES:
+                raise RenderError(f"{f}: no mode called {m['mode']!r} (modes are {', '.join(MODES)})")
+            name = (rel.parent / (m["stem"] + m["ext"])).as_posix()
+            moded.setdefault(name, {})[m["mode"]] = f
+        for name, by_mode in moded.items():
+            missing = [x for x in MODES if x not in by_mode]
+            if missing:
+                have = next(iter(by_mode.values()))
+                raise RenderError(f"{have}: has no {missing[0]} twin; a template that differs "
+                                  f"by mode needs one file per mode ({', '.join(MODES)})")
+        found.update(plain)
+        found.update({name: by_mode[mode] for name, by_mode in moded.items()})
     return found
 
 
-def outputs_for(rice: Path, ctx: dict) -> dict[Path, bytes]:
+def outputs_for(rice: Path, ctxs: dict[str, dict]) -> dict[Path, bytes]:
+    """Every file for both modes: build/<mode>/…, then the [install] copies."""
     out: dict[Path, bytes] = {}
-    build = rice / "build"
-    for rel, src in template_files(rice).items():
+    for mode in MODES:
+        out.update(mode_outputs(rice, ctxs[mode]))
+    for rel, dest in ctxs["light"].get("install", {}).items():
+        srcs = [rice / "build" / mode / rel for mode in MODES]
+        if srcs[0] not in out:
+            raise RenderError(f"{rice}/palette.toml: [install] {rel!r} is not a rendered file")
+        # an installed file serves both modes, so it has to carry both itself
+        if any(out[s] != out[srcs[0]] for s in srcs):
+            raise RenderError(f"{rice}/palette.toml: [install] {rel!r} differs between modes; "
+                              "an installed file must hold both (light.* and dark.*)")
+        out[INSTALL_ROOT / os.path.expanduser(dest)] = out[srcs[0]]
+    return out
+
+
+def mode_outputs(rice: Path, ctx: dict) -> dict[Path, bytes]:
+    out: dict[Path, bytes] = {}
+    build = rice / "build" / ctx["mode"]
+    for rel, src in template_files(rice, ctx["mode"]).items():
         name = render_text(rel, ctx, f"{src} (file name)")
         if src.suffix in {".png", ".jpg", ".ttf", ".otf", ".qsb"}:
             out[build / name] = src.read_bytes()
@@ -554,6 +617,7 @@ def outputs_for(rice: Path, ctx: dict) -> dict[Path, bytes]:
         "shape": ctx["shape"],
         "motion": ctx.get("motion", {}),
         "variant": ctx["derived"]["variant"],
+        "mode": ctx["mode"],
     }
     out[build / "meta.json"] = (json.dumps(meta, indent=2) + "\n").encode()
     if not (rice / "templates/fastfetch/logo.png").exists():
@@ -568,12 +632,6 @@ def outputs_for(rice: Path, ctx: dict) -> dict[Path, bytes]:
     colors = out.get(build / "telegram/colors.tdesktop-theme")
     if colors is not None:
         out[build / "telegram/rice.tdesktop-theme"] = tdesktop_theme(colors, ctx)
-
-    for rel, dest in ctx.get("install", {}).items():
-        src = build / rel
-        if src not in out:
-            raise RenderError(f"{rice}/palette.toml: [install] {rel!r} is not a rendered file")
-        out[INSTALL_ROOT / os.path.expanduser(dest)] = out[src]
     return out
 
 
@@ -606,9 +664,21 @@ def write(path: Path, data: bytes) -> bool:
 
 
 def render(rice: Path, check: bool = False, quiet: bool = False) -> int:
-    ctx = load_palette(rice)
     changed = 0
-    for path, data in outputs_for(rice, ctx).items():
+    outputs = outputs_for(rice, load_modes(rice))
+    if not check:
+        # build/ is all ours: anything beside light/ and dark/ is left over
+        # from before the per-mode builds, and a link still pointing at it
+        # would keep showing old colours
+        build = rice / "build"
+        for old in build.iterdir() if build.is_dir() else ():
+            if old.name in MODES:
+                continue
+            shutil.rmtree(old) if old.is_dir() and not old.is_symlink() else old.unlink()
+            changed += 1
+            if not quiet:
+                print(f"  removed {old}")
+    for path, data in outputs.items():
         if check:
             try:
                 same = path.read_bytes() == data
@@ -627,9 +697,36 @@ def render(rice: Path, check: bool = False, quiet: bool = False) -> int:
 # ── one-time links for apps that read fixed paths ────────────────────────────
 
 CURRENT = RICE_DIR / "current" / "build"
+DATA = Path(os.environ.get("XDG_DATA_HOME", HOME / ".local/share"))
+STATE = Path(os.environ.get("XDG_STATE_HOME", HOME / ".local/state"))
+# the active rice's build in the active mode; `rice` re-points it
+ACTIVE = DATA / "rice/active"
+
+
+def current_mode() -> str:
+    try:
+        mode = (STATE / "rice/mode").read_text().strip()
+    except OSError:
+        return "light"
+    return mode if mode in MODES else "light"
+
+
+def ensure_active() -> None:
+    """Point `active` at current/build/<mode> unless it already does."""
+    target = CURRENT / current_mode()
+    if ACTIVE.is_symlink() and Path(os.readlink(ACTIVE)) == target:
+        return
+    ACTIVE.parent.mkdir(parents=True, exist_ok=True)
+    tmp = ACTIVE.with_name(".active.tmp")
+    if tmp.is_symlink() or tmp.exists():
+        tmp.unlink()
+    tmp.symlink_to(target)
+    os.replace(tmp, ACTIVE)
+    print(f"  link  {ACTIVE} → {target}")
+
 
 LINKS = [
-    # (link, target inside current/build)
+    # (link, target inside active/)
     (".config/gtk-3.0/gtk.css", "gtk/gtk.css"),
     (".config/gtk-4.0/gtk.css", "gtk/gtk.css"),
     (".config/qt6ct/colors/rice.conf", "qt/qt6ct.conf"),
@@ -651,11 +748,11 @@ LINKS = [
 
 HINTS = """
 Add these once (they include the active rice instead of being replaced):
-  kitty.conf        include ~/.config/rices/current/build/kitty.conf
+  kitty.conf        include ~/.local/share/rice/active/kitty.conf
   btop.conf         color_theme = "rice"
   zathurarc         include rice
   nvim init.lua     vim.cmd.colorscheme("rice")
-  Telegram          open ~/.config/rices/current/build/telegram/rice.tdesktop-theme
+  Telegram          open ~/.local/share/rice/active/telegram/rice.tdesktop-theme
                     in Telegram (again after switching rice; it can't follow live)
   Firefox           rice-render --link --firefox  (links userChrome into every profile)
 """
@@ -792,14 +889,15 @@ def spicetify() -> None:
 
 
 def link(firefox: bool, backup: Path | None = None) -> None:
-    pairs = [(INSTALL_ROOT / l, CURRENT / t) for l, t in LINKS]
+    ensure_active()
+    pairs = [(INSTALL_ROOT / l, ACTIVE / t) for l, t in LINKS]
     if firefox:
         for prof in firefox_profiles():
             # Firefox ignores userChrome.css unless this is on
             ensure_line(prof / "user.js", USERCHROME_PREF, "the userChrome switch")
             pairs += [
-                (prof / "chrome/userChrome.css", CURRENT / "firefox/userChrome.css"),
-                (prof / "chrome/userContent.css", CURRENT / "firefox/userContent.css"),
+                (prof / "chrome/userChrome.css", ACTIVE / "firefox/userChrome.css"),
+                (prof / "chrome/userContent.css", ACTIVE / "firefox/userContent.css"),
             ]
     for path, target in pairs:
         if path.is_symlink():

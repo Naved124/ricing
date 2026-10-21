@@ -29,6 +29,13 @@ Singleton {
     readonly property color crease:   "#d9d4c6"
     readonly property color manila:   "#3a2c14"
     readonly property color envelope: "#f3ead6"
+    readonly property color chalk:    "#ffffff"
+    readonly property color soot:     "#000000"
+    readonly property color felt:     "#2b2a1e"
+    readonly property color binding:  "#3b0f0b"
+    readonly property color wad:      "#f2efe6"
+    readonly property color wadCrease: "#a9a59a"
+    readonly property color basket:   "#3c3c3a"
 
     // ── roles ───────────────────────────────────────────────────────────────
     readonly property color bg:        "#f7f5ef"
@@ -52,7 +59,7 @@ Singleton {
     readonly property color shadowTight: "#383c2d14"
     readonly property color shadowSoft:  "#293c2d14"
     readonly property color shadowLift:  "#473c2d14"
-    readonly property color scrim:       "#2e504632"   // rgba(80, 70, 50, .18) behind the launcher
+    readonly property color scrim:       "#2e504632"   // behind the launcher
     readonly property color ruleLine:    "#a8c3e4"
     readonly property color marginLine:  "#e3958f"
     readonly property color hatch:       "#bf1c2a6e"

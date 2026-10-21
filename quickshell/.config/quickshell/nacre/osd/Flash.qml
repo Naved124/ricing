@@ -26,7 +26,7 @@ PanelWindow {
     Rectangle {
         id: sheet
         anchors.fill: parent
-        color: "white"
+        color: Theme.gleam
         opacity: 0
     }
 
