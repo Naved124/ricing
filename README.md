@@ -12,16 +12,17 @@ The config has two layers:
 
 ```
 ~/.config/rices/
-  nacre/  paper/           ← palette.toml, templates/, card.qml, transition.frag
+  nacre/  paper/  abyss/   ← palette.toml, templates/, card.qml, transition.frag
   current -> nacre/         ← the active rice
 ```
 
-Two rices ship today:
+Three rices ship today:
 
 | Rice | Look | Shell |
 | --- | --- | --- |
 | **Nacre** | pearl glass, colour only at the edges and in motion | its own Quickshell config: bar with a dynamic island (time, media, notifications), launcher, control centre, OSDs, lock, power menu, live wallpaper |
 | **Paper** | sheets on a desk, typewriter and pencil | its own Quickshell config: a taped bar, tear-off calendar, wastebasket, an island whose notifications unfold as sticky notes, index-card launcher, envelope lock, rubber-stamp power menu, and a paper grain over the screen |
+| **Abyss** | a night dive on a reef, dark only | its own Quickshell config: a live reef as the wallpaper (jellies, schooling fish, swaying corals, plankton lit by the ripples you make), glass panels floating in it, notification cards that land and sink, a depth-gauge OSD, a jellyfish system card, a lock with its own dimmed reef |
 
 ### Paper
 
@@ -54,6 +55,69 @@ What Hyprland and Quickshell can't do, so Paper does without:
 - **Kvantum.** Qt apps get Fusion and qt6ct like every rice (Kvantum's artwork broke
   light rices).
 
+### Abyss
+
+Deep water with a living reef in it, and the desktop as glass floating in the water.
+It is the port of `docs/abyss/reef-mock.html`, so it has the same water gradient, light
+rays, caustics, marine snow, ripples that refract and catch the light, and plankton
+that lights up where the water moves. It also has the same jellies (pulsing bells,
+trailing tentacles, rim lights), a school of fish that scatters, swaying corals with
+glowing tips, sea fans, anemones that pull in when touched, kelp, the ridge and the
+floor. Click or drag on the bare desktop to disturb the water; the reef only feels the
+pointer where no window covers it. A workspace switch sends a current across in the
+direction you moved, a notification makes the nearest jelly flare, and music kicks the
+reef on the bass (through the shell's one cava). Without cava it breathes slowly while
+something plays.
+
+Abyss is **dark only** (`[meta] modes = ["dark"]`). `rice mode` while it's active still
+records your choice for the other rices but changes nothing on screen, and says so in
+a toast. It's darker than the night rules allow (the water is near black, the ink
+16.6:1), by choice; the terminal colours still keep 4.5:1 and more.
+
+The reef runs on a timer (30 fps by default), not on every frame, and works less when
+it can:
+
+- **stopped** (no frames, no simulation) while a window is fullscreen on that screen,
+  while the session is locked (the lock screen has its own reef), or while the screen is
+  asleep
+- **reduced** (15 fps, half the plankton, no bloom) while tiled windows cover 92% of the
+  screen, or on battery under 30%
+
+Its settings live in `~/.config/rice/abyss.toml` (copy
+`switcher/.local/share/rice/abyss.toml`, which lists the defaults). The shell re-reads
+the file as soon as it changes:
+
+| Key | Default | What it does |
+| --- | --- | --- |
+| `fps` | 30 | the reef's frame rate (15 when reduced) |
+| `scale` | 0.55 | what's drawn of the creatures, against the screen's size; the water is always full size |
+| `plankton` | 620 | at most this many (a small screen gets fewer) |
+| `fish` | 24 | |
+| `jellies` | 5 | |
+| `interactive` | true | the reef feels the pointer (Super+Ctrl+R toggles it) |
+| `music_react` | true | the reef pulses to music |
+| `ui_disturbances` | true | cards landing, the launcher, clicks in the bar touch the water |
+| `reduce_on_battery` | true | the battery rule above |
+
+To see what it's doing, press Super+Ctrl+Shift+R for an overlay in the corner, or ask:
+
+```sh
+qs -c abyss ipc call reef stats      # per screen: fps, ms a frame (world + drawing), sizes,
+                                     # entity counts, and why it runs as it does
+qs -c abyss ipc call reef interactive false
+```
+
+Switching to Abyss floods the screen from the bottom edge; switching away drains it
+(`[meta] transition_out`). The greeter, boot menu and splash use the reef's still
+frame, `assets/wall-static.png`. Re-render it with `assets/gen.py --still` (under
+`xvfb-run` on a headless machine, with PySide6), adding `--size` for another screen.
+
+What Abyss does without:
+
+- **The reef under windows.** It's the wallpaper layer, so only bare desktop feels the
+  pointer.
+- **Sound.** None, by design.
+
 Targets **Hyprland 0.56** (Lua config; 0.55 or newer is needed) and **Quickshell 0.3**.
 
 ## Packages
@@ -66,7 +130,7 @@ Install with [GNU Stow](https://www.gnu.org/software/stow/). Each folder is a pa
 | `render` | `~/.local/bin/rice-render`, `~/.local/share/rice/templates/` | palette → theme files for every app |
 | `rices` | `~/.config/rices/` | the rices |
 | `hypr` | `~/.config/hypr/` | `hyprland.lua` (entry), `base.lua`, `hypridle.conf` |
-| `quickshell` | `~/.config/quickshell/{rice,nacre,paper}/` | the shared chooser and switch overlay, and Nacre's and Paper's shells |
+| `quickshell` | `~/.config/quickshell/{rice,nacre,paper,abyss}/` | the shared chooser and switch overlay, and Nacre's, Paper's and Abyss's shells |
 | `systemd` | `~/.config/systemd/user/rice-mode.*` | the timer for auto mode (light and dark by the sun) |
 | `fonts` | `~/.local/share/fonts/paper/` | Paper's OFL fonts: Courier Prime, Kalam, Newsreader (licences beside them) |
 | `zsh` | `~/.config/zsh/rice.zsh` | the shell setup, sourced from `~/.zshrc` (see Shell) |
@@ -311,11 +375,13 @@ them). Nacre's system tray icons are always out on the right of the bar.
 
 ### System card
 
-Both desktops carry a **system card** under the windows: CPU and memory as Material 3
+Every desktop carries a **system card** under the windows. In Nacre and Paper it shows CPU and memory as Material 3
 style dials, and the root disk as a bar with used, free and total sizes. Paper draws it
 as an index card taped to the desk (red pen for CPU, ink for memory, pencil hatching for
 the used disk); Nacre as a pane of pearl glass with the orient's colours. Both follow
-light and dark live. Drag it anywhere; it stays where you leave it (`shell.json` in the
+light and dark live. Abyss's is one of the reef's jellyfish: the CPU in its bell, its
+rim lights running faster the busier it is, and three tentacles (CPU teal, memory violet,
+disk pink) lit down their length as far as each value goes. Drag it anywhere; it stays where you leave it (`shell.json` in the
 shell's state folder). Right-click puts it away, and the control centre's "system card"
 brings it back. It hides while a window is fullscreen. One reader samples `/proc/stat`
 and `/proc/meminfo` every 2 s and `df /` every 30 s (`services/Sys.qml`).
@@ -383,7 +449,9 @@ and a start page), Vesktop, Spicetify, mpv/uosc, imv, zathura, cava (in a termin
 ReGreet and Hyprland's visual layer. A theme for an app you don't use is just an unused
 file. Paper overrides kitty (Courier Prime on a tiled paper texture), nvim and lualine,
 btop (graph paper), yazi (a manila folder), fastfetch (a typed typewriter), cava (ink),
-the Firefox start page (ruled paper) and ReGreet.
+the Firefox start page (ruled paper) and ReGreet. Abyss overrides kitty (glass-pill tabs),
+nvim (violet keywords, teal functions, the glass for floats), btop (teal → violet → pink),
+cava, yazi (a teal line for the current row), fastfetch (a jellyfish) and zathura.
 
 Templates use `{{ roles.accent }}`-style placeholders with filters, for example
 `{{ roles.bg | rgba(0.8) }}`, `{{ colors.rose | mix(colors.sky, 0.5) }}`,
@@ -493,7 +561,12 @@ tools/shaders                           # recompile *.frag → *.frag.qsb (needs
 tools/emoji                             # rebuild the launcher's emoji list
 tools/fake-hyprland                     # a stand-in Hyprland IPC for previewing shells headless
 tools/hypr-migrate OLD.conf [local.lua]  # turn an old hyprland.conf's monitors/keyboard into Lua
+tests/qs_smoke.py quickshell/.config/quickshell/abyss   # start a shell under PySide6 and list QML errors
 ```
+
+The shell tests run each shell under PySide6 against stand-ins for Quickshell's own
+types (`tests/qsstub/`), so a binding error, a TypeError or a bad property fails a test
+without Quickshell or a compositor. They skip when PySide6 isn't installed.
 
 A few notes:
 
