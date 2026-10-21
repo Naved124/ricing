@@ -6,7 +6,9 @@ import qs
 import qs.common
 import qs.services
 
-// Five workspace pearls for this monitor.
+// Workspace pearls for this monitor: five, or as many as the highest one in
+// use (a window on it, or being on it) needs; the extra pearls roll out as
+// they're needed and go again once those workspaces are empty.
 //   empty     a matte pearl
 //   occupied  glossy
 //   active    stretches into an iridescent capsule (animated width)
@@ -17,8 +19,14 @@ Item {
     id: root
 
     required property var monitor
-    readonly property int count: 5
     readonly property int activeId: monitor?.activeWorkspace?.id ?? 1
+    readonly property int count: {
+        let top = Math.max(5, activeId);
+        for (const w of Hyprland.workspaces.values)
+            if (w.id > 0 && w.monitor === root.monitor && (w.toplevels?.values?.length ?? 0) > 0)
+                top = Math.max(top, w.id);
+        return top;
+    }
 
     implicitWidth: row.implicitWidth
     implicitHeight: 26
@@ -48,6 +56,9 @@ Item {
                 width: active ? 30 : 12
                 height: 12
                 anchors.verticalCenter: parent.verticalCenter
+
+                // a pearl that's new to the row rolls in
+                NumberAnimation on opacity { from: 0; to: 1; duration: Theme.durFocus; running: dot.wsId > 5 }
 
                 Behavior on width {
                     NumberAnimation { duration: Theme.durWorkspace; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.settle }
