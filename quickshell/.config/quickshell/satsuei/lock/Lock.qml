@@ -12,7 +12,8 @@ import qs.services
 // every monitor (LockSurface), one PAM conversation shared between them.
 // While it's up the plates' passes stop (Shell.locked; the lock grades its
 // own). Today's title comes from ~/.config/rices/satsuei/lock-titles.json,
-// one a day in turn. `rice lock` (and hypridle) call
+// one for each date of the year in calendar order (366, 29 February's
+// included), so 7 July is always Tanabata's. `rice lock` (and hypridle) call
 //   qs -c satsuei ipc call lock lock
 Scope {
     id: root
@@ -39,10 +40,13 @@ Scope {
             } catch (e) {}
         }
     }
-    function dayOfYear(d) { return Math.floor((d - new Date(d.getFullYear(), 0, 0)) / 864e5); }
+    // round, not floor: a day with a clock change is an hour short or long
+    function dayOfYear(d) { return Math.round((new Date(d.getFullYear(), d.getMonth(), d.getDate()) - new Date(d.getFullYear(), 0, 0)) / 864e5); }
     function episode(d) {
         const n = dayOfYear(d);
-        const t = titles[n % titles.length];
+        // the title by the date, counted as in a leap year, so a common year skips 29 February's
+        const day = dayOfYear(new Date(2000, d.getMonth(), d.getDate()));
+        const t = titles[(day - 1) % titles.length];
         return { n, ja: t[0], en: t[1] };
     }
 

@@ -457,8 +457,9 @@ beside, and the dancer small on its top edge (15 fps, still while windows cover 
 fanning itself when the CPU runs hot). Its place is in `Settings`, behind `Shell.statsAt`.
 
 The lock (`lock/Lock.qml`, `LockSurface.qml`) is an episode title card over the plate
-graded and blurred: 第<day of year>話, a title a day from
-`rices/satsuei/lock-titles.json`, the time and date, and a glass password pill. The
+graded and blurred: 第<day of year>話, the date's title from
+`rices/satsuei/lock-titles.json` (366, in calendar order, seasonal; indexed as in a
+leap year, a test checks), the time and date, and a glass password pill. The
 bar's battery is `bar/Reel.qml`, a strip of film exposed as far as the charge goes.
 The chooser card (`card.qml`) shows the plate on screen now (from `theme.json`), and
 `transition.frag` is a light leak.

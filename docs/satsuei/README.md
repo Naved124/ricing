@@ -70,11 +70,18 @@ Click the seal on the left of the bar.
 
 ### The lock screen
 
-The lock is an episode title card: `第295話 · EPISODE 295` (the day of the year), a title
-that changes daily, the time and the date, over the graded plate.
+The lock is an episode title card: `第295話 · EPISODE 295` (the day of the year), that
+day's title, the time and the date, over the graded plate.
+
+There is a title for every date, 366 of them, and they follow the year the way an
+anime's seasons do: snow and shrine visits in January, cherry blossom and the new term
+in spring, rain in June, fireworks and Obon in summer, the moon, red leaves and the
+culture festival in autumn, kotatsu and Christmas lights in December. Some dates have
+their own, like 七夕 on 7 July or 大晦日 on 31 December.
 
 The titles are in `~/.config/rices/satsuei/lock-titles.json`, as `[Japanese, English]`
-pairs. Add your own; it's read again when it changes.
+pairs in calendar order (entry 60 is 29 February, skipped in other years). Edit them
+freely; the file is read again when it changes, and a shorter list just repeats.
 
 ## Wallpapers
 

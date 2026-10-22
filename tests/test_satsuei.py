@@ -17,6 +17,7 @@ import tempfile
 import tomllib
 import unittest
 from unittest import mock
+from datetime import date
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
@@ -709,7 +710,7 @@ class Lock(unittest.TestCase):
     def test_the_card(self):
         lock = (SAT / "lock/Lock.qml").read_text()
         for needle in ("WlSessionLock", "PamContext", 'config: "login"', 'target: "lock"', "function lock(): void",
-                       "/rices/satsuei/lock-titles.json", "titles[n % titles.length]", "Shell.locked = true", "Shell.locked = false"):
+                       "/rices/satsuei/lock-titles.json", "titles[(day - 1) % titles.length]", "new Date(2000, d.getMonth(), d.getDate())", "Shell.locked = true", "Shell.locked = false"):
             self.assertIn(needle, lock)
         self.assertNotIn('property: "locked"', lock)
         surf = (SAT / "lock/LockSurface.qml").read_text()
@@ -718,8 +719,17 @@ class Lock(unittest.TestCase):
                        "echoMode: TextInput.Password", '"Press Enter to unlock"', "root.lock.submit()", "Theme.accent"):
             self.assertIn(needle, surf)
         titles = json.loads((RICE / "lock-titles.json").read_text())
-        self.assertEqual(len(titles), 7)
-        self.assertEqual(titles[0], ["窓辺の光", "The Light by the Window"])
+        # one for each date of a leap year, in order, none twice
+        self.assertEqual(len(titles), 366)
+        for t in titles:
+            self.assertTrue(isinstance(t, list) and len(t) == 2 and all(isinstance(x, str) and x.strip() for x in t), t)
+        for i in (0, 1):
+            names = [t[i] for t in titles]
+            self.assertEqual(len(set(names)), len(names), [n for n in names if names.count(n) > 1])
+        day = lambda m, d: (date(2000, m, d) - date(2000, 1, 1)).days
+        self.assertEqual(titles[day(1, 1)][0], "初日の出")
+        self.assertEqual(titles[day(7, 7)][0], "七夕")
+        self.assertEqual(titles[day(12, 31)][0], "大晦日")
         self.assertIn("Lock {}", (SAT / "shell.qml").read_text())
 
     @unittest.skipUnless(has_pyside(), "needs PySide6")
