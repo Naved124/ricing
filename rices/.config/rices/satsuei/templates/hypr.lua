@@ -114,7 +114,7 @@ hl.window_rule({
 ---------------------------------------------------------------------------
 hl.layer_rule({
     name = "satsuei-glass",
-    match = { namespace = "^satsuei-(bar|center|studio|subs|walls|cast|launcher|osd|power|toast|keys)$" },
+    match = { namespace = "^satsuei-(bar|center|studio|subs|walls|cast|launcher|osd|power|toast|keys|stats)$" },
     blur = true, ignore_alpha = 0.3, no_anim = true,
 })
 hl.layer_rule({ name = "satsuei-still", match = { namespace = "^satsuei-(plate|eyecatch|mascot)$" }, no_anim = true })

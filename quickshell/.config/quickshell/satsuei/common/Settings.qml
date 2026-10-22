@@ -53,6 +53,11 @@ Singleton {
             property string dancer: "hana"
             property string mascotChar: "hana"
             property bool shuffleDaily: false
+            // the timesheet (desk/Stats.qml): shown, and where (0–1 across the
+            // free area; it starts top right, under the bar)
+            property bool statsShown: true
+            property real statsX: 1
+            property real statsY: 0
             property string shuffledOn: ""     // yyyy-mm-dd of the last daily pick
             // wallpapers
             property string wallDir: "~/Pictures/Wallpapers"

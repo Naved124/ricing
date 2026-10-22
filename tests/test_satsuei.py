@@ -383,7 +383,7 @@ class Glass(unittest.TestCase):
         for needle in ("size              = 8", "passes            = 3", "new_optimizations = true",
                        "rounding         = 16", 'leaf = "workspaces",   enabled = true, speed = 6,',
                        'style = "slide"', "blur = true, ignore_alpha = 0.3",
-                       '"^satsuei-(bar|center|studio|subs|walls|cast|launcher|osd|power|toast|keys)$"'):
+                       '"^satsuei-(bar|center|studio|subs|walls|cast|launcher|osd|power|toast|keys|stats)$"'):
             self.assertIn(needle, hypr)
         self.assertIn("vibrancy   = 0.2", mode)
         # nothing goes see-through for losing focus; glassy windows are frosted, terminals whole
@@ -476,7 +476,7 @@ class Center(unittest.TestCase):
             self.assertIn(needle.replace("rice-rec", "Shell.toggleRecording("), c)
         # the six toggles, in the mock's order
         titles = re.findall(r'title: "([^"]+)"', c)
-        self.assertEqual(titles, ["Wi-Fi", "Bluetooth", "Quiet", "Night light", "Compositing", "Mascot"])
+        self.assertEqual(titles, ["Wi-Fi", "Bluetooth", "Quiet", "Night light", "Compositing", "Mascot", "Timesheet"])
         self.assertIn("to: 150", c)                                  # volume to 150%
         self.assertIn("Settings.s.expo", c)                          # brightness feeds the pass's expo
         self.assertIn("NoteList {", c)
@@ -540,7 +540,7 @@ class Characters(unittest.TestCase):
                        "l = 20 + 80 * (0.5 + 0.5 * Math.sin(b)) * e;", "x = Math.sin(b * 2) * 18;",
                        "r = -150 + Math.sin(t * 12) * 22;", "ti = 14;", "ey = 0.08;",
                        "blinkAt = t + 2.5 + Math.random() * 3", "t > blinkAt + 0.13",
-                       "phase += dt * (bpm / 60) / 2 * (0.75 + energy * 0.6)", "interval: 33",
+                       "phase += dt * (bpm / 60) / 2 * (0.75 + energy * 0.6)", "property int interval: 33", "interval: rig.interval",
                        "running: rig.running && rig.visible"):
             self.assertIn(needle, rig)
         # every motion can be scaled per character
@@ -589,6 +589,36 @@ class Characters(unittest.TestCase):
         for k, name in (("ALT + SHIFT + C", "satsuei-dancer-next"), ("ALT + M", "satsuei-mascot-next")):
             self.assertRegex(base, rf'key\("{re.escape(k)}"\),\s+hl\.dsp\.global\("quickshell:{name}"\)')
             self.assertIn(f'name: "{name}"', shell)
+
+class Desk(unittest.TestCase):
+    """The system card every shell has, as Satsuei's timesheet."""
+
+    def test_the_timesheet(self):
+        st = (SAT / "desk/Stats.qml").read_text()
+        # the shared contract: under the windows, draggable, remembered, put away by right-click
+        for needle in ("WlrLayer.Bottom", '"satsuei-stats"', "mask: Region { item: card }", "DragHandler",
+                       "Shell.setStatsAt(", "Shell.statsAt.x", "Shell.setStatsShown(false)", "Qt.RightButton",
+                       "!Hypr.fullscreenOn(monitor)", "Sys.cpu", "Sys.mem", "Sys.disk"):
+            self.assertIn(needle, st)
+        # its own flavour: CUT, ten frames, three columns, a playhead stepping once a second
+        for needle in ('"CUT "', '"タイムシート"', "model: 10", '"CPU"', '"MEM"', '"DSK"', "interval: 1000",
+                       "(win.frame + 1) % 10", "color: Theme.urgent"):
+            self.assertIn(needle, st)
+        # the little dancer: slow ticks, still while covered, fanning when hot
+        for needle in ("item.interval = 66", 'win.hot ? "wave" : "idle"', "!win.covered", "v < 0.7 : v > 0.8",
+                       "win.streak >= 3"):
+            self.assertIn(needle, st)
+        shell = (SAT / "services/Shell.qml").read_text()
+        for needle in ("readonly property bool statsShown", "readonly property point statsAt",
+                       "function setStatsShown(on)", "function setStatsAt(x, y)"):
+            self.assertIn(needle, shell)
+        settings = (SAT / "common/Settings.qml").read_text()
+        for needle in ("property bool statsShown: true", "property real statsX: 1", "property real statsY: 0"):
+            self.assertIn(needle, settings)
+        center = (SAT / "center/Center.qml").read_text()
+        self.assertIn('title: "Timesheet"', center)
+        self.assertIn("Shell.setStatsShown(!Shell.statsShown)", center)
+        self.assertIn("Stats {}", (SAT / "shell.qml").read_text())
 
 if __name__ == "__main__":
     unittest.main()

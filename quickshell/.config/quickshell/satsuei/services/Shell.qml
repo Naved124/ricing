@@ -44,6 +44,15 @@ Singleton {
     // a notification arrived (subtitles, the mascot's wave)
     property double lastAlert: 0
 
+    // the timesheet on the desktop (desk/Stats.qml), kept in Settings
+    readonly property bool statsShown: Settings.s.statsShown
+    readonly property point statsAt: Qt.point(Settings.s.statsX, Settings.s.statsY)
+    function setStatsShown(on) { Settings.s.statsShown = on; }
+    function setStatsAt(x, y) {
+        Settings.s.statsX = Math.max(0, Math.min(1, x));
+        Settings.s.statsY = Math.max(0, Math.min(1, y));
+    }
+
     // a small pill (osd/Toast.qml shows it)
     signal toast(string icon, string text)
 

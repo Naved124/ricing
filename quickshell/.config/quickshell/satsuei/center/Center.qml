@@ -15,7 +15,8 @@ import qs.services
 //   · you: the avatar seal, user@host, uptime, recording, power
 //   · what's playing (MediaCard), the dancer standing on its top right edge
 //   · the character strip (chars/, from step 9)
-//   · six toggles: Wi-Fi, Bluetooth, Quiet, Night light, Compositing, Mascot
+//   · seven toggles: Wi-Fi, Bluetooth, Quiet, Night light, Compositing, Mascot,
+//     the Timesheet (the desk's system card)
 //   · volume (to 150%) and brightness (past the backlight it's the pass's
 //     exposure; with no backlight it's only that)
 //   · the last four notifications
@@ -261,6 +262,14 @@ PanelWindow {
                             sub: Settings.s.mascot ? "Peeks on alerts" : "Hidden"
                             on: Settings.s.mascot
                             onToggled: Settings.s.mascot = !Settings.s.mascot
+                        }
+                        Tile {
+                            width: tiles.tileW
+                            icon: "film"
+                            title: "Timesheet"
+                            sub: Shell.statsShown ? "On the desk" : "Put away"
+                            on: Shell.statsShown
+                            onToggled: Shell.setStatsShown(!Shell.statsShown)
                         }
                     }
 

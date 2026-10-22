@@ -14,6 +14,7 @@ import qs.bar
 import qs.center
 import qs.chars
 import qs.common
+import qs.desk
 import qs.keys
 import qs.launcher
 import qs.osd
@@ -40,6 +41,7 @@ ShellRoot {
 
     // follow the focused monitor
     Center {}
+    Stats {}
     Subtitles {}
     Osd {}
     Toast {}

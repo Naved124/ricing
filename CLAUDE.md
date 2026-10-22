@@ -409,6 +409,11 @@ mock's 120 × 160 canvas, curve renderer); their clothes are the plate's tokens 
 their skin and eyes `Style.art`. `services/Tempo.qml` guesses the tempo from Beat's
 kicks; `Characters.qml` says who plays the dancer and the mascot.
 
+The system card (`desk/Stats.qml`) is a timesheet: CUT and the day, ten frames inked
+down three columns (CPU, MEM, DSK) with a playhead stepping once a second, the readout
+beside, and the dancer small on its top edge (15 fps, still while windows cover it,
+fanning itself when the CPU runs hot). Its place is in `Settings`, behind `Shell.statsAt`.
+
 `Theme.qml` is not generated: it reads `theme.json` and crossfades every token over
 600 ms (Behaviors inside a singleton crash the engine, so it mixes from a snapshot);
 `Style.qml` is, from the palette, and holds no plate colour.

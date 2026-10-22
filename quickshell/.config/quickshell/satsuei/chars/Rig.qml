@@ -27,6 +27,7 @@ Item {
     property real energy: 0.6               // 0–1: the music's loudness × volume
     property real bpm: Tempo.bpm
     property bool running: true
+    property int interval: 33               // ms a tick (the desk's little one: 66)
     property var profile: ({})
     default property alias parts: canvas.data
 
@@ -127,7 +128,7 @@ Item {
     }
 
     Timer {
-        interval: 33
+        interval: rig.interval
         repeat: true
         running: rig.running && rig.visible
         property double last: 0
