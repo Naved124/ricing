@@ -437,7 +437,7 @@ class Glass(unittest.TestCase):
         for needle in ('padStart(2, "0")', "display: true", "Theme.accent", "ep.occupied", "Hypr.focusWorkspace(",
                        "Hypr.cycleWorkspace("):
             self.assertIn(needle, eps)
-        status = (SAT / "bar/Status.qml").read_text()
+        status = (SAT / "bar/Status.qml").read_text() + (SAT / "bar/Reel.qml").read_text()
         for needle in ("model: 4", "Beat.levels", "Net.rate(", "Bluetooth.defaultAdapter", "Audio.icon",
                        "Battery.level", "SystemTray.items", '"rice", "lock"', "Shell.toggleCenter()",
                        "Shell.recording"):
@@ -673,6 +673,110 @@ class Custom(unittest.TestCase):
         self.assertEqual((cast["dancer"], cast["mascot"], cast["open"]), ("test", "bit", True))
 
 
+class SceneMatch(unittest.TestCase):
+    """Step 11: a custom character drawn into the plate's light."""
+
+    def test_the_shader(self):
+        frag = (SAT / "shaders/scenematch.frag").read_text()
+        for needle in ("vec3 oklab(", "smoothstep(t * 0.5, t, d)", "near(lab, prot0)", "mul.rgb + lift.rgb", "* expo",
+                       "lightDir * texel * 2.5", "texel * 1.5", "hash(", "s.rgb / a"):
+            self.assertIn(needle, frag)
+        qsb = SAT / "shaders/scenematch.frag.qsb"
+        self.assertGreaterEqual(qsb.stat().st_mtime, (SAT / "shaders/scenematch.frag").stat().st_mtime - 1, "run tools/shaders")
+        custom = (SAT / "chars/Custom.qml").read_text()
+        for needle in ("layer.effect: SceneMatch", "meta.match ?? true", "meta.recolor ?? []", "r.meta.protect",
+                       "r.meta.ambient ?? 0.7", "r.meta.rim ?? 0.5", "Theme.grade.rays", "Theme.grade.rayCol",
+                       "Theme.at(Theme.tint, 0.6)", "Settings.s.grain", "r.tokens.includes(x.to) ? Theme[x.to] : x.to"):
+            self.assertIn(needle, custom)
+
+    @unittest.skipUnless(has_pyside(), "needs PySide6")
+    def test_it_follows_three_wallpapers_and_keeps_what_is_protected(self):
+        """The fixture's teal head is recoloured to three different accents, each
+        time to that accent's hue; its pink body, protected, never moves."""
+        for accent in ("#ff8e7a", "#b280f9", "#7ad0ff"):
+            p = subprocess.run(["xvfb-run", "-a", "-s", "-screen 0 640x480x24", sys.executable,
+                                str(REPO / "tests/scenematch_probe.py"), accent],
+                               capture_output=True, text=True, timeout=120,
+                               env={**os.environ, "QSG_RHI_BACKEND": "opengl"})
+            got = json.loads(p.stdout.strip().splitlines()[-1])
+            self.assertLess(rw.hue_dist(rw.hsl(got["head"])[0], rw.hsl(accent)[0]), 8, (accent, got))
+            self.assertEqual(got["body"], "#e12885", accent)
+
+
+class Lock(unittest.TestCase):
+    """Step 17: the lock screen, an episode's title card."""
+
+    def test_the_card(self):
+        lock = (SAT / "lock/Lock.qml").read_text()
+        for needle in ("WlSessionLock", "PamContext", 'config: "login"', 'target: "lock"', "function lock(): void",
+                       "/rices/satsuei/lock-titles.json", "titles[n % titles.length]", "Shell.locked = true", "Shell.locked = false"):
+            self.assertIn(needle, lock)
+        self.assertNotIn('property: "locked"', lock)
+        surf = (SAT / "lock/LockSurface.qml").read_text()
+        for needle in ("Pass {", "grade: 1", "rays: 0", "blurEnabled: true", "Theme.at(Theme.ink, 0.7)", "第${root.ep.n}話 · EPISODE ${root.ep.n}",
+                       "display: true", "root.ep.ja", "root.ep.en", '"HH:mm"', '"dddd, d MMMM"', "Glass {", "radius: 24",
+                       "echoMode: TextInput.Password", '"Press Enter to unlock"', "root.lock.submit()", "Theme.accent"):
+            self.assertIn(needle, surf)
+        titles = json.loads((RICE / "lock-titles.json").read_text())
+        self.assertEqual(len(titles), 7)
+        self.assertEqual(titles[0], ["窓辺の光", "The Light by the Window"])
+        self.assertIn("Lock {}", (SAT / "shell.qml").read_text())
+
+    @unittest.skipUnless(has_pyside(), "needs PySide6")
+    def test_it_locks_and_unlocks(self):
+        import qs_smoke
+        with tempfile.TemporaryDirectory() as d:
+            shell = Path(d) / "satsuei"
+            shutil.copytree(SAT, shell)
+            lock = shell / "lock/Lock.qml"
+            hook = "        function isLocked(): bool {"
+            text = lock.read_text()
+            self.assertIn(hook, text)
+            lock.write_text(text.replace(hook, "        function testUnlock(p: string): void { root.password = p; root.submit(); }\n" + hook))
+            found, pokes = qs_smoke.smoke(shell, 5.5, REPO / "tests/pokes/satsuei-unlock.qml")
+        self.assertEqual(found, [])
+        by = {p["tag"]: p for p in pokes}
+        self.assertEqual(set(by), {"before", "locked", "wrong", "after"}, pokes)
+        self.assertTrue(by["locked"]["locked"])
+        self.assertTrue(all(s == "paused: locked" for s in by["locked"]["plates"]))
+        self.assertTrue(by["wrong"]["locked"])
+        self.assertFalse(by["after"]["locked"])
+        self.assertFalse(any(s == "paused: locked" for s in by["after"]["plates"]))
+
+
+class Integration(unittest.TestCase):
+    """Steps 18 and 19: the chooser, the switch, the docs; and the bar's battery."""
+
+    def test_the_chooser_and_the_switch(self):
+        card = (RICE / "card.qml").read_text()
+        for needle in ("property url base", "/satsuei/theme.json", "watchChanges: true", '"撮"', "root.selected"):
+            self.assertIn(needle, card)
+        self.assertTrue((RICE / "preview.png").is_file())
+        frag = RICE / "transition.frag"
+        self.assertIn("light leak", frag.read_text())
+        qsb = RICE / "transition.frag.qsb"
+        self.assertGreaterEqual(qsb.stat().st_mtime, frag.stat().st_mtime - 1, "run tools/shaders")
+        palette = tomllib.loads((RICE / "palette.toml").read_text())
+        self.assertEqual(palette["meta"]["transition"], "leak")
+        self.assertEqual(palette["meta"]["lock"], "shell")
+
+    def test_the_battery_is_a_strip_of_film(self):
+        reel = (SAT / "bar/Reel.qml").read_text()
+        for needle in ("readonly property int frames: 4", "root.level * film.frames - index", "Battery.charging",
+                       "Battery.low", "Battery.timeLeft", "HoverHandler"):
+            self.assertIn(needle, reel)
+        self.assertIn("Reel {", (SAT / "bar/Status.qml").read_text())
+
+    def test_the_docs(self):
+        doc = (REPO / "docs/satsuei/README.md").read_text()
+        for needle in ("~/Pictures/Wallpapers", "~/.config/satsuei/characters/", "meta.json", "recolor", "protect",
+                       "qs -c satsuei ipc call satsuei wallpaper", "setCharacter", "lock-titles.json", "Super+Ctrl+W"):
+            self.assertIn(needle, doc)
+        readme = (REPO / "README.md").read_text()
+        self.assertIn("Four rices ship today", readme)
+        self.assertIn("| **Satsuei** |", readme)
+
+
 class CastPicker(unittest.TestCase):
     """Step 12: the Cast picker, slimmed (no tweak drawer)."""
 
@@ -735,6 +839,8 @@ class Walls(unittest.TestCase):
         self.assertIn("function focusOn(i)", sel)
         self.assertIn("Library.indexOf(focusedPath)", sel)
         self.assertNotIn("onCurrentIndexChanged", sel)
+        self.assertIn("strip.currentIndex = current;", sel)              # it follows every move
+        self.assertNotIn("currentIndex: win.current", sel)
         self.assertIn("Timer { id: flush; interval: 300", (SAT / "walls/Library.qml").read_text())
         shell = (SAT / "shell.qml").read_text()
         for needle in ("Selector {}", 'name: "satsuei-walls"', "function wallpaper(action: string)", "function setWallpaper(path: string)"):

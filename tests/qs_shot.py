@@ -71,7 +71,8 @@ def main() -> int:
         def walk(o):
             for c in o.children():
                 mo = c.metaObject()
-                if mo.indexOfProperty("panelAnchors") >= 0 and mo.indexOfProperty("contentItem") >= 0:
+                if mo.indexOfProperty("contentItem") >= 0 and (mo.indexOfProperty("panelAnchors") >= 0
+                                                              or "WlSessionLockSurface" in mo.className()):
                     out.append(c)
                 walk(c)
         for r in engine.rootObjects():
@@ -90,6 +91,10 @@ def main() -> int:
                 continue
             item = win.property("contentItem")
             if not isinstance(item, QQuickItem):
+                continue
+            if "WlSessionLockSurface" in win.metaObject().className():
+                # a lock surface covers the screen, over everything
+                stack.append((9, item, 0, 0, w, h))
                 continue
             L, R, T, B = (bool(prop(f"panelAnchors.{k}")) for k in ("left", "right", "top", "bottom"))
             ml, mr, mt, mb = (int(prop(f"margins.{k}") or 0) for k in ("left", "right", "top", "bottom"))

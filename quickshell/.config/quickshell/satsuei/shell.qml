@@ -18,6 +18,7 @@ import qs.common
 import qs.desk
 import qs.keys
 import qs.launcher
+import qs.lock
 import qs.mascot
 import qs.osd
 import qs.panel
@@ -56,6 +57,7 @@ ShellRoot {
     Selector {}
     Studio {}
     Mascot {}
+    Lock {}
 
     // Hyprland binds: hl.dsp.global("quickshell:<name>"), the same in every rice
     GlobalShortcut {

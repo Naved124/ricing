@@ -421,6 +421,13 @@ restart. `chars/Custom.qml` is a `Rig` that plays the clips and moves the whole 
 host (the media card, the timesheet, `center/Strip.qml`, the Cast picker
 `cast/Cast.qml`) goes through it. The Cast picker casts either role from a grid of
 every character and adds one from a file (zenity; copied in as its `dance`).
+A custom character is drawn through `chars/SceneMatch.qml` (`shaders/scenematch.frag`,
+a `layer.effect` on its clip): `recolor` rules move colours near `from` to a token's hue
+and chroma in OKLab, keeping their lightness relative; `protect` colours never move; then
+the plate's grade (`ambient`), a rim toward its light source (`rim`), an optional
+`outline` and the grain. `tests/scenematch_probe.py` renders the fixture through it, and
+a test checks that its recoloured part follows three accents and its protected part
+stays put.
 
 The edge mascot (`mascot/Mascot.qml`, `satsuei-mascot` on the top layer, masked to its
 head) rests below the bottom edge 8% in from the right, springs up and waves for 4.2 s
@@ -439,6 +446,13 @@ The system card (`desk/Stats.qml`) is a timesheet: CUT and the day, ten frames i
 down three columns (CPU, MEM, DSK) with a playhead stepping once a second, the readout
 beside, and the dancer small on its top edge (15 fps, still while windows cover it,
 fanning itself when the CPU runs hot). Its place is in `Settings`, behind `Shell.statsAt`.
+
+The lock (`lock/Lock.qml`, `LockSurface.qml`) is an episode title card over the plate
+graded and blurred: 第<day of year>話, a title a day from
+`rices/satsuei/lock-titles.json`, the time and date, and a glass password pill. The
+bar's battery is `bar/Reel.qml`, a strip of film exposed as far as the charge goes.
+The chooser card (`card.qml`) shows the plate on screen now (from `theme.json`), and
+`transition.frag` is a light leak.
 
 `Theme.qml` is not generated: it reads `theme.json` and crossfades every token over
 600 ms (Behaviors inside a singleton crash the engine, so it mixes from a snapshot);

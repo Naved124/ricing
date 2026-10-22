@@ -44,6 +44,7 @@ PanelWindow {
     onOpenChanged: {
         if (open) {
             focusOn(Math.max(0, Library.indexOf(Library.current)));
+            strip.currentIndex = current;
             strip.positionViewAtIndex(current, ListView.Center);
             keys.forceActiveFocus();
         } else if (!Library.applying) {
@@ -68,7 +69,12 @@ PanelWindow {
     }
 
     // ── the live preview ───────────────────────────────────────────────────
-    onCurrentChanged: if (open) preview.restart()
+    // the strip follows, keeping the picture you're on in the middle (set
+    // here rather than bound: a new model resets the strip's index)
+    onCurrentChanged: {
+        strip.currentIndex = current;
+        if (open) preview.restart();
+    }
     Timer {
         id: preview
         interval: 250
@@ -90,7 +96,8 @@ PanelWindow {
     }
     function move(by) {
         if (!list.length) return;
-        focusOn(current + by);
+        // round the ends: right from the last is the first again
+        focusOn(((current + by) % list.length + list.length) % list.length);
     }
     function copy(hex) {
         Quickshell.execDetached(["wl-copy", hex]);
@@ -518,7 +525,6 @@ PanelWindow {
             orientation: ListView.Horizontal
             spacing: 18
             model: win.list
-            currentIndex: win.current
             highlightRangeMode: ListView.StrictlyEnforceRange
             preferredHighlightBegin: width / 2 - 120
             preferredHighlightEnd: width / 2 + 120

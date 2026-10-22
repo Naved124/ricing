@@ -1,1 +1,3 @@
-{ "name": "Testy", "nameJa": "テスト", "baseBpm": 110, "scale": 0.9 }
+{ "name": "Testy", "nameJa": "テスト", "baseBpm": 110, "scale": 0.9,
+  "recolor": [{ "from": "#39c5bb", "to": "accent", "tol": 0.10, "strength": 1.0 }],
+  "protect": ["#e12885"], "outline": true }

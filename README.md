@@ -12,17 +12,18 @@ The config has two layers:
 
 ```
 ~/.config/rices/
-  nacre/  paper/  abyss/   ← palette.toml, templates/, card.qml, transition.frag
+  nacre/  paper/  abyss/  satsuei/   ← palette.toml, templates/, card.qml, transition.frag
   current -> nacre/         ← the active rice
 ```
 
-Three rices ship today:
+Four rices ship today:
 
 | Rice | Look | Shell |
 | --- | --- | --- |
 | **Nacre** | pearl glass, colour only at the edges and in motion | its own Quickshell config: bar with a dynamic island (time, media, notifications), launcher, control centre, OSDs, lock, power menu, live wallpaper |
 | **Paper** | sheets on a desk, typewriter and pencil | its own Quickshell config: a taped bar, tear-off calendar, wastebasket, an island whose notifications unfold as sticky notes, index-card launcher, envelope lock, rubber-stamp power menu, and a paper grain over the screen |
 | **Abyss** | a night dive on a reef, dark only | its own Quickshell config: a live reef as the wallpaper (jellies, schooling fish, swaying corals, plankton lit by the ripples you make), glass panels floating in it, notification cards that land and sink, a depth-gauge OSD, a jellyfish system card, a lock with its own dimmed reef |
+| **Satsuei** | your wallpaper, composited like an anime frame, dark only | its own Quickshell config: your picture with a shader pass over it (bloom, light rays, dust motes, a grade that follows the hour), glass whose every colour comes from the picture, a clock bar with episodes, subtitle notifications, dancing characters (your own GIFs too), an edge mascot, a timesheet system card, a wallpaper selector, an episode title-card lock |
 
 ### Paper
 
@@ -117,6 +118,15 @@ What Abyss does without:
 - **The reef under windows.** It's the wallpaper layer, so only bare desktop feels the
   pointer.
 - **Sound.** None, by design.
+
+### Satsuei
+
+The look comes from your wallpaper: `satsuei-wall set <picture>`, or the selector on
+Super+Ctrl+W, takes a picture's colours and light source, and the whole desktop (shell,
+terminal, GTK, Qt, nvim, Spotify) re-themes to it. The picture is the plate; a shader
+pass adds the light, the way the compositing stage of anime production does. Put
+pictures in `~/Pictures/Wallpapers` and your own characters (GIFs) in
+`~/.config/satsuei/characters/`. Everything is in [docs/satsuei/README.md](docs/satsuei/README.md).
 
 Targets **Hyprland 0.56** (Lua config; 0.55 or newer is needed) and **Quickshell 0.3**.
 

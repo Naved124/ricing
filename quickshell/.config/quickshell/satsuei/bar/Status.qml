@@ -10,9 +10,9 @@ import qs.services
 
 // The bar's right side, as the mock has it: what's playing in a sunken pill
 // with a 4-bar equaliser from cava, then Wi-Fi (and its speed, from one
-// long-lived reader), Bluetooth, volume and battery, the apps' tray, the lock
-// and the control centre. While recording, an accent dot and the time come
-// first; with caffeine on, a cup.
+// long-lived reader), Bluetooth, volume and the battery (Reel: a strip of
+// film), the apps' tray, the lock and the control centre. While recording, an
+// accent dot and the time come first; with caffeine on, a cup.
 Row {
     id: root
 
@@ -134,24 +134,9 @@ Row {
                 color: Theme.fg
             }
             Icon { anchors.verticalCenter: parent.verticalCenter; name: Audio.icon; color: Theme.fg }
-            Row {
+            Reel {
                 visible: Battery.present
                 anchors.verticalCenter: parent.verticalCenter
-                spacing: 3
-                Icon {
-                    visible: Battery.charging
-                    anchors.verticalCenter: parent.verticalCenter
-                    name: "bolt"
-                    size: 13
-                    color: Theme.fg
-                }
-                Label {
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: Math.round(Battery.level * 100) + "%"
-                    weight: Style.weightStrong
-                    size: 12.5
-                    color: Battery.low ? Theme.urgent : Theme.fg
-                }
             }
         }
     }
