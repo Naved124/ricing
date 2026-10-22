@@ -14,7 +14,8 @@ QtObject {
     signal completed(int result)
     signal error(int error)
     signal pamMessage()
-    function start() { active = true; return true; }
+    // asks for the password straight away, as PAM does for login
+    function start() { active = true; responseRequired = true; Qt.callLater(() => pamMessage()); return true; }
     function respond(r) { active = false; completed(r === "right" ? 0 : 1); }
     function abort() { active = false; }
 }
