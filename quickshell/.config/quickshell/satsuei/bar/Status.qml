@@ -168,7 +168,6 @@ Row {
                 required property var modelData
                 implicitSize: 15
                 source: modelData.icon
-                anchors.verticalCenter: parent.verticalCenter
                 opacity: trayMouse.containsMouse ? 1 : 0.8
                 MouseArea {
                     id: trayMouse
