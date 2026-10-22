@@ -43,19 +43,28 @@ PanelWindow {
 
     onOpenChanged: {
         if (open) {
-            current = Math.max(0, Library.indexOf(Library.current));
+            focusOn(Math.max(0, Library.indexOf(Library.current)));
             strip.positionViewAtIndex(current, ListView.Center);
             keys.forceActiveFocus();
         } else if (!Library.applying) {
             Theme.endPreview();
         }
     }
-    // the list changed under us (a scan, a filter): stay on the same picture
+    // the picture you're on is kept by its path, so when the list changes
+    // under us (the scan adding pictures, a filter) you stay on it; the strip
+    // resets to its first card on a new model, so it's put back too
     property string focusedPath: ""
-    onFocusedChanged: if (focused) focusedPath = focused.path
+    function focusOn(i) {
+        current = Math.max(0, Math.min(list.length - 1, i));
+        focusedPath = list[current]?.path ?? "";
+    }
     onListChanged: {
         const i = Library.indexOf(focusedPath);
-        current = i >= 0 ? i : Math.min(current, Math.max(0, list.length - 1));
+        current = i >= 0 ? i : Math.max(0, Math.min(current, list.length - 1));
+        Qt.callLater(() => {
+            strip.currentIndex = win.current;
+            strip.positionViewAtIndex(win.current, ListView.Center);
+        });
     }
 
     // ── the live preview ───────────────────────────────────────────────────
@@ -65,6 +74,7 @@ PanelWindow {
         interval: 250
         onTriggered: {
             if (!win.open || !win.ready) return;
+            if (Theme.previewing?.plate === win.focused.path) return;     // already showing it
             if (win.focused.path === Library.current) Theme.endPreview();
             else Theme.preview(Library.previewTokens(win.focused));
         }
@@ -80,7 +90,7 @@ PanelWindow {
     }
     function move(by) {
         if (!list.length) return;
-        current = Math.max(0, Math.min(list.length - 1, current + by));
+        focusOn(current + by);
     }
     function copy(hex) {
         Quickshell.execDetached(["wl-copy", hex]);
@@ -123,8 +133,8 @@ PanelWindow {
             if (k === Qt.Key_Escape) win.back();
             else if (k === Qt.Key_Left || k === Qt.Key_H) win.move(-1);
             else if (k === Qt.Key_Right || k === Qt.Key_L) win.move(1);
-            else if (k === Qt.Key_Home) win.current = 0;
-            else if (k === Qt.Key_End) win.current = Math.max(0, win.list.length - 1);
+            else if (k === Qt.Key_Home) win.focusOn(0);
+            else if (k === Qt.Key_End) win.focusOn(win.list.length - 1);
             else if (k === Qt.Key_Return || k === Qt.Key_Enter) win.choose();
             else if (k === Qt.Key_Slash) search.forceActiveFocus();
             else return;
@@ -191,7 +201,7 @@ PanelWindow {
             spacing: 8
             Repeater {
                 model: [
-                    { icon: "shuffle", text: "Shuffle", run: () => { win.current = Math.floor(Math.random() * win.list.length); } },
+                    { icon: "shuffle", text: "Shuffle", run: () => win.focusOn(Math.floor(Math.random() * win.list.length)) },
                     { icon: "folder", text: "Open folder", run: () => {
                         Quickshell.execDetached(["sh", "-c", 'mkdir -p "$1" && exec xdg-open "$1"', "sh", Library.dir]);
                         win.back();
@@ -515,7 +525,6 @@ PanelWindow {
             highlightMoveDuration: 320
             boundsBehavior: Flickable.StopAtBounds
             cacheBuffer: 1200
-            onCurrentIndexChanged: if (currentIndex !== win.current && currentIndex >= 0) win.current = currentIndex
 
             delegate: Item {
                 id: card
@@ -594,7 +603,7 @@ PanelWindow {
                 MouseArea {
                     anchors.fill: face
                     cursorShape: Qt.PointingHandCursor
-                    onClicked: card.lit ? win.choose() : (win.current = card.index)
+                    onClicked: card.lit ? win.choose() : win.focusOn(card.index)
                 }
             }
         }

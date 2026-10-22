@@ -68,6 +68,21 @@ Singleton {
         scan.running = true;
     }
     property bool again: false
+    // pictures arrive a line at a time; the list is renewed a few times a
+    // second, not for every line (each renewal re-sorts and redraws the strip)
+    property var incoming: ({})
+    Timer { id: flush; interval: 300; onTriggered: root.merge() }
+    function merge() {
+        const news = Object.values(incoming);
+        if (!news.length) return;
+        incoming = {};
+        const list = items.slice();
+        for (const m of news) {
+            const i = list.findIndex(w => w.path === m.path);
+            if (i >= 0) list[i] = m; else list.push(m);
+        }
+        items = list;
+    }
     Process {
         id: scan
         onRunningChanged: root.scanning = running
@@ -77,13 +92,13 @@ Singleton {
                 try { m = JSON.parse(line); } catch (e) { return; }
                 if (m.error && !m.path) { root.error = m.error; root.items = []; return; }
                 if (m.done) {
+                    root.merge();
                     root.items = root.items.filter(w => root.seen[w.path]);
                     return;
                 }
                 root.seen[m.path] = true;
-                const list = root.items.slice(), i = list.findIndex(w => w.path === m.path);
-                if (i >= 0) list[i] = m; else list.push(m);
-                root.items = list;
+                root.incoming[m.path] = m;
+                if (!flush.running) flush.start();
             }
         }
         onExited: if (root.again) { root.again = false; root.rescan(); }

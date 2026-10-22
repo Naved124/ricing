@@ -730,6 +730,12 @@ class Walls(unittest.TestCase):
                        "Shimmer", '"wl-copy"', "lightX", '"Name"', '"Date added"', '"Colour"', '"Daily"', '"Shuffle"', '"Open folder"',
                        '"Change folder…"', "--directory", "Actor {"):
             self.assertIn(needle, sel)
+        # the scan renews the list a few times a second: you stay on your picture
+        # (by its path), and the strip's reset to its first card isn't followed
+        self.assertIn("function focusOn(i)", sel)
+        self.assertIn("Library.indexOf(focusedPath)", sel)
+        self.assertNotIn("onCurrentIndexChanged", sel)
+        self.assertIn("Timer { id: flush; interval: 300", (SAT / "walls/Library.qml").read_text())
         shell = (SAT / "shell.qml").read_text()
         for needle in ("Selector {}", 'name: "satsuei-walls"', "function wallpaper(action: string)", "function setWallpaper(path: string)"):
             self.assertIn(needle, shell)
