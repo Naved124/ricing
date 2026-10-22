@@ -41,8 +41,8 @@ Row {
                     model: 4
                     delegate: Rectangle {
                         required property int index
-                        // four bands spread over the 24: bass to treble
-                        readonly property real v: Media.playing ? (Beat.levels[[1, 5, 10, 16][index]] ?? 0) : 0
+                        // four bands spread over the 30: bass to treble
+                        readonly property real v: Media.playing ? (Beat.levels[[1, 6, 13, 21][index]] ?? 0) : 0
                         anchors.bottom: parent.bottom
                         width: 3
                         radius: 2

@@ -10,6 +10,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import qs.bar
+import qs.center
 import qs.common
 import qs.plate
 import qs.services
@@ -29,6 +30,8 @@ ShellRoot {
         model: Quickshell.screens
         Eyecatch {}
     }
+
+    Center {}
 
     // qs -c satsuei ipc call satsuei <function> [args]
     IpcHandler {

@@ -17,6 +17,7 @@ Singleton {
     property string launcherMode: ""      // "", "=", "/", ":", ">", "?", "!"
     property string launcherText: ""      // prefilled query (ipc: shell search)
     property bool centerOpen: false       // the control centre, the right drawer
+    property string centerFocus: ""       // what to scroll to when it opens ("" for the top)
     property bool studioOpen: false       // the Satsuei panel, the left drawer
     property bool powerOpen: false
     property bool keysOpen: false

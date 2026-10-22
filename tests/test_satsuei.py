@@ -247,8 +247,8 @@ class ThemeFile(unittest.TestCase):
             out, err = p.communicate(timeout=90)
             res = json.loads(out)
         finally:
+            # the seed stays: tests/qs_shot.py draws the shell with it
             shutil.rmtree(STUB_HOME / ".local/state/satsuei", ignore_errors=True)
-            shutil.rmtree(seed, ignore_errors=True)
         self.assertEqual(res["errors"], [])
         pokes = {x["tag"]: x for x in res["pokes"]}
         seedt = json.loads((RICE / "seed/theme.json").read_text())
@@ -395,6 +395,48 @@ class Glass(unittest.TestCase):
         import qs_smoke
         errors, _ = qs_smoke.smoke(SAT, seconds=3.0, poke=REPO / "tests/pokes/satsuei-episode.qml")
         self.assertEqual(errors, [])
+
+
+class Center(unittest.TestCase):
+    """Step 5: the control centre."""
+
+    def test_the_drawer(self):
+        c = (SAT / "center/Center.qml").read_text()
+        for needle in ("width: 372", '"satsuei-center"', "radius: 22", "Style.bloom", "duration: win.open ? 550",
+                       "drawer.width + 30", "MediaCard {", '"/proc/uptime"', "Shell.togglePower()",
+                       "rice-rec", "interval: 350", "Keys.onEscapePressed"):
+            self.assertIn(needle.replace("rice-rec", "Shell.toggleRecording("), c)
+        # the six toggles, in the mock's order
+        titles = re.findall(r'title: "([^"]+)"', c)
+        self.assertEqual(titles, ["Wi-Fi", "Bluetooth", "Quiet", "Night light", "Compositing", "Mascot"])
+        self.assertIn("to: 150", c)                                  # volume to 150%
+        self.assertIn("Settings.s.expo", c)                          # brightness feeds the pass's expo
+        self.assertIn("NoteList {", c)
+        self.assertIn("Notifs.all.slice(-4)", (SAT / "center/NoteList.qml").read_text())
+
+    def test_the_media_card(self):
+        m = (SAT / "center/MediaCard.qml").read_text()
+        for needle in ("model: Beat.bars", "trackArtUrl", "Media.fmt(", "previous()", "togglePlaying()", "next()",
+                       "id: stage", "width: 112", "height: 128", "anchors.bottomMargin: -16", "positionChanged()"):
+            self.assertIn(needle, m)
+
+    def test_one_cava_of_its_own(self):
+        beat = (SAT / "services/Beat.qml").read_text()
+        self.assertIn("readonly property int bars: 30", beat)
+        self.assertIn("data_format = ascii", beat)
+        self.assertIn("method = raw", beat)
+        self.assertIn('/satsuei"', beat)
+        self.assertIn("running: Media.playing", beat)
+        runs = [f.relative_to(SAT).as_posix() for f in SAT.rglob("*.qml") if "exec cava" in f.read_text()]
+        self.assertEqual(runs, ["services/Beat.qml"])
+
+    @unittest.skipUnless(has_pyside(), "needs PySide6")
+    def test_it_opens_clean(self):
+        import qs_smoke
+        errors, pokes = qs_smoke.smoke(SAT, seconds=2.5, poke=REPO / "tests/pokes/satsuei-center.qml")
+        self.assertEqual(errors, [])
+        self.assertEqual(pokes[0]["open"], True)
+        self.assertEqual(pokes[0]["notes"], 2)          # the stand-in server sends two
 
 
 if __name__ == "__main__":

@@ -4,56 +4,38 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import Quickshell
 import Quickshell.Services.Notifications
+import qs.common
 
-// Abyss is the notification daemon (no swaync, no mako).
-// Every notification is kept for the island's history until dismissed. New
-// ones queue for the island (bar/Island.qml), which grows into a card for
-// each in turn, 4 s apiece. Do Not Disturb keeps them out of the queue (the
-// island's count still goes up); critical ones break through. Each arrival
-// is announced (`arrived`), so the reef's nearest jelly can flare.
+// Satsuei is the notification daemon while it runs (no swaync, no mako; `rice`
+// hands the bus name over on a switch). Every notification is kept for the
+// control centre's list until dismissed. New ones queue for the subtitles
+// (subs/Subtitles.qml), one at a time, 5.2 s apiece; a critical one stays
+// until it's clicked. Quiet keeps them out of the queue but in the list.
+// Each arrival is announced (`arrived`): the edge mascot waves.
 Singleton {
     id: root
 
     readonly property var all: server.trackedNotifications.values
-    property var queue: []           // waiting for the island, oldest first
+    property var queue: []           // waiting for a subtitle, oldest first
     readonly property var current: queue[0] ?? null
-    readonly property int lifetime: 4000
+    readonly property int lifetime: 5200
+    property var times: ({})         // id → when it arrived (ms)
     signal arrived(var n)
 
-    // the island is done with it (its time ran out, or the app closed it)
+    function timeOf(n) { return new Date(times[n?.id] ?? Date.now()); }
+    function critical(n) { return n?.urgency === NotificationUrgency.Critical; }
+
+    // the subtitle is done with it (its time ran out, or it was clicked)
     function done(n) {
         queue = queue.filter(p => p !== n);
     }
-
     function dismiss(n) {
         done(n);
         n.dismiss();
     }
-
-    // the history was opened: everything waiting is in there now
-    function seen() {
-        queue = [];
-    }
-
     function clearAll() {
         queue = [];
         for (const n of all.slice()) n.dismiss();
-    }
-
-    // grouped by app for the control centre, newest group first
-    readonly property var groups: {
-        const map = {};
-        const order = [];
-        for (let i = all.length - 1; i >= 0; i--) {
-            const n = all[i];
-            const key = n.appName || "Notifications";
-            if (!map[key]) {
-                map[key] = { app: key, icon: n.appIcon || n.desktopEntry, items: [] };
-                order.push(key);
-            }
-            map[key].items.push(n);
-        }
-        return order.map(k => map[k]);
     }
 
     NotificationServer {
@@ -66,13 +48,15 @@ Singleton {
         actionsSupported: true
         actionIconsSupported: false
         imageSupported: true
-        inlineReplySupported: true
 
         onNotification: n => {
             n.tracked = true;
-            const breaksThrough = n.urgency === NotificationUrgency.Critical;
-            if (!Shell.dnd || breaksThrough)
+            const t = Object.assign({}, root.times);
+            t[n.id] = Date.now();
+            root.times = t;
+            if (!Shell.dnd || root.critical(n))
                 root.queue = [...root.queue, n];
+            Shell.lastAlert = Date.now();
             root.arrived(n);
             n.closed.connect(() => root.done(n));
         }
