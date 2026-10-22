@@ -620,7 +620,7 @@ class Custom(unittest.TestCase):
 
     def test_the_strip(self):
         strip = (SAT / "center/Strip.qml").read_text()
-        for needle in ('"Dancer"', '"Edge mascot"', '"Shuffle daily"', '"+add"', "xdg-open", "Characters.set(root.role",
+        for needle in ("Segmented {", "options: Characters.roles", '"Shuffle daily"', '"+add"', "xdg-open", "Characters.set(root.role",
                        "Characters.all.concat", "running: root.open && !tile.add", "interval: 66"):
             self.assertIn(needle, strip)
         self.assertIn("Strip {", (SAT / "center/Center.qml").read_text())
@@ -653,6 +653,33 @@ class Custom(unittest.TestCase):
         self.assertEqual(t["meta"]["puppet"], 0.6)            # a default filled in
         self.assertTrue(t["clips"]["dance"]["path"].endswith("/test/dance.gif"))
         self.assertEqual((cast["dancer"], cast["mascot"], cast["open"]), ("test", "bit", True))
+
+
+class CastPicker(unittest.TestCase):
+    """Step 12: the Cast picker, slimmed (no tweak drawer)."""
+
+    def test_the_picker(self):
+        cast = (SAT / "cast/Cast.qml").read_text()
+        for needle in ('"satsuei-cast"', "WlrLayer.Overlay", "WlrKeyboardFocus.Exclusive", '"キャスト"', "Segmented {",
+                       "GridView", "Characters.all", "Actor {", '"dance" : "idle"', '"built-in" : "custom"',
+                       "Characters.states", "Qt.Key_Tab", "Qt.Key_Return", "Qt.Key_Escape", "Characters.set(role, c.id)",
+                       "zenity --file-selection", 'cp "$f" "$dir/dance.$ext"', "xdg-open"):
+            self.assertIn(needle, cast)
+        self.assertIn('{ value: "dancer", text: "Dancer" }, { value: "mascot", text: "Edge mascot" }',
+                      (SAT / "chars/Characters.qml").read_text())
+        shell = (SAT / "shell.qml").read_text()
+        for needle in ("Cast {}", 'name: "satsuei-cast"', "function cast(role: string)"):
+            self.assertIn(needle, shell)
+        base = (REPO / "hypr/.config/hypr/base.lua").read_text()
+        self.assertRegex(base, r'key\("ALT \+ C"\),\s+hl\.dsp\.global\("quickshell:satsuei-cast"\)')
+
+    @unittest.skipUnless(has_pyside(), "needs PySide6")
+    def test_it_opens_clean(self):
+        import qs_smoke
+        errors, pokes = qs_smoke.smoke(SAT, seconds=3.5, poke=REPO / "tests/pokes/satsuei-picker.qml")
+        self.assertEqual(errors, [])
+        self.assertEqual((pokes[0]["open"], pokes[0]["role"]), (True, "mascot"))
+        self.assertEqual((pokes[1]["open"], pokes[1]["mascot"]), (False, "kon"))
 
 
 class Desk(unittest.TestCase):

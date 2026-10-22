@@ -25,39 +25,11 @@ Column {
         height: 26
 
         // the role
-        Rectangle {
-            id: roles
+        Segmented {
             anchors.verticalCenter: parent.verticalCenter
-            width: pills.implicitWidth + 4
-            height: 26
-            radius: 13
-            color: Theme.tile
-            Row {
-                id: pills
-                x: 2
-                anchors.verticalCenter: parent.verticalCenter
-                Repeater {
-                    model: [{ role: "dancer", text: "Dancer" }, { role: "mascot", text: "Edge mascot" }]
-                    delegate: Btn {
-                        id: pill
-                        required property var modelData
-                        width: label.implicitWidth + 20
-                        height: 22
-                        radius: 11
-                        on: root.role === modelData.role
-                        color: on ? Theme.at(Theme.accent, 0.85) : hovered ? Theme.hover : "transparent"
-                        onClicked: root.role = modelData.role
-                        Label {
-                            id: label
-                            anchors.centerIn: parent
-                            text: pill.modelData.text
-                            size: 11
-                            weight: Style.weightStrong
-                            color: pill.on ? Theme.onAccent : Theme.fg
-                        }
-                    }
-                }
-            }
+            options: Characters.roles
+            value: root.role
+            onPicked: v => root.role = v
         }
 
         // shuffle daily

@@ -11,6 +11,7 @@ import Quickshell
 import Quickshell.Io
 import Quickshell.Hyprland
 import qs.bar
+import qs.cast
 import qs.center
 import qs.chars
 import qs.common
@@ -48,6 +49,7 @@ ShellRoot {
     Launcher {}
     Power {}
     KeySheet {}
+    Cast {}
 
     // Hyprland binds: hl.dsp.global("quickshell:<name>"), the same in every rice
     GlobalShortcut {
@@ -88,6 +90,11 @@ ShellRoot {
         onPressed: Shell.togglePower()
     }
     // Satsuei's own (base.lua binds them; only this shell registers them)
+    GlobalShortcut {
+        name: "satsuei-cast"
+        description: "Choose the characters"
+        onPressed: Shell.toggleCast()
+    }
     GlobalShortcut {
         name: "satsuei-dancer-next"
         description: "The next character as the dancer"
@@ -136,16 +143,18 @@ ShellRoot {
         // the pass's switches: bloom, rays, motes, grain, grade, pass (compositing)
         function fx(name: string, on: bool): void { Settings.setFx(name, on); }
         function toggleFx(name: string): void { Settings.setFx(name, !Settings.fx(name)); }
-        // hold the hour (0–24), or follow the clock again with a negative one
-        // a test subtitle (the mock's "Send a test")
         // who plays the dancer (the media card) or the mascot (the screen edge)
         function setCharacter(role: string, id: string): string {
             return Characters.set(role, id) ? id : `no character called ${id}`;
         }
         function nextCharacter(role: string): string { return Characters.next(role); }
+        // the Cast picker, casting for a role (dancer or mascot)
+        function cast(role: string): void { Shell.toggleCast(role || undefined); }
+        // a test subtitle (the mock's "Send a test")
         function testNote(): void {
             Quickshell.execDetached(["notify-send", "-a", "Calendar", "Study block starts in 10 minutes."]);
         }
+        // hold the hour (0–24), or follow the clock again with a negative one
         function hour(h: real): void {
             if (h < 0) { Settings.s.follow = true; return; }
             Settings.s.follow = false;

@@ -418,7 +418,9 @@ qt6-imageformats); an APNG is converted once by ffmpeg into
 watches the folders (`FolderListModel` plus each `meta.json`), so they appear with no
 restart. `chars/Custom.qml` is a `Rig` that plays the clips and moves the whole sprite
 (the beat puppet); `chars/Actor.qml` shows any character, built-in or not, and every
-host (the media card, the timesheet, `center/Strip.qml`) goes through it.
+host (the media card, the timesheet, `center/Strip.qml`, the Cast picker
+`cast/Cast.qml`) goes through it. The Cast picker casts either role from a grid of
+every character and adds one from a file (zenity; copied in as its `dance`).
 
 The system card (`desk/Stats.qml`) is a timesheet: CUT and the day, ten frames inked
 down three columns (CPU, MEM, DSK) with a playhead stepping once a second, the readout

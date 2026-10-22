@@ -34,6 +34,7 @@ Singleton {
     readonly property var mascot: byId(Settings.s.mascotChar)
 
     // the roles: "dancer" (the media card) and "mascot" (the screen edge)
+    readonly property var roles: [{ value: "dancer", text: "Dancer" }, { value: "mascot", text: "Edge mascot" }]
     function key(role) { return role === "mascot" ? "mascotChar" : "dancer"; }
     function set(role, id) {
         if (!all.some(c => c.id === id)) return false;
