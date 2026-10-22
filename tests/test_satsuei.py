@@ -367,6 +367,17 @@ class Glass(unittest.TestCase):
             for ns in re.findall(r'WlrLayershell\.namespace:\s*"([^"]+)"', f.read_text()):
                 self.assertTrue(ns.startswith("satsuei-"), f"{f}: {ns}")
 
+    def test_no_rounding_past_hyprlands_limit(self):
+        """Hyprland refuses a window rule's rounding over 20 (Satsuei's panels are 22)."""
+        rices = REPO / "rices/.config/rices"
+        for rice in sorted(p for p in rices.iterdir() if (p / "templates/hypr.lua").exists()):
+            ctx = rr.load_modes(rice)["dark"]
+            src = rice / "templates/hypr.lua"
+            text = rr.render_text(src.read_text(), ctx, str(src))
+            for v in re.findall(r"\brounding\s*=\s*(\d+)", text):
+                with self.subTest(rice.name):
+                    self.assertLessEqual(int(v), 20)
+
     def test_the_bar(self):
         bar = (SAT / "bar/Bar.qml").read_text()
         for needle in ("pillHeight: 46", "edge: 10", "radius: 16", '"satsuei-bar"', "Shell.toggleStudio()",

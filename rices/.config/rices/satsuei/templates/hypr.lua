@@ -87,8 +87,8 @@ hl.animation({ leaf = "layers",       enabled = true, speed = 3, bezier = "bloom
 hl.window_rule({ name = "satsuei-opaque", match = { tag = "opaque" }, opacity = "1.0 override 1.0 override" })
 -- glassy: terminals, files, music, system tools show the plate through them
 hl.window_rule({ name = "satsuei-glassy", match = { tag = "glassy" }, opacity = "{{ opacity.active }} override {{ opacity.inactive }} override" })
--- floating dialogs: the panels' rounding
-hl.window_rule({ name = "satsuei-dialog", match = { tag = "dialog" }, rounding = {{ shape.panel }} })
+-- floating dialogs: the popups' rounding (Hyprland allows at most 20)
+hl.window_rule({ name = "satsuei-dialog", match = { tag = "dialog" }, rounding = {{ shape.popup }} })
 -- picture-in-picture: no border
 hl.window_rule({ name = "satsuei-pip", match = { tag = "pip" }, border_size = 0, no_shadow = true })
 -- fullscreen: no border or rounding
