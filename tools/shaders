@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Recompile every Quickshell shader (*.frag, *.vert → *.qsb) after editing one.
 # Needs qsb from Qt Shader Tools (Arch: qt6-shadertools, at /usr/lib/qt6/bin/qsb).
+# --qt6 is qsb's shorthand for --glsl "100es,120,150" --hlsl 50 --msl 12.
 set -euo pipefail
 repo="$(cd "$(dirname "$0")/.." && pwd)"
 qsb="${QSB:-$(command -v qsb || echo /usr/lib/qt6/bin/qsb)}"

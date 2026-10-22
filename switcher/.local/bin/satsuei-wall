@@ -386,7 +386,7 @@ def blur_maps(src: Path, ident: str, size: tuple[int, int]) -> tuple[Path, Path]
     """bloom: 1/4 size, heavy blur; soft: 1/8 size, heavier."""
     w = max(64, size[0])
     out = []
-    for name, div, sigma in (("bloom", 4, 60), ("soft", 8, 24)):
+    for name, div, sigma in (("bloom", 4, 120), ("soft", 8, 64)):
         dst = STATE / f"{name}-{ident}.png"
         cols = max(16, w // div)
         subprocess.run(im("convert", f"{src}[0]", "-auto-orient", "-alpha", "remove", "-alpha", "off",

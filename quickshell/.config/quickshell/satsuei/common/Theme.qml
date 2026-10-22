@@ -96,7 +96,13 @@ Singleton {
 
     // the light every effect is graded with, shared by the plate and the
     // characters standing in it (Grade.qml computes it)
-    readonly property Grade grade: Grade { bright: root.bright }
+    readonly property Grade grade: Grade {
+        bright: root.bright
+        follow: Settings.s.follow
+        manualHour: Settings.s.hour
+        nightLight: Settings.s.nightLight
+        expo: Settings.s.expo
+    }
 
     // ── the mode ────────────────────────────────────────────────────────────
     // dark only; this answers `qs ipc call mode get` like every shell

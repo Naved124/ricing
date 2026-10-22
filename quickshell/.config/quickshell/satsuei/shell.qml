@@ -10,12 +10,30 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import qs.common
+import qs.plate
 
 ShellRoot {
+    // the plate and its pass, one per screen, under everything
+    Variants {
+        model: Quickshell.screens
+        Plate {}
+    }
+
     // qs -c satsuei ipc call satsuei <function> [args]
     IpcHandler {
         target: "satsuei"
         // the tokens on screen now, as JSON
         function theme(): string { return JSON.stringify(Theme.t, null, 2); }
+        // every screen's pass: running or paused and why, fps, the effects
+        function stats(): string { return JSON.stringify(Plates.stats(), null, 2); }
+        // the pass's switches: bloom, rays, motes, grain, grade, pass (compositing)
+        function fx(name: string, on: bool): void { Settings.setFx(name, on); }
+        function toggleFx(name: string): void { Settings.setFx(name, !Settings.fx(name)); }
+        // hold the hour (0–24), or follow the clock again with a negative one
+        function hour(h: real): void {
+            if (h < 0) { Settings.s.follow = true; return; }
+            Settings.s.follow = false;
+            Settings.s.hour = h % 24;
+        }
     }
 }

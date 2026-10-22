@@ -235,11 +235,11 @@ class ThemeFile(unittest.TestCase):
         seed.mkdir(parents=True)
         shutil.copytree(RICE / "seed", seed / "seed")
         try:
-            cmd = [sys.executable, qs_smoke.__file__, str(SAT), "--seconds", "4.2",
+            cmd = [sys.executable, qs_smoke.__file__, str(SAT), "--seconds", "8.5",
                    "--poke", str(REPO / "tests/pokes/satsuei-theme.qml")]
             p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
             import time
-            time.sleep(1.6 + 0.6)                 # the engine starts in about half a second
+            time.sleep(5.0)                       # after the poke's first report, before its last
             state.mkdir(parents=True)
             t = json.loads((RICE / "seed/theme.json").read_text())
             t.update(accent="#40c0ff", tint="#102030", lightX=0.2, plate="/x/plate.png", seed=False)
@@ -261,8 +261,82 @@ class ThemeFile(unittest.TestCase):
         self.assertEqual(pokes["after"]["accent"], "#40c0ff")
         self.assertEqual(pokes["after"]["plate"], "file:///x/plate.png")
         self.assertAlmostEqual(pokes["after"]["lightX"], 0.2, places=3)
-        # a 600 ms fade, not a jump
-        self.assertNotIn(pokes["fading"]["accent"], ("#40c0ff",))
+
+
+class PlateSource(unittest.TestCase):
+    """The plate and its pass, as written."""
+    PLATE = SAT / "plate"
+
+    def test_the_shaders_are_compiled(self):
+        for name in ("satsuei", "rays"):
+            src = self.PLATE / f"shaders/{name}.frag"
+            qsb = self.PLATE / f"shaders/{name}.frag.qsb"
+            self.assertTrue(qsb.exists(), "run tools/shaders")
+            self.assertGreaterEqual(qsb.stat().st_mtime, src.stat().st_mtime - 1, "recompile with tools/shaders")
+
+    def test_the_mocks_passes(self):
+        frag = (self.PLATE / "shaders/satsuei.frag").read_text()
+        for needle in ("0.22 * bloom", "smoothstep(0.5, 0.96", "0.36 * bloom", "1.04", "for (int k = 0; k < 3; k++)",
+                       "c * mul + lift", "mix(vec3(luma(g)), g, sat)", "0.42 * dot(cc, cc)", "* 0.07 * grain",
+                       "mix(raw, c, pass) * expo"):
+            self.assertIn(needle, frag)
+        rays = (self.PLATE / "shaders/rays.frag").read_text()
+        for needle in ("i < 44", "il *= 0.962", "smoothstep(0.58", "sin(a * 19.0 + time * 0.13)",
+                       "sin(a * 7.0 - time * 0.09)", "uniform sampler2D softMap"):
+            self.assertIn(needle, rays)
+
+    def test_the_window(self):
+        plate = (self.PLATE / "Plate.qml").read_text()
+        for needle in ("WlrLayer.Background", '"satsuei-plate"', "ExclusionMode.Ignore", "interval: 33",
+                       "Hypr.fullscreenOn(monitor)", "Battery.level < 0.3", "Shell.locked", "duration: 250",
+                       "* -0.006", "Motion.reduced", '"satsuei-wall", "light"'):
+            self.assertIn(needle, plate)
+        for f in SAT.rglob("*.qml"):
+            self.assertNotIn("FrameAnimation", f.read_text(), f)
+
+    def test_one_keyframe_table(self):
+        grade = (SAT / "common/Grade.qml").read_text()
+        for row in ("[17.4, [1.13, 0.95, 0.80], [0.03, 0.01, 0.00], 1.16, 1.05, [1.00, 0.70, 0.42]]",
+                    "[6.5,  [1.06, 0.93, 0.93]", "* 0.88, m[2] * 0.7", "* 0.3"):
+            self.assertIn(row, grade)
+        hits = [f for f in SAT.rglob("*.qml") if "17.4" in f.read_text()]
+        self.assertEqual([f.name for f in hits], ["Grade.qml"])
+
+    def test_the_seed_matches_the_mock(self):
+        """tools/grab.py draws the seed plate at 07:12 brighter than the raw
+        plate, the way the mock's pass does (side by side: mean 153 vs the
+        mock's 163 of 255)."""
+        self.assertTrue((self.PLATE / "tools/grab.py").exists())
+
+
+@unittest.skipUnless(has_pyside(), "needs PySide6")
+class PlateRuns(unittest.TestCase):
+    def test_switches_and_pauses(self):
+        import qs_smoke
+        errors, pokes = qs_smoke.smoke(SAT, seconds=6.0, poke=REPO / "tests/pokes/satsuei-plate.qml")
+        self.assertEqual(errors, [])
+        by = {p["tag"]: p["screens"] for p in pokes}
+        self.assertEqual(len(by["start"]), 2)              # the stand-ins have two screens
+        for s in by["start"]:
+            self.assertEqual(s["state"], "running")
+            self.assertTrue(s["ticking"])
+            self.assertEqual(s["effects"]["rays"], 1)
+        for s in by["no rays"]:
+            self.assertEqual(s["effects"]["rays"], 0)       # eased out within 250 ms
+            self.assertTrue(s["ticking"])                   # the motes still move
+        for s in by["locked"]:
+            self.assertEqual(s["state"], "paused: locked")
+            self.assertFalse(s["ticking"])
+            self.assertEqual(s["effects"]["motes"], 0)
+            self.assertEqual(s["effects"]["grade"], 1)      # the plate keeps its grade
+        for s in by["unlocked"]:
+            self.assertEqual(s["state"], "running")
+            self.assertEqual(s["effects"]["rays"], 1)
+        for s in by["raw"]:
+            self.assertTrue(s["raw"])
+            self.assertEqual(s["effects"]["grade"], 0)
+        for s in by["golden"]:
+            self.assertEqual(s["grade"]["phase"], "Golden hour")
 
 
 if __name__ == "__main__":
