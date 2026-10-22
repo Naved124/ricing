@@ -15,6 +15,9 @@ import qs.services
 //   · the battery is under 30% and discharging
 //   · the session is locked (the lock draws its own)
 // A new plate fades in over the old one; the selector's preview does too.
+// Inside every window on this screen's workspace the plate is frosted (its
+// soft map), pass or no pass: see-through windows are glass over it whatever
+// Hyprland's blur does (it drew none behind GTK windows).
 PanelWindow {
     id: win
 
@@ -45,12 +48,21 @@ PanelWindow {
     property real grain: moving && Settings.s.grain ? 1 : 0
     property real grade: !raw && Settings.s.grade ? 1 : 0
     property real pass: raw ? 0 : 1
+    property real frost: Settings.s.frost ? 1 : 0
     Behavior on bloom { Ease {} }
     Behavior on rays { Ease {} }
     Behavior on motes { Ease {} }
     Behavior on grain { Ease {} }
     Behavior on grade { Ease {} }
     Behavior on pass { Ease {} }
+    Behavior on frost { Ease {} }
+
+    // the windows on this screen's workspace, in its px, for the frost
+    readonly property var glass: {
+        const ws = monitor?.activeWorkspace?.id ?? -1;
+        const ox = screen?.x ?? 0, oy = screen?.y ?? 0;
+        return Windows.onWorkspace(ws).map(w => ({ x: w.x - ox, y: w.y - oy, w: w.w, h: w.h }));
+    }
 
     // ── time: 30 fps while anything moves ─────────────────────────────────
     property real time: 0
@@ -131,6 +143,8 @@ PanelWindow {
         grain: win.grain
         grade: win.grade
         pass: win.pass
+        frost: win.frost
+        windows: win.glass
         expo: Settings.s.expo
         playing: !win.paused
         // the one in front fades in once it has loaded; the one behind stays

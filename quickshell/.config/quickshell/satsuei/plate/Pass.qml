@@ -32,6 +32,11 @@ Item {
     property real pass: 1
     property real expo: 1
     property real seed: 0
+    // windows over the plate, in this item's px ({ x, y, w, h }): the plate is
+    // frosted inside them (the soft map), so a see-through window shows it
+    // blurred whatever the compositor does, with the pass on or off
+    property var windows: []
+    property real frost: 1
     property Grade grading: Theme.grade
     readonly property bool ready: (animated ? anim.status : still.status) === Image.Ready
     readonly property bool maps: bloomSource !== "" && softSource !== ""
@@ -90,6 +95,30 @@ Item {
         return t.implicitWidth > 0 && t.implicitHeight > 0 ? Qt.size(t.implicitWidth, t.implicitHeight) : root.plateSize;
     }
 
+    // where the frost goes: the windows' shapes at a quarter of the size, drawn
+    // again only when one moves
+    Item {
+        id: frostMask
+        width: root.width
+        height: root.height
+        visible: false
+        layer.enabled: true
+        layer.smooth: true
+        layer.textureSize: Qt.size(Math.max(1, Math.round(width / 4)), Math.max(1, Math.round(height / 4)))
+        Repeater {
+            model: root.windows
+            delegate: Rectangle {
+                required property var modelData
+                x: modelData.x
+                y: modelData.y
+                width: modelData.w
+                height: modelData.h
+                radius: Style.radiusWindow
+                color: Theme.fg            // only its alpha is read
+            }
+        }
+    }
+
     // the shafts, an eighth of the size
     ShaderEffect {
         id: rayPass
@@ -135,6 +164,8 @@ Item {
         property var bloomMap: root.bloomTex
         property var softMap: root.softTex
         property var rayMap: rayPass
+        property var frostMap: frostMask
+        property real frost: root.windows.length > 0 ? root.frost : 0
         fragmentShader: Qt.resolvedUrl("shaders/satsuei.frag.qsb")
     }
 }

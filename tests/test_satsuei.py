@@ -351,6 +351,21 @@ class Glass(unittest.TestCase):
             out.append(rr.render_text(src.read_text(), ctx, str(src)))
         return out[0], out[1]
 
+    def test_the_plate_frosts_behind_windows(self):
+        # Hyprland drew no blur behind GTK windows, so the plate frosts itself
+        # inside every window on the screen's workspace, pass or no pass
+        win = (SAT / "services/Windows.qml").read_text()
+        self.assertIn('["hyprctl", "clients", "-j"]', win)
+        for ev in ("openwindow", "closewindow", "movewindowv2", "changefloatingmode", "workspacev2"):
+            self.assertIn(f'"{ev}"', win)
+        plate = (SAT / "plate/Plate.qml").read_text()
+        self.assertIn("Windows.onWorkspace(ws)", plate)
+        self.assertIn("windows: win.glass", plate)
+        frag = (SAT / "plate/shaders/satsuei.frag").read_text()
+        # the frost goes into the raw plate, before the pass is mixed over it
+        self.assertLess(frag.index("texture(frostMap, qt_TexCoord0).a * frost"), frag.index("vec3 c = raw;"))
+        self.assertIn("property bool frost: true", (SAT / "common/Settings.qml").read_text())
+
     def test_gtk_windows_let_the_blur_in(self):
         # a solid GTK fill marks the window opaque and Hyprland skips the blur
         # behind it, so Satsuei's gtk.css.append makes the big fills glass

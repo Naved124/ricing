@@ -396,10 +396,12 @@ is `satsuei-*`. By the user's choice it departs from the shared shell in three w
   selector, Super+Alt+C the Cast picker, Super+Alt+Shift+C / Super+Alt+M the next
   dancer / mascot. Super+W stays the browser.
 
-GTK windows are glass too: a solid GTK fill marks a window opaque and Hyprland
-then draws no blur behind it, so `templates/gtk/gtk.css.append` makes the window,
-view, header and sidebar fills `opacity.gtk` (a rice's `<name>.append` is rendered
-onto the end of the shared `<name>`, so it adds to a shared template without a copy).
+The plate frosts itself behind windows: Hyprland drew no blur behind GTK windows
+(Nautilus), so `services/Windows.qml` reads `hyprctl clients -j` on window and
+workspace events and the pass swaps the plate for its blur maps inside every
+window on the screen's workspace, pass or no pass (`Settings.s.frost`). GTK's big
+fills are `opacity.gtk` (`templates/gtk/gtk.css.append`; a rice's `<name>.append` is
+rendered onto the end of the shared `<name>`) so that frost shows through.
 
 `Theme.qml` is not generated: it reads `theme.json` and crossfades every token over
 600 ms (Behaviors inside a singleton crash the engine, so it mixes from a snapshot);

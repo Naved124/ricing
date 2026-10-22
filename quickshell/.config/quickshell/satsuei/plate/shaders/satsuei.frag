@@ -11,6 +11,8 @@
 //               bright and in a cone around the light
 //   grade       the hour's multiply, then lift, then saturation (Grade.qml)
 //   then the brightness slider (expo), a soft vignette and film grain.
+// Inside the windows (frostMap) the plate itself is the soft map: frosted
+// glass behind every see-through window, with the pass on or off.
 // `pass` mixes the whole of it over the raw plate (Compositing off, hold to
 // compare); every effect has its own 0–1 that the shell eases.
 layout(location = 0) in vec2 qt_TexCoord0;
@@ -34,6 +36,7 @@ layout(std140, binding = 0) uniform buf {
     float rayAmt;
     float mapLod;      // 0 with the blur maps; a preview samples the plate's mips
     float seed;        // the grain's seed, shared with the characters
+    float frost;       // 0–1: the plate blurred inside the windows
     vec3 mul;
     vec3 lift;
     vec3 rayCol;
@@ -42,6 +45,7 @@ layout(binding = 1) uniform sampler2D plate;
 layout(binding = 2) uniform sampler2D bloomMap;   // 1/4 size, heavy blur
 layout(binding = 3) uniform sampler2D softMap;    // 1/8 size, heavier
 layout(binding = 4) uniform sampler2D rayMap;     // rays.frag's, an eighth of the screen
+layout(binding = 5) uniform sampler2D frostMap;   // the windows' shapes, a quarter of the screen
 
 float luma(vec3 c) { return dot(c, vec3(0.299, 0.587, 0.114)); }
 float h21(vec2 p) { p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
@@ -58,9 +62,11 @@ void main() {
     vec2 uv = ((f - res * 0.5) / s + img * 0.5) / img + par;
 
     vec3 raw = texture(plate, uv).rgb;
-    vec3 c = raw;
     vec3 d = textureLod(softMap, uv, mapLod * 1.2).rgb;
     vec3 q = textureLod(bloomMap, uv, mapLod).rgb;
+    if (frost > 0.001)
+        raw = mix(raw, mix(q, d, 0.6), texture(frostMap, qt_TexCoord0).a * frost);
+    vec3 c = raw;
     if (bloom > 0.001) {
         c = mix(c, 1.0 - (1.0 - c) * (1.0 - d), 0.22 * bloom);
         // the mock sums three mip levels (weights .45, .75, 1.05); the two maps stand in

@@ -39,6 +39,7 @@ Singleton {
             property bool grain: false         // film grain
             property bool grade: true          // the hour's colour
             property bool parallax: true
+            property bool frost: true          // the plate blurred behind the windows, pass or no pass
             // the hour: the clock's, or held where the slider left it
             property bool follow: true
             property real hour: 7.2
