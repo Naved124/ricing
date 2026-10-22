@@ -4,6 +4,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Bluetooth
 import Quickshell.Io
+import Quickshell.Services.UPower
 import Quickshell.Wayland
 import qs.chars
 import qs.common
@@ -12,11 +13,13 @@ import qs.services
 // The control centre (Super+N, or the bar's sliders button): a 372 px drawer
 // of glass down the right side that slides in with a slight overshoot (the
 // mock's .2,.9,.25,1.05 over 0.55 s). Top to bottom:
-//   · you: the avatar seal, user@host, uptime, recording, power
+//   · you: the avatar seal, user@host, uptime, power
 //   · what's playing (MediaCard), the dancer standing on its top right edge
 //   · the character strip (Strip): who dances, who peeks from the edge
-//   · seven toggles: Wi-Fi, Bluetooth, Quiet, Night light, Compositing, Mascot,
-//     the Timesheet (the desk's system card)
+//   · twelve toggles: the shared set every rice's centre has (Wi-Fi,
+//     Bluetooth, Quiet, Night light, Microphone, Performance, Caffeine,
+//     Screenshot, Record) and Satsuei's own (Compositing, Mascot, the
+//     Timesheet, which is the desk's system card)
 //   · volume (to 150%) and brightness (past the backlight it's the pass's
 //     exposure; with no backlight it's only that)
 //   · the last four notifications
@@ -136,7 +139,7 @@ PanelWindow {
                         }
                         Column {
                             anchors.verticalCenter: parent.verticalCenter
-                            width: parent.width - 40 - 12 - rec.width - power.width - 24
+                            width: parent.width - 40 - 12 - power.width - 12
                             Label {
                                 width: parent.width
                                 text: (Quickshell.env("USER") || "you") + (win.host ? "@" + win.host : "")
@@ -145,28 +148,6 @@ PanelWindow {
                                 elide: Text.ElideRight
                             }
                             Label { text: win.upText(win.uptime); size: 11.5; color: Theme.fgDim }
-                        }
-                        // recording: click for the screen, right-click for a region
-                        Btn {
-                            id: rec
-                            anchors.verticalCenter: parent.verticalCenter
-                            width: 32; height: 32
-                            on: Shell.recording
-                            acceptedButtons: Qt.LeftButton | Qt.RightButton
-                            onClicked: mouse => {
-                                const how = mouse.button === Qt.RightButton ? "region" : "screen";
-                                if (Shell.recording) { Shell.toggleRecording(how); return; }
-                                Shell.centerOpen = false;
-                                recLater.how = how;
-                                recLater.restart();
-                            }
-                            Icon { anchors.centerIn: parent; name: "record"; color: Shell.recording ? Theme.urgent : Theme.fg }
-                            Timer {
-                                id: recLater
-                                property string how: "screen"
-                                interval: 350                  // the drawer gone first
-                                onTriggered: Shell.toggleRecording(how)
-                            }
                         }
                         Btn {
                             id: power
@@ -248,6 +229,68 @@ PanelWindow {
                             sub: Shell.nightLight ? "Warmer" : "Off"
                             on: Shell.nightLight
                             onToggled: Shell.setNightLight(!Shell.nightLight)
+                        }
+                        Tile {
+                            width: tiles.tileW
+                            icon: Audio.micMuted || !Audio.source ? "mic-off" : "mic"
+                            title: "Microphone"
+                            sub: !Audio.source ? "None" : Audio.micMuted ? "Muted" : "On"
+                            on: !!Audio.source && !Audio.micMuted
+                            onToggled: if (Audio.source) Audio.toggleMic()
+                        }
+                        // power-profiles-daemon: performance ⇄ balanced; right-click for the saver
+                        // (Screenshot and Record: right-click for the screen / an area)
+                        Tile {
+                            readonly property int profile: PowerProfiles.profile
+                            width: tiles.tileW
+                            icon: profile === PowerProfile.PowerSaver ? "leaf" : profile === PowerProfile.Performance ? "rocket" : "gauge"
+                            title: "Performance"
+                            sub: profile === PowerProfile.PowerSaver ? "Power saver" : on ? "Full speed" : "Balanced"
+                            on: profile === PowerProfile.Performance
+                            onToggled: if (PowerProfiles.hasPerformanceProfile)
+                                           PowerProfiles.profile = on ? PowerProfile.Balanced : PowerProfile.Performance
+                            onSecondary: PowerProfiles.profile = profile === PowerProfile.PowerSaver
+                                         ? PowerProfile.Balanced : PowerProfile.PowerSaver
+                        }
+                        Tile {
+                            width: tiles.tileW
+                            icon: "coffee"
+                            title: "Caffeine"
+                            sub: Shell.caffeine ? "Staying awake" : "Off"
+                            on: Shell.caffeine
+                            onToggled: Shell.caffeine = !Shell.caffeine
+                        }
+                        Tile {
+                            width: tiles.tileW
+                            icon: "camera"
+                            title: "Screenshot"
+                            sub: "An area"
+                            onToggled: { Shell.centerOpen = false; shot.restart(); }
+                            onSecondary: { Shell.centerOpen = false; shotScreen.restart(); }
+                            // wait for the drawer to slide away so it isn't in the picture
+                            Timer { id: shot; interval: 350; onTriggered: Quickshell.execDetached(["rice-shot", "region"]) }
+                            Timer { id: shotScreen; interval: 350; onTriggered: Quickshell.execDetached(["rice-shot", "screen"]) }
+                        }
+                        // screen recording to ~/Videos (Super+Shift+R does the same)
+                        Tile {
+                            width: tiles.tileW
+                            icon: "record"
+                            title: Shell.recording ? "Recording" : "Record"
+                            sub: Shell.recording ? `${Shell.recordingTime} · stop` : "The screen"
+                            on: Shell.recording
+                            onToggled: {
+                                if (Shell.recording) { Shell.toggleRecording(); return; }
+                                Shell.centerOpen = false;
+                                recScreen.restart();
+                            }
+                            onSecondary: {
+                                if (Shell.recording) return;
+                                Shell.centerOpen = false;
+                                recRegion.restart();
+                            }
+                            // start once the drawer has gone, so it isn't in the video
+                            Timer { id: recScreen; interval: 350; onTriggered: Shell.toggleRecording("screen") }
+                            Timer { id: recRegion; interval: 350; onTriggered: Shell.toggleRecording("region") }
                         }
                         Tile {
                             width: tiles.tileW

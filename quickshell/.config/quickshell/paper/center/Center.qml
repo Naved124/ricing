@@ -256,6 +256,25 @@ PanelWindow {
                         available: !!Audio.source
                         onToggled: Audio.toggleMic()
                     }
+                    // caffeine: the bar's idle inhibitor, so nothing dims, locks or sleeps
+                    Check {
+                        width: parent.width
+                        label: "caffeine"
+                        detail: on ? "staying awake" : ""
+                        on: Shell.caffeine
+                        onToggled: Shell.caffeine = !Shell.caffeine
+                    }
+                    // a screenshot: never ticked, it takes one (once the sheet is away)
+                    Check {
+                        width: parent.width
+                        label: "screenshot"
+                        detail: "an area · right-click: the screen"
+                        on: false
+                        onToggled: { Shell.centerOpen = false; shot.restart(); }
+                        onSecondary: { Shell.centerOpen = false; shotScreen.restart(); }
+                        Timer { id: shot; interval: 350; onTriggered: Quickshell.execDetached(["rice-shot", "region"]) }
+                        Timer { id: shotScreen; interval: 350; onTriggered: Quickshell.execDetached(["rice-shot", "screen"]) }
+                    }
                     // screen recording to ~/Videos (Super+Shift+R does the same)
                     Check {
                         width: parent.width

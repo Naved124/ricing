@@ -24,7 +24,7 @@ satsuei-wall set ~/Pictures/x.png # take the look from a picture, from a termina
 | Super+Ctrl+W | the wallpaper selector |
 | Super+Alt+C | the Cast picker: choose the characters |
 | Super+Alt+Shift+C / Super+Alt+M | the next dancer / edge mascot |
-| Super+N | the control centre: media with the dancer, the character strip, toggles, sliders, notifications |
+| Super+N | the control centre: media with the dancer, the character strip, the toggles (Wi-Fi, Bluetooth, Quiet, Night light, Microphone, Performance, Caffeine, Screenshot, Record, Compositing, Mascot, Timesheet), sliders, notifications |
 | the seal (撮 Satsuei, left of the bar) | the Satsuei panel |
 
 The shared keys (launcher, lock, power, key sheet and so on) work as in every rice;

@@ -158,8 +158,10 @@ differ. The pieces are listed in the checklist below.
   in the control centre; Paper: the month card under the clock). Paper also keeps a tear-off
   calendar on the desk.
 - **Control centre** (Super+N): toggles (Wi-Fi, Bluetooth, Do Not Disturb, night
-  light, microphone, power profile, light/dark/auto, screen recording, the system card,
-  plus the rice's own, such as Paper's grain), volume to 150% and brightness. Media and
+  light, microphone, power profile, caffeine, screenshot, light/dark/auto (not in a
+  dark-only rice), screen recording, the system card, plus the rice's own, such as
+  Paper's grain), volume to 150% and brightness. Every shell has all of them
+  (`test_every_control_centre_has_the_shared_controls`). Media and
   notification history live in the island, not here. The Wi-Fi tile's right-click and
   double-click (`doubleOpens`) open the shared shell's network widget
   (`rice/Network.qml` + `Wifi.qml`, nmcli; `qs -c rice ipc call network open`), dressed

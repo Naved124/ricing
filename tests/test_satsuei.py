@@ -493,9 +493,11 @@ class Center(unittest.TestCase):
                        "drawer.width + 30", "MediaCard {", '"/proc/uptime"', "Shell.togglePower()",
                        "rice-rec", "interval: 350", "Keys.onEscapePressed"):
             self.assertIn(needle.replace("rice-rec", "Shell.toggleRecording("), c)
-        # the six toggles, in the mock's order
+        # the shared toggles, then Satsuei's own
         titles = re.findall(r'title: "([^"]+)"', c)
-        self.assertEqual(titles, ["Wi-Fi", "Bluetooth", "Quiet", "Night light", "Compositing", "Mascot", "Timesheet"])
+        self.assertEqual(titles, ["Wi-Fi", "Bluetooth", "Quiet", "Night light", "Microphone", "Performance", "Caffeine",
+                                  "Screenshot", "Compositing", "Mascot", "Timesheet"])
+        self.assertIn('title: Shell.recording ? "Recording" : "Record"', c)
         self.assertIn("to: 150", c)                                  # volume to 150%
         self.assertIn("Settings.s.expo", c)                          # brightness feeds the pass's expo
         self.assertIn("NoteList {", c)

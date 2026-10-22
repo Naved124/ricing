@@ -532,6 +532,20 @@ class Island(unittest.TestCase):
         self.assertIn("Theme.warmth", (self.SHELLS / "paper/bar/Island.qml").read_text())
         self.assertFalse((self.SHELLS / "nacre/bar/MediaMini.qml").exists())
 
+    def test_every_control_centre_has_the_shared_controls(self):
+        # what each one's code does, so a rice can't quietly drop one
+        shared = {"Wi-Fi": "Net.setWifi(", "network widget": '"network", "open"', "Bluetooth": "win.adapter",
+                  "Do Not Disturb": "Shell.setDnd(", "night light": "Shell.setNightLight(", "microphone": "Audio.toggleMic()",
+                  "power profile": "PowerProfiles.profile =", "caffeine": "Shell.caffeine = !Shell.caffeine",
+                  "screenshot": '"rice-shot", "region"', "recording": 'Shell.toggleRecording("region")',
+                  "system card": "Shell.setStatsShown(", "volume to 150%": "1.5|150"}
+        for shell in ("nacre", "paper", "abyss", "satsuei"):
+            center = "".join(f.read_text() for f in (self.SHELLS / shell / "center").glob("*.qml"))
+            for what, code in shared.items():
+                with self.subTest(shell=shell, control=what):
+                    self.assertTrue(any(c in center for c in code.split("|")) or
+                                    (what == "volume to 150%" and "maxVolume" in center), f"{shell}'s centre has no {what}")
+
     def test_notifications_go_to_the_island(self):
         for shell in ("paper", "nacre", "abyss"):
             with self.subTest(shell):
