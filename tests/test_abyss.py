@@ -255,6 +255,31 @@ class Shells(unittest.TestCase):
         self.assertEqual(by["half covered"]["coverage"], 0.5)
         self.assertFalse(by["pointer off"]["interactive"])
 
+    def test_the_reef_runs_again_after_an_unlock(self):
+        import qs_smoke
+        import shutil
+        import tempfile
+        with tempfile.TemporaryDirectory() as d:
+            shell = Path(d) / "abyss"
+            shutil.copytree(ABYSS, shell)
+            lock = shell / "lock/Lock.qml"
+            text = lock.read_text()
+            hook = "        function isLocked(): bool {"
+            self.assertIn(hook, text)
+            lock.write_text(text.replace(hook, "        function testUnlock(p: string): void { root.password = p; root.submit(); }\n" + hook))
+            found, pokes = qs_smoke.smoke(shell, 8, REPO / "tests/pokes/abyss-unlock.qml")
+        self.assertEqual(found, [])
+        by = {p["tag"]: p for p in pokes}
+        self.assertEqual(set(by), {"before", "locked", "after"}, pokes)
+        self.assertTrue(by["locked"]["locked"])
+        self.assertTrue(all(r["throttle"] == "stopped: locked" for r in by["locked"]["reefs"]))
+        self.assertFalse(by["after"]["locked"])
+        for r in by["after"]["reefs"]:
+            self.assertEqual((r["running"], r["throttle"]), (True, "full"))
+            self.assertGreater(r["fps"], 10)
+        # no Binding: it left Shell.locked set after an unlock under Quickshell
+        self.assertNotIn('property: "locked"', (ABYSS / "lock/Lock.qml").read_text())
+
     def test_every_surface_opens_clean(self):
         import qs_smoke
         found, pokes = qs_smoke.smoke(ABYSS, 8, REPO / "tests/pokes/abyss-walk.qml")

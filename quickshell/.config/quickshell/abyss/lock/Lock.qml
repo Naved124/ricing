@@ -24,13 +24,14 @@ Scope {
     signal shake()
 
     function lock() {
-        if (sessionLock.locked) return;
+        if (sessionLock.locked) { Shell.locked = true; return; }
         Shell.closeAll();
         password = "";
         failed = false;
         message = "";
         leaving = false;
         sessionLock.locked = true;
+        Shell.locked = true;
     }
 
     function submit() {
@@ -46,7 +47,21 @@ Scope {
         }
     }
 
-    Binding { target: Shell; property: "locked"; value: sessionLock.locked }
+    // Shell.locked (the wallpaper reefs stop while it's set) is set and cleared
+    // right where the lock goes up and comes down. A Binding to
+    // sessionLock.locked left it true after an unlock under Quickshell,
+    // freezing the reef until the shell restarted.
+    function released() {
+        Shell.locked = false;
+        root.password = "";
+        root.leaving = false;
+        root.busy = false;
+    }
+    Connections {
+        target: sessionLock
+        // the compositor can end the lock itself (another locker, a crash)
+        function onLockedChanged() { if (!sessionLock.locked) root.released(); }
+    }
 
     IpcHandler {
         target: "lock"
@@ -82,8 +97,7 @@ Scope {
         interval: 900
         onTriggered: {
             sessionLock.locked = false;
-            root.password = "";
-            root.leaving = false;
+            root.released();
         }
     }
 
