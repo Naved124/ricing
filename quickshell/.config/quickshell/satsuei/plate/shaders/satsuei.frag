@@ -98,7 +98,8 @@ void main() {
     c = mix(c, g, grade);
     vec2 cc = f / res - 0.5;
     c *= 1.0 - 0.42 * dot(cc, cc);
-    c += (h21(f * 0.731 + fract(time * 7.3 + seed) * 91.0) - 0.5) * 0.07 * grain;
+    if (grain > 0.001)
+        c += (h21(f * 0.731 + fract(time * 7.3 + seed) * 91.0) - 0.5) * 0.07 * grain;
     c = mix(raw, c, pass) * expo;
     fragColor = vec4(c, 1.0) * qt_Opacity;
 }

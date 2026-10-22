@@ -552,8 +552,10 @@ apply_mode_hypr() {
     have hyprctl || return 0
     [[ -f "$ACTIVE/hypr-mode.lua" ]] || return 0
     local out
-    # say why when Hyprland refuses it (its answer is otherwise thrown away)
-    if ! out="$(hyprctl eval "$(cat "$ACTIVE/hypr-mode.lua")" 2>&1)"; then
+    # Hyprland reads the file itself: passed as text, its first line (a `--`
+    # comment) was taken for one of hyprctl's flags and nothing was applied.
+    # Say why when Hyprland refuses it (its answer is otherwise thrown away)
+    if ! out="$(hyprctl eval "dofile([[$ACTIVE/hypr-mode.lua]])" 2>&1)"; then
         log "hyprctl eval: ${out:-no answer}"
         return 1
     fi

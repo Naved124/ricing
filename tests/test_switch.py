@@ -160,7 +160,7 @@ class Switch(unittest.TestCase):
         calls = self.calls()
         steps = [self.index(calls, p) for p in (
             "grim", "qs -c rice ipc call rice freeze",
-            "hyprctl eval -- Nacre (dark)",          # the dark build's hypr-mode.lua, no reload
+            "hyprctl eval dofile([[",                # the active (dark) hypr-mode.lua, no reload
             "gsettings set org.gnome.desktop.interface color-scheme",
             "pkill -USR1 -x kitty", "pkill -USR1 -x cava",
             "qs -c nacre ipc call mode jump dark", "qs -c rice ipc call mode jump dark",
@@ -168,6 +168,9 @@ class Switch(unittest.TestCase):
         self.assertEqual(steps, sorted(steps), "\n".join(calls))
         self.assertEqual(steps[-1], len(calls) - 1, "the reveal comes last")
         self.assertFalse(any(c.startswith("hyprctl reload") for c in calls), "a mode switch never reloads")
+        # Hyprland reads the file; hyprctl would take its `--` first line for a flag
+        evals = [c for c in calls if c.startswith("hyprctl eval dofile")]
+        self.assertEqual(evals, [f"hyprctl eval dofile([[{active}/hypr-mode.lua]])"])
         timing = Path(self.env["XDG_RUNTIME_DIR"]) / "rice/mode-timing"
         self.assertRegex(timing.read_text(), r"^\d+\n$")
         self.assertIn("dark · manual", self.rice("mode", "status").stdout)
