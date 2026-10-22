@@ -339,5 +339,63 @@ class PlateRuns(unittest.TestCase):
             self.assertEqual(s["grade"]["phase"], "Golden hour")
 
 
+class Glass(unittest.TestCase):
+    """Step 4: Hyprland's glass for Satsuei, the bar and the eyecatch."""
+
+    def hypr(self) -> tuple[str, str]:
+        ctx = rr.load_modes(RICE)["dark"]
+        out = []
+        for name in ("hypr.lua", "hypr-mode.lua"):
+            src = RICE / "templates" / name
+            out.append(rr.render_text(src.read_text(), ctx, str(src)))
+        return out[0], out[1]
+
+    def test_hyprland(self):
+        hypr, mode = self.hypr()
+        for needle in ("size              = 8", "passes            = 3", "new_optimizations = true",
+                       "rounding         = 16", 'leaf = "workspaces",   enabled = true, speed = 6,',
+                       'style = "slide"', "blur = true, ignore_alpha = 0.3",
+                       '"^satsuei-(bar|center|studio|subs|walls|cast|launcher|osd|power|toast|keys)$"'):
+            self.assertIn(needle, hypr)
+        self.assertIn("vibrancy   = 0.2", mode)
+        seed = json.loads((RICE / "seed/theme.json").read_text())
+        self.assertIn(f'"rgba({seed["accent"][1:]}ee)", "rgba({seed["accent2"][1:]}ee)"', mode)
+        # kitty is glass too
+        self.assertEqual(rr.load_modes(RICE)["dark"]["opacity"]["terminal"], 0.72)
+        # every Satsuei layer is satsuei-*
+        for f in SAT.rglob("*.qml"):
+            for ns in re.findall(r'WlrLayershell\.namespace:\s*"([^"]+)"', f.read_text()):
+                self.assertTrue(ns.startswith("satsuei-"), f"{f}: {ns}")
+
+    def test_the_bar(self):
+        bar = (SAT / "bar/Bar.qml").read_text()
+        for needle in ("pillHeight: 46", "edge: 10", "radius: 16", '"satsuei-bar"', "Shell.toggleStudio()",
+                       "Episodes {", '"日月火水木金土"', "Status {", "Hypr.fullscreenOn(monitor)", "IdleInhibitor"):
+            self.assertIn(needle, bar)
+        eps = (SAT / "bar/Episodes.qml").read_text()
+        for needle in ('padStart(2, "0")', "display: true", "Theme.accent", "ep.occupied", "Hypr.focusWorkspace(",
+                       "Hypr.cycleWorkspace("):
+            self.assertIn(needle, eps)
+        status = (SAT / "bar/Status.qml").read_text()
+        for needle in ("model: 4", "Beat.levels", "Net.rate(", "Bluetooth.defaultAdapter", "Audio.icon",
+                       "Battery.level", "SystemTray.items", '"rice", "lock"', "Shell.toggleCenter()",
+                       "Shell.recording"):
+            self.assertIn(needle, status)
+
+    def test_the_eyecatch(self):
+        eye = (SAT / "bar/Eyecatch.qml").read_text()
+        for needle in ('"EP " + String(win.shownId).padStart(2, "0")', "interval: 1300 + 400", "duration: 400",
+                       "duration: 500", "Settings.s.episodes", "toUpperCase()", "spacing: 0.3", "mask: Region {}",
+                       '"satsuei-eyecatch"'):
+            self.assertIn(needle, eye)
+        self.assertIn('["Terminal", "Notes", "Wallpaper", "Web", "Music"]', (SAT / "common/Settings.qml").read_text())
+
+    @unittest.skipUnless(has_pyside(), "needs PySide6")
+    def test_an_episode_change_runs_clean(self):
+        import qs_smoke
+        errors, _ = qs_smoke.smoke(SAT, seconds=3.0, poke=REPO / "tests/pokes/satsuei-episode.qml")
+        self.assertEqual(errors, [])
+
+
 if __name__ == "__main__":
     unittest.main()

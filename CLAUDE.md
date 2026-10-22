@@ -14,7 +14,9 @@ user-facing guide; this file is the contract every rice has to keep.
   tests run each shell under PySide6 (`tests/qs_smoke.py` with the Quickshell stand-ins
   in `tests/qsstub/`; a poke file in `tests/pokes/` drives it through IPC); with PySide6
   installed run them under `QSG_RHI_BACKEND=opengl xvfb-run -a`. A new Quickshell type a
-  shell uses needs a stand-in there.
+  shell uses needs a stand-in there. `tests/qs_shot.py <shell> --out x.png [--poke F]` lays
+  one screen's stand-in windows out by their anchors and layers and saves what it shows
+  (no Hyprland blur), for looking at a change.
   Shell scripts: `shellcheck -S warning install system/install switcher/.local/bin/rice tools/relink .githooks/*`.
 - New files only reach `~` through stow (`--no-folding` links file by file). `./install`
   sets `core.hooksPath = .githooks`, whose hooks run `tools/relink` after a pull; keep
@@ -375,6 +377,28 @@ refraction, a quarter-size bloom and the tone map.
   `switcher/.local/share/rice/abyss.toml` must list the same defaults (a test checks).
 - The glow sprites are `assets/gen.py`'s; the reef asks for exactly the set
   `sprite_keys` makes. Re-run it after changing the reef's hues.
+
+## Satsuei (the picture rice)
+
+Satsuei takes its look from the user's wallpaper: `satsuei-wall set` (see Layout and
+`[meta] overlay`). Its plate (`plate/Plate.qml`) draws the picture through a
+compositing pass (`plate/shaders/satsuei.frag`, the rays at an eighth of the size in
+`rays.frag`), timed by a `Timer` at 30 fps and paused for fullscreen, a battery under
+30% and the lock; `plate/tools/grab.py --bench` measures its GPU time. Every surface
+is `satsuei-*`. By the user's choice it departs from the shared shell in three ways:
+
+- **The bar has the clock** in its middle (Dela Gothic One, with the date), and there
+  is no island: the left is the seal (the Satsuei panel) and the episodes (workspaces
+  `01`–`05`), the right what's playing and the status.
+- **Notifications are subtitles** at the bottom centre, not island cards; Quiet keeps
+  them in the control centre's list.
+- **Its own binds** (only its shell registers them): Super+Ctrl+W the wallpaper
+  selector, Super+Alt+C the Cast picker, Super+Alt+Shift+C / Super+Alt+M the next
+  dancer / mascot. Super+W stays the browser.
+
+`Theme.qml` is not generated: it reads `theme.json` and crossfades every token over
+600 ms (Behaviors inside a singleton crash the engine, so it mixes from a snapshot);
+`Style.qml` is, from the palette, and holds no plate colour.
 
 ## Things learned the hard way
 

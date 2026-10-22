@@ -9,14 +9,25 @@
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import qs.bar
 import qs.common
 import qs.plate
+import qs.services
 
 ShellRoot {
     // the plate and its pass, one per screen, under everything
     Variants {
         model: Quickshell.screens
         Plate {}
+    }
+
+    Variants {
+        model: Quickshell.screens
+        Bar {}
+    }
+    Variants {
+        model: Quickshell.screens
+        Eyecatch {}
     }
 
     // qs -c satsuei ipc call satsuei <function> [args]
