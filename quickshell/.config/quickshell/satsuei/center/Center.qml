@@ -5,6 +5,7 @@ import Quickshell
 import Quickshell.Bluetooth
 import Quickshell.Io
 import Quickshell.Wayland
+import qs.chars
 import qs.common
 import qs.services
 
@@ -180,6 +181,11 @@ PanelWindow {
                     MediaCard {
                         id: media
                         width: parent.width
+                        Dancer {
+                            parent: media.stage
+                            anchors.fill: parent
+                            running: win.open
+                        }
                     }
 
                     // ── the character strip (step 9) ────────────────────────

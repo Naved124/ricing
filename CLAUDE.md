@@ -403,6 +403,12 @@ window on the screen's workspace, pass or no pass (`Settings.s.frost`). GTK's bi
 fills are `opacity.gtk` (`templates/gtk/gtk.css.append`; a rice's `<name>.append` is
 rendered onto the end of the shared `<name>`) so that frost shows through.
 
+Characters (`chars/`): a built-in is a `Rig` (the mock's `pose()`, ticked at 30 fps only
+while shown) whose parts are `Part`s (pivots) of `Blob`s (`QtQuick.Shapes` on the
+mock's 120 × 160 canvas, curve renderer); their clothes are the plate's tokens and
+their skin and eyes `Style.art`. `services/Tempo.qml` guesses the tempo from Beat's
+kicks; `Characters.qml` says who plays the dancer and the mascot.
+
 `Theme.qml` is not generated: it reads `theme.json` and crossfades every token over
 600 ms (Behaviors inside a singleton crash the engine, so it mixes from a snapshot);
 `Style.qml` is, from the palette, and holds no plate colour.

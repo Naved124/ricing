@@ -531,5 +531,44 @@ class Subtitles(unittest.TestCase):
         self.assertEqual(by["later"]["all"], 2)                                      # both kept in the list
 
 
+class Characters(unittest.TestCase):
+    """Step 7: the rig and Hana, dancing on the media card."""
+
+    def test_the_rig_is_the_mocks_pose(self):
+        rig = (SAT / "chars/Rig.qml").read_text()
+        for needle in ("bo = -Math.abs(Math.sin(b)) * 7 * e;", "ti = Math.sin(b) * 10 * e;", "sw = Math.sin(b) * 4 * e;",
+                       "l = 20 + 80 * (0.5 + 0.5 * Math.sin(b)) * e;", "x = Math.sin(b * 2) * 18;",
+                       "r = -150 + Math.sin(t * 12) * 22;", "ti = 14;", "ey = 0.08;",
+                       "blinkAt = t + 2.5 + Math.random() * 3", "t > blinkAt + 0.13",
+                       "phase += dt * (bpm / 60) / 2 * (0.75 + energy * 0.6)", "interval: 33",
+                       "running: rig.running && rig.visible"):
+            self.assertIn(needle, rig)
+        # every motion can be scaled per character
+        for k in ("bob", "tilt", "sway", "arms", "legs", "extra", "speed"):
+            self.assertIn(f'k("{k}")', rig)
+
+    def test_hana(self):
+        hana = (SAT / "chars/Hana.qml").read_text()
+        # drawn with Shapes on the 120 × 160 canvas, her clothes the plate's
+        self.assertIn("Rig {", hana)
+        for needle in ("angle: r.aL", "angle: r.aR", "dy: r.lL", "dy: r.lR", "angle: r.tilt", "sy: r.eyes",
+                       "angle: r.ex", "dy: r.bob", "fill: Theme.accent2", "stroke: Theme.accent", "fill: Theme.hair"):
+            self.assertIn(needle, hana)
+        self.assertIn("preferredRendererType: Shape.CurveRenderer", (SAT / "chars/Blob.qml").read_text())
+
+    def test_the_dancer_stands_on_the_media_card(self):
+        center = (SAT / "center/Center.qml").read_text()
+        self.assertIn("parent: media.stage", center)
+        self.assertIn("running: win.open", center)
+        dancer = (SAT / "chars/Dancer.qml").read_text()
+        self.assertIn('Media.playing ? "dance" : "idle"', dancer)
+        self.assertIn("Theme.at(Theme.ink, 0.25)", dancer)          # the contact shadow
+        chars = (SAT / "chars/Characters.qml").read_text()
+        self.assertIn('id: "hana"', chars)
+        self.assertIn("Settings.s.dancer", chars)
+        tempo = (SAT / "services/Tempo.qml").read_text()
+        self.assertIn("while (b < 70) b *= 2;", tempo)
+
+
 if __name__ == "__main__":
     unittest.main()
