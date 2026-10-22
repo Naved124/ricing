@@ -9,8 +9,8 @@
 # Options:
 #   --rice NAME     the rice to make active (default: keep the current one, else nacre)
 #   --no-deps       don't install packages (just report what's missing)
-#   --no-fonts      don't download Italiana, Manrope, IBM Plex Mono, Jura and
-#                   JetBrains Mono (Paper's fonts ship in the repo's fonts/
+#   --no-fonts      don't download Italiana, Manrope, IBM Plex Mono, Jura,
+#                   JetBrains Mono, Dela Gothic One and M PLUS Rounded 1c (Paper's fonts ship in the repo's fonts/
 #                   package and are always linked)
 #   --no-firefox    don't touch Firefox profiles
 #   --system        also theme Limine, the Plymouth splash and the greetd/ReGreet
@@ -109,6 +109,9 @@ optional=(
     hyprshutdown:hyprshutdown
     zsh:zsh starship:starship eza:eza
     wf-recorder:wf-recorder pactl:libpulse
+    # Satsuei: the palette from the wallpaper, its blur maps, the folder
+    # watcher and the file pickers
+    matugen:matugen-bin inotifywait:inotify-tools zenity:zenity
 )
 # Python modules, checked by import: Pillow regenerates Paper's paper textures
 # and wallpaper (rices/paper/assets/gen.py)
@@ -131,6 +134,8 @@ files=(
     "/usr/share/zsh/plugins/zsh-history-substring-search/zsh-history-substring-search.zsh|zsh-history-substring-search"
     "-|zsh-completions"                       # no single telltale file: asked of pacman
     "/usr/share/fonts/TTF/SymbolsNerdFontMono-Regular.ttf|ttf-nerd-fonts-symbols-mono"
+    "/usr/lib/qt6/bin/qsb|qt6-shadertools"      # tools/shaders compiles the shells' shaders
+    "-|ttf-jetbrains-mono"
 )
 
 missing_pkgs() {
@@ -195,7 +200,7 @@ gpu_pkgs() {
 # loading when pacman moves to a new libalpm, so being on PATH isn't enough
 aur_helper() {
     local h
-    for h in paru yay; do
+    for h in yay paru; do
         have "$h" && "$h" --version >/dev/null 2>&1 && { echo "$h"; return 0; }
     done
     return 1
@@ -344,7 +349,8 @@ fi
 # family|style|file: each style is checked on its own, so a weight added later
 # (the palettes use SemiBold and Bold) is fetched even if the family is there.
 # Manrope, Jura and JetBrains Mono (Abyss) are variable fonts holding every
-# weight; Italiana has one weight.
+# weight; Italiana and Dela Gothic One (Satsuei) have one weight, M PLUS
+# Rounded 1c (Satsuei) a file per weight.
 font_files=(
     "Italiana||italiana/Italiana-Regular.ttf"
     "Manrope||manrope/Manrope%5Bwght%5D.ttf"
@@ -358,6 +364,11 @@ font_files=(
     "Jura||jura/Jura%5Bwght%5D.ttf"
     "JetBrains Mono||jetbrainsmono/JetBrainsMono%5Bwght%5D.ttf"
     "JetBrains Mono|Italic|jetbrainsmono/JetBrainsMono-Italic%5Bwght%5D.ttf"
+    "Dela Gothic One||delagothicone/DelaGothicOne-Regular.ttf"
+    "M PLUS Rounded 1c|Regular|mplusrounded1c/MPLUSRounded1c-Regular.ttf"
+    "M PLUS Rounded 1c|Medium|mplusrounded1c/MPLUSRounded1c-Medium.ttf"
+    "M PLUS Rounded 1c|Bold|mplusrounded1c/MPLUSRounded1c-Bold.ttf"
+    "M PLUS Rounded 1c|ExtraBold|mplusrounded1c/MPLUSRounded1c-ExtraBold.ttf"
 )
 
 have_font() {   # have_font FAMILY [STYLE]
@@ -388,7 +399,7 @@ for entry in "${font_files[@]}"; do
     fi
 done
 [ -n "$missing" ] && warn "not installed: ${missing#, }"
-[ "$fetched" = 0 ] && [ -z "$missing" ] && ok "Italiana, Manrope, IBM Plex Mono, Jura, JetBrains Mono"
+[ "$fetched" = 0 ] && [ -z "$missing" ] && ok "Italiana, Manrope, IBM Plex Mono, Jura, JetBrains Mono, Dela Gothic One, M PLUS Rounded 1c"
 [ "$fetched" = 1 ] && have fc-cache && run fc-cache -f "$fontdir" >/dev/null
 # Courier Prime, Kalam and Newsreader (Paper) are OFL fonts kept in the repo's
 # fonts/ package; stow links them below and fc-cache picks them up there
