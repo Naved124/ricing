@@ -18,11 +18,14 @@ import qs.common
 import qs.desk
 import qs.keys
 import qs.launcher
+import qs.mascot
 import qs.osd
+import qs.panel
 import qs.plate
 import qs.power
 import qs.services
 import qs.subs
+import qs.walls
 
 ShellRoot {
     // the plate and its pass, one per screen, under everything
@@ -50,6 +53,9 @@ ShellRoot {
     Power {}
     KeySheet {}
     Cast {}
+    Selector {}
+    Studio {}
+    Mascot {}
 
     // Hyprland binds: hl.dsp.global("quickshell:<name>"), the same in every rice
     GlobalShortcut {
@@ -90,6 +96,11 @@ ShellRoot {
         onPressed: Shell.togglePower()
     }
     // Satsuei's own (base.lua binds them; only this shell registers them)
+    GlobalShortcut {
+        name: "satsuei-walls"
+        description: "Choose the wallpaper"
+        onPressed: Shell.toggleWalls()
+    }
     GlobalShortcut {
         name: "satsuei-cast"
         description: "Choose the characters"
@@ -148,6 +159,16 @@ ShellRoot {
             return Characters.set(role, id) ? id : `no character called ${id}`;
         }
         function nextCharacter(role: string): string { return Characters.next(role); }
+        // the wallpaper: open (the selector), next, prev or random from what
+        // it shows; setWallpaper for a file
+        function wallpaper(action: string): string {
+            if (action === "open") { Shell.toggleWalls(); return "open"; }
+            if (action === "next") return Library.step(1) || "nothing to show";
+            if (action === "prev") return Library.step(-1) || "nothing to show";
+            if (action === "random") return Library.random() || "nothing to show";
+            return `don't know ${action} (open, next, prev, random)`;
+        }
+        function setWallpaper(path: string): void { Library.apply(path); }
         // the Cast picker, casting for a role (dancer or mascot)
         function cast(role: string): void { Shell.toggleCast(role || undefined); }
         // a test subtitle (the mock's "Send a test")

@@ -422,6 +422,19 @@ host (the media card, the timesheet, `center/Strip.qml`, the Cast picker
 `cast/Cast.qml`) goes through it. The Cast picker casts either role from a grid of
 every character and adds one from a file (zenity; copied in as its `dance`).
 
+The edge mascot (`mascot/Mascot.qml`, `satsuei-mascot` on the top layer, masked to its
+head) rests below the bottom edge 8% in from the right, springs up and waves for 4.2 s
+when a subtitle goes up, sleeps after 40 s idle (`IdleMonitor`) and hops when clicked.
+
+The wallpaper folder (`Settings.s.wallDir`) is `walls/Library.qml`: `satsuei-wall scan`
+(cached per picture in `~/.cache/satsuei/walls/<sha1>/`, one JSON line each) and one
+`inotifywait` on the folder; it also does the auto-rotate. `walls/Selector.qml`
+(Super+Ctrl+W) previews the focused picture on the real plate through `Theme.preview`
+(no blur maps until it's set), keeps it with `Library.apply` (the preview holds until
+`theme.json` changes) or drops it on Esc. `panel/Studio.qml` (the bar's seal) holds the
+pass's switches, the hour, the wallpaper, the palette and the light picker; the click
+goes to the screen's plate through `Plates.pick`.
+
 The system card (`desk/Stats.qml`) is a timesheet: CUT and the day, ten frames inked
 down three columns (CPU, MEM, DSK) with a playhead stepping once a second, the readout
 beside, and the dancer small on its top edge (15 fps, still while windows cover it,

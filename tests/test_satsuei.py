@@ -185,6 +185,24 @@ class Pipeline(unittest.TestCase):
             t = json.loads((home / ".local/state/satsuei/theme.json").read_text())
             self.assertEqual((t["lightX"], t["lightY"], t["lightPicked"]), (0.25, 0.1, True))
 
+    def test_the_folder_is_scanned(self):
+        with tempfile.TemporaryDirectory() as d:
+            home = Path(d)
+            walls = home / "Pictures/Wallpapers"
+            (walls / "sky").mkdir(parents=True)
+            shutil.copyfile(RICE / "seed/wall.webp", walls / "sky/wall.webp")
+            lines = [json.loads(l) for l in wall(["scan", str(walls)], home).stdout.splitlines()]
+            self.assertEqual(lines[0], {"path": str(walls / "sky/wall.webp"), "rel": "sky/wall.webp",
+                                        "mtime": lines[0]["mtime"], "pending": True})
+            done = lines[1]
+            self.assertTrue(Path(done["thumb"]).is_file())
+            self.assertEqual(len(done["swatches"]), 6)
+            self.assertEqual(lines[-1], {"done": True, "count": 1})
+            # the second time it's all cached
+            again = [json.loads(l) for l in wall(["scan", str(walls)], home).stdout.splitlines()]
+            self.assertNotIn("pending", again[0])
+            self.assertEqual(again[0]["sha1"], done["sha1"])
+
     def test_the_seed_matches_the_palette(self):
         """palette.toml's colours are the seed plate's (tools/satsuei-seed)."""
         seed = json.loads((RICE / "seed/theme.json").read_text())
@@ -680,6 +698,67 @@ class CastPicker(unittest.TestCase):
         self.assertEqual(errors, [])
         self.assertEqual((pokes[0]["open"], pokes[0]["role"]), (True, "mascot"))
         self.assertEqual((pokes[1]["open"], pokes[1]["mascot"]), (False, "kon"))
+
+
+class Mascot(unittest.TestCase):
+    """Step 13: the edge mascot."""
+
+    def test_the_mascot(self):
+        m = (SAT / "mascot/Mascot.qml").read_text()
+        for needle in ('"satsuei-mascot"', "anchors { bottom: true; right: true }", "* 0.08", "mask: Region { item: head }",
+                       "cast: Characters.mascot", "IdleMonitor", "timeout: 40", "interval: 4200", "function onArrived(n)",
+                       "!waving ? 114 :", "waving ? 34", "!shown ? 170", "Settings.s.mascot", "Hypr.fullscreenOn(monitor)",
+                       '"z z Z"', "hopping.restart()", "[0.3, 1.5, 0.5, 1, 1, 1]"):
+            self.assertIn(needle.replace("!waving ? 114 :", "114"), m)
+        self.assertIn("Mascot {}", (SAT / "shell.qml").read_text())
+
+
+class Walls(unittest.TestCase):
+    """Steps 14 and 15: the wallpaper folder, and the selector."""
+
+    def test_the_library(self):
+        lib = (SAT / "walls/Library.qml").read_text()
+        for needle in ('"satsuei-wall", "scan"', "inotifywait -mrq", "Settings.s.wallDir", "Settings.s.sort", "Settings.s.rotate",
+                       '"15m": 15, "30m": 30, "1h": 60', '"daily"', '"satsuei-wall", "set", path', "Theme.endPreview()",
+                       "function step(by)", "function random()", "function previewTokens(w)"):
+            self.assertIn(needle, lib)
+
+    def test_the_selector(self):
+        sel = (SAT / "walls/Selector.qml").read_text()
+        for needle in ('"satsuei-walls"', "WlrKeyboardFocus.Exclusive", "interval: 250", "Theme.preview(Library.previewTokens(",
+                       "Library.apply(focused.path)", "Theme.endPreview()", "Qt.Key_Slash", "Qt.Key_Escape", "scale: card.lit ? 1.15 : 1",
+                       "Shimmer", '"wl-copy"', "lightX", '"Name"', '"Date added"', '"Colour"', '"Daily"', '"Shuffle"', '"Open folder"',
+                       '"Change folder…"', "--directory", "Actor {"):
+            self.assertIn(needle, sel)
+        shell = (SAT / "shell.qml").read_text()
+        for needle in ("Selector {}", 'name: "satsuei-walls"', "function wallpaper(action: string)", "function setWallpaper(path: string)"):
+            self.assertIn(needle, shell)
+        base = (REPO / "hypr/.config/hypr/base.lua").read_text()
+        self.assertRegex(base, r'key\("CTRL \+ W"\),\s+hl\.dsp\.global\("quickshell:satsuei-walls"\)')
+
+
+class Studio(unittest.TestCase):
+    """Step 16: the Satsuei panel."""
+
+    def test_the_panel(self):
+        st = (SAT / "panel/Studio.qml").read_text()
+        for needle in ('"satsuei-studio"', "width: 340", '"撮影"', '"SATSUEI"', '"Diffusion bloom"', '"Light rays"', '"Dust motes"',
+                       '"Film grain"', '"Time-of-day grade"', "Settings.setFx(", "Theme.grade.phase", "Theme.grade.fmt(", "to: 24",
+                       '"Follow the clock"', '"Choose wallpaper…"', "Shell.toggleWalls()", '"accent 2"', '"glass"', "Theme.swatches",
+                       '"Pick on wallpaper"', "Shell.pickingLight = true", "Plates.pick(", '"Hold to compare"',
+                       "Shell.comparing = true", "Shell.comparing = false"):
+            self.assertIn(needle, st)
+        self.assertIn("function pickAt(px, py)", (SAT / "plate/Plate.qml").read_text())
+        self.assertIn("Studio {}", (SAT / "shell.qml").read_text())
+
+    @unittest.skipUnless(has_pyside(), "needs PySide6")
+    def test_mascot_walls_and_panel_open_clean(self):
+        import qs_smoke
+        errors, pokes = qs_smoke.smoke(SAT, seconds=6.5, poke=REPO / "tests/pokes/satsuei-desk.qml")
+        self.assertEqual([e for e in errors if "Cannot open: file:///w/" not in e], [])
+        walls, studio = pokes
+        self.assertEqual((walls["open"], walls["shown"], walls["folders"]), (True, 2, ["b"]))
+        self.assertEqual((studio["open"], studio["grain"], studio["previewing"]), (False, True, False))
 
 
 class Desk(unittest.TestCase):

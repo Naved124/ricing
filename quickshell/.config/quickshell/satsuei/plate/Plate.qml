@@ -162,24 +162,14 @@ PanelWindow {
     Layer { id: a; isFront: win.front === 0; other: b }
     Layer { id: b; isFront: win.front === 1; other: a }
 
-    // ── picking the light source (the Satsuei panel) ──────────────────────
-    MouseArea {
-        anchors.fill: parent
-        enabled: Shell.pickingLight
-        visible: enabled
-        cursorShape: Qt.CrossCursor
-        onClicked: mouse => {
-            const W = win.width, H = win.height, I = Theme.plateSize;
-            const s = Math.max(W / I.width, H / I.height) * 1.04;
-            const x = ((mouse.x - W / 2) / s + I.width / 2) / I.width - win.par.x;
-            const y = ((mouse.y - H / 2) / s + I.height / 2) / I.height - win.par.y;
-            Quickshell.execDetached(["satsuei-wall", "light", x.toFixed(4), y.toFixed(4)]);
-            Shell.pickingLight = false;
-        }
-    }
-    Crosshair {
-        anchors.fill: parent
-        visible: Shell.pickingLight
+    // ── picking the light source (the Satsuei panel's crosshair calls this
+    // with a click in this screen's px) ─────────────────────────────────────
+    function pickAt(px, py) {
+        const W = win.width, H = win.height, I = Theme.plateSize;
+        const s = Math.max(W / I.width, H / I.height) * 1.04;
+        const x = ((px - W / 2) / s + I.width / 2) / I.width - win.par.x;
+        const y = ((py - H / 2) / s + I.height / 2) / I.height - win.par.y;
+        Quickshell.execDetached(["satsuei-wall", "light", x.toFixed(4), y.toFixed(4)]);
     }
 
     // what `qs -c satsuei ipc call satsuei stats` reports for this screen

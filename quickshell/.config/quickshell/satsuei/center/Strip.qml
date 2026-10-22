@@ -33,35 +33,12 @@ Column {
         }
 
         // shuffle daily
-        Btn {
+        Check {
             anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
-            width: shuffle.implicitWidth + 16
-            height: 26
-            radius: 13
-            onClicked: Settings.s.shuffleDaily = !Settings.s.shuffleDaily
-            Row {
-                id: shuffle
-                anchors.centerIn: parent
-                spacing: 6
-                Rectangle {
-                    anchors.verticalCenter: parent.verticalCenter
-                    width: 14; height: 14
-                    radius: 4
-                    color: Settings.s.shuffleDaily ? Theme.at(Theme.accent, 0.85) : "transparent"
-                    border.width: Settings.s.shuffleDaily ? 0 : 1.2
-                    border.color: Theme.fgDim
-                    Icon {
-                        anchors.centerIn: parent
-                        visible: Settings.s.shuffleDaily
-                        name: "check"
-                        size: 11
-                        stroke: 2.6
-                        color: Theme.onAccent
-                    }
-                }
-                Label { anchors.verticalCenter: parent.verticalCenter; text: "Shuffle daily"; size: 11; color: Theme.fgDim }
-            }
+            text: "Shuffle daily"
+            checked: Settings.s.shuffleDaily
+            onToggled: Settings.s.shuffleDaily = !Settings.s.shuffleDaily
         }
     }
 
