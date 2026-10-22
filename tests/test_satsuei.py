@@ -439,5 +439,29 @@ class Center(unittest.TestCase):
         self.assertEqual(pokes[0]["notes"], 2)          # the stand-in server sends two
 
 
+class Subtitles(unittest.TestCase):
+    """Step 6: notifications as subtitles."""
+
+    def test_the_look(self):
+        sub = (SAT / "subs/Subtitles.qml").read_text()
+        for needle in ('"satsuei-subs"', "anchors { bottom: true }", "margins.bottom: 46", "size: 18",
+                       "toUpperCase()", "spacing: 0.2", "Text.Outline", "duration: 450", "duration: 350",
+                       "Notifs.lifetime", "Notifs.critical(note)"):
+            self.assertIn(needle, sub)
+        self.assertIn("readonly property int lifetime: 5200", (SAT / "services/Notifs.qml").read_text())
+        self.assertIn("Subtitles {}", (SAT / "shell.qml").read_text())
+
+    @unittest.skipUnless(has_pyside(), "needs PySide6")
+    def test_one_at_a_time_and_critical_stays(self):
+        import qs_smoke
+        errors, pokes = qs_smoke.smoke(SAT, seconds=14, poke=REPO / "tests/pokes/satsuei-subs.qml")
+        self.assertEqual(errors, [])
+        by = {p["tag"]: p for p in pokes}
+        self.assertEqual((by["first"]["queue"], by["first"]["current"]), (2, 1))
+        self.assertEqual((by["second"]["queue"], by["second"]["current"]), (1, 2))   # 5.2 s on, the next
+        self.assertEqual((by["later"]["queue"], by["later"]["current"]), (1, 2))     # critical: still there
+        self.assertEqual(by["later"]["all"], 2)                                      # both kept in the list
+
+
 if __name__ == "__main__":
     unittest.main()
