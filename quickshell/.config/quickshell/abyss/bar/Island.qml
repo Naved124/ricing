@@ -44,9 +44,8 @@ PanelWindow {
     readonly property bool hovered: hover.hovered && mode === "pill"
     readonly property int count: Notifs.all.length
 
-    // the bar is 38 tall, 12 from the top; the island sits 4 in from its edge
-    // (Nacre's measurements)
-    readonly property int top: 16
+    // the bar is 40 tall, 12 from the top; the island sits 5 in from its edge
+    readonly property int top: 17
     readonly property int pillHeight: 30
 
     anchors { top: true; bottom: true; left: true; right: true }

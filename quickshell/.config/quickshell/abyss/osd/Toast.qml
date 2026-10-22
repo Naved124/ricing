@@ -29,7 +29,7 @@ PanelWindow {
 
     screen: Hypr.focusedScreen
     anchors.top: true
-    margins.top: 12 + 38 + 10
+    margins.top: 12 + 40 + 10
     implicitWidth: 360
     implicitHeight: 80
     exclusionMode: ExclusionMode.Ignore
