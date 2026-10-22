@@ -42,7 +42,7 @@ PanelWindow {
 
     Item {
         id: card
-        width: 280
+        width: 340
         height: 330
 
         x: Shell.statsAt.x * (win.width - width)
@@ -108,8 +108,9 @@ PanelWindow {
                     const n = 14, pts = [];
                     for (let i = 0; i <= n; i++) {
                         const u = i / n * upTo, y = card.rimY - 2 + u * tent.len;
+                        // the outer two fan out, so their labels clear each other
                         const x = tent.x0 + Math.sin(win.t * 0.9 + tent.index * 1.7 + u * 4.2) * 9 * u
-                                  + (tent.modelData.at - 0.5) * 30 * u;
+                                  + (tent.modelData.at - 0.5) * 260 * u * u;
                         pts.push([x, y]);
                     }
                     let d = `M ${pts[0][0]} ${pts[0][1]}`;
@@ -159,9 +160,10 @@ PanelWindow {
                     opacity: 0.9
                 }
                 Column {
-                    x: tent.whole.end[0] - width / 2
+                    // under the tentacle's resting end, so the text doesn't sway
+                    x: tent.x0 + (tent.modelData.at - 0.5) * 260 - width / 2
                     y: tent.whole.end[1] + 8
-                    width: 90
+                    width: 112
                     spacing: 1
                     Label {
                         width: parent.width

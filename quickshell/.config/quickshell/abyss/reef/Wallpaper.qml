@@ -17,8 +17,11 @@ import qs.services
 //   the shell             disturbances where cards land, the launcher opens…
 // and decides how hard it works:
 //   stopped    no frames, no simulation: a fullscreen window on this
-//              screen, the session locked (the lock has its own reef), the
-//              screen asleep (DPMS)
+//              screen, or the session locked (the lock has its own reef).
+//              Not DPMS: Hyprland's monitor info can stay stale after the
+//              screen wakes, which froze the reef everywhere; hypridle locks
+//              before it turns the screen off, and a dark screen sends no
+//              frame callbacks, so nothing is drawn then anyway.
 //   reduced    15 fps, half the plankton, no bloom: tiled windows cover 92%
 //              of the screen, or the battery is under 30% (reduce_on_battery)
 PanelWindow {
@@ -32,13 +35,12 @@ PanelWindow {
 
     // ── throttling ─────────────────────────────────────────────────────────
     property real coverage: 0                 // of this screen, by windows on its workspace
-    property bool asleep: false               // DPMS off
     readonly property bool fullscreen: Hypr.fullscreenOn(monitor)
-    readonly property bool stopped: fullscreen || Shell.locked || asleep
+    readonly property bool stopped: fullscreen || Shell.locked
     readonly property bool lowBattery: Config.reduceOnBattery && Battery.onBattery && Battery.present && Battery.level < 0.3
     readonly property bool reduced: coverage >= 0.92 || lowBattery
     readonly property string throttle: fullscreen ? "stopped: fullscreen" : Shell.locked ? "stopped: locked"
-        : asleep ? "stopped: dpms off" : coverage >= 0.92 ? `reduced: windows cover ${Math.round(coverage * 100)}%`
+        : coverage >= 0.92 ? `reduced: windows cover ${Math.round(coverage * 100)}%`
         : lowBattery ? `reduced: battery ${Math.round(Battery.level * 100)}%` : "full"
 
     anchors { top: true; bottom: true; left: true; right: true }
@@ -97,11 +99,11 @@ PanelWindow {
         function onKicked() { reef.kick(); }
     }
 
-    // ── how much of the screen windows cover, and whether it's asleep ─────
+    // ── how much of the screen windows cover ──────────────────────────────
     // Tiled windows on this screen's workspace, from Hyprland's clients, on
     // a 48 × 27 grid; refreshed shortly after a window opens, closes, moves
     // or changes, and every few seconds while the reef runs (a resize has no
-    // event). The monitors' list says when DPMS has put the screen to sleep.
+    // event).
     function measure() {
         const ws = monitor?.activeWorkspace;
         const sx = screen.x, sy = screen.y, sw = screen.width, sh = screen.height;
@@ -124,8 +126,6 @@ PanelWindow {
             }
         }
         coverage = hit / (cols * rows);
-        const m = monitor?.lastIpcObject;
-        asleep = !!m && m.dpmsStatus === false;
     }
     Connections {
         target: Hyprland

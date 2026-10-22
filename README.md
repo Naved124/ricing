@@ -78,8 +78,8 @@ The reef runs on a timer (30 fps by default), not on every frame, and works less
 it can:
 
 - **stopped** (no frames, no simulation) while a window is fullscreen on that screen,
-  while the session is locked (the lock screen has its own reef), or while the screen is
-  asleep
+  or while the session is locked (the lock screen has its own reef; hypridle locks before
+  the screen turns off)
 - **reduced** (15 fps, half the plankton, no bloom) while tiled windows cover 92% of the
   screen, or on battery under 30%
 

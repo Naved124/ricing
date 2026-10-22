@@ -240,8 +240,7 @@ class Shells(unittest.TestCase):
         full = by["full"]
         self.assertEqual((full["rate"], full["running"], full["reduced"]), (30, True, False))
         self.assertEqual(full["plankton"], 620)
-        for state, why in (("fullscreen", "stopped: fullscreen"), ("locked", "stopped: locked"),
-                           ("dpms off", "stopped: dpms off")):
+        for state, why in (("fullscreen", "stopped: fullscreen"), ("locked", "stopped: locked")):
             with self.subTest(state):
                 self.assertEqual((by[state]["rate"], by[state]["running"], by[state]["throttle"]), (0, False, why))
         for state, why in (("covered", "reduced: windows cover 100%"), ("low battery", "reduced: battery 20%")):
@@ -249,7 +248,8 @@ class Shells(unittest.TestCase):
                 p = by[state]
                 self.assertEqual((p["rate"], p["reduced"], p["throttle"], p["plankton"], p["bloom"]),
                                  (15, True, why, 310, "off"))
-        for state in ("back", "unlocked", "half covered", "charging", "dpms on"):
+        # a monitor reported asleep (stale after a wake) no longer stops it
+        for state in ("back", "unlocked", "half covered", "charging", "dpms off", "dpms on"):
             with self.subTest(state):
                 self.assertEqual((by[state]["rate"], by[state]["throttle"]), (30, "full"))
         self.assertEqual(by["half covered"]["coverage"], 0.5)

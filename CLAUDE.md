@@ -357,7 +357,8 @@ jellies, plankton). `water.frag` composes it with the gradient, rays, caustics, 
 refraction, a quarter-size bloom and the tone map.
 
 - It ticks on a `Timer`, never a `FrameAnimation` (a test checks): between ticks
-  nothing redraws. `Wallpaper.qml` stops it (fullscreen, locked, DPMS off) or reduces
+  nothing redraws. `Wallpaper.qml` stops it (fullscreen, locked; not DPMS, whose
+  state Hyprland's monitor info can keep stale) or reduces
   it (92% covered, low battery); `qs -c abyss ipc call reef stats` says which and why.
 - In QV4, index arrays with integers (`|0`): a double index made the reef 15× slower.
 - A running `ParticleSystem` keeps the window redrawing every vsync, so plankton stays
