@@ -5,9 +5,10 @@ import "shapes.js" as S
 
 // Bit: a small robot, its rounded body in the plate's second accent, a light
 // head with a dark screen for a face, eyes of glowing accent and an antenna
-// ball (the rig's `extra`). It dances stiffly: every pose held for a quarter
-// of a beat, the ball flashing on each kick and the eyes turning to ^ ^ on
-// the downbeat.
+// ball (the rig's `extra`). It dances like a robot: it pops from pose to
+// pose four times a beat (each snap eased over a third of the step, then
+// held), the ball flashing on each kick and the eyes turning to ^ ^ on the
+// downbeat.
 Rig {
     id: r
 

@@ -16,7 +16,7 @@ import qs.services
 // loud), idle (breathing, a small tilt), wave (the right arm up, at 12 rad/s)
 // and sleep (the head down 14°, eyes almost shut, slow breathing).
 // `profile` scales each motion ({ bob, tilt, sway, arms, legs, extra, speed },
-// and `steps`: hold each dance pose for 1/steps of a beat),
+// and `steps`: snap from pose to pose, 1/steps of a beat each),
 // so every character dances its own way; a character can read `beat` (the
 // phase in radians: one beat is π) and `t` for moves of its own.
 // It ticks at 30 fps only while `running`; between ticks nothing redraws.
@@ -67,9 +67,15 @@ Item {
         t += dt;
         if (mode === "dance" && !Motion.reduced)
             phase += dt * (bpm / 60) / 2 * (0.75 + energy * 0.6) * k("speed");
-        // a stepped dancer (Bit) holds each pose for a quarter of a beat
+        // a stepped dancer (Bit) moves pose to pose, 1/steps of a beat each:
+        // it snaps into each one over the first third of the step (eased, so
+        // it reads as a robot's pop, not dropped frames) and holds it
         const steps = profile.steps ?? 0;
-        const b = steps > 0 && mode === "dance" ? Math.floor(beat / Math.PI * steps) / steps * Math.PI : beat;
+        let b = beat;
+        if (steps > 0 && mode === "dance") {
+            const x = beat / Math.PI * steps, f = Math.min(1, (x - Math.floor(x)) / 0.33);
+            b = (Math.floor(x) + f * f * (3 - 2 * f)) / steps * Math.PI;
+        }
         const e = energy;
         let bo = 0, ti = 0, sw = 0, l = 8, r = -8, ll = 0, lr = 0, x = 0, ey = 1;
         if (Motion.reduced) {
