@@ -9,8 +9,6 @@ REPO = Path(__file__).resolve().parent.parent
 AUDIO = REPO / "audio/.config"
 CONFS = {
     "pipewire": AUDIO / "pipewire/pipewire.conf.d/10-rice-hifi.conf",
-    "pulse": AUDIO / "pipewire/pipewire-pulse.conf.d/10-rice-hifi.conf",
-    "client": AUDIO / "pipewire/client.conf.d/10-rice-hifi.conf",
     "bluetooth": AUDIO / "wireplumber/wireplumber.conf.d/50-rice-bluetooth.conf",
     "alsa": AUDIO / "wireplumber/wireplumber.conf.d/51-rice-alsa.conf",
 }
@@ -46,9 +44,14 @@ class Audio(unittest.TestCase):
         self.assertTrue(rates, "no allowed-rates")
         for rate in ("44100", "48000", "96000"):
             self.assertIn(rate, rates.group(1).split())
-        for name in ("pulse", "client", "alsa"):
-            self.assertRegex(CONFS[name].read_text(), r"resample\.quality\s*=\s*10\b", name)
         self.assertRegex(CONFS["alsa"].read_text(), r"session\.suspend-timeout-seconds\s*=\s*0\b")
+
+    def test_resampler_stays_stock(self):
+        # A higher resample.quality builds its filters in the client's realtime audio
+        # thread; past rtkit's RLIMIT_RTTIME the kernel SIGKILLs the player (mpv died
+        # at the start of a video).
+        for path in AUDIO.rglob("*.conf"):
+            self.assertNotRegex(body(path), r"resample\.quality", path.name)
 
     def test_bluetooth_keeps_its_quality(self):
         text = CONFS["bluetooth"].read_text()

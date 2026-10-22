@@ -211,8 +211,8 @@ Every rice gets the same sound setup (the `audio/` package, PipeWire and WirePlu
 drop-ins):
 
 - **Wired**: the card switches to the music's own rate (44.1, 48, 88.2, 96, 176.4 or
-  192 kHz) instead of resampling everything to 48 kHz; when a stream must be resampled,
-  it's at the best quality; the jack never suspends, so sound starting doesn't pop.
+  192 kHz) instead of resampling everything to 48 kHz, when nothing else is playing at
+  another rate; the jack never suspends, so sound starting doesn't pop.
 - **Bluetooth**: LDAC (adaptive, from 990 kbps), aptX, aptX HD, AAC (highest bitrate),
   LC3, SBC-XQ, and LHDC v5 if you said yes to it. The headphones get the best codec you
   both have. Opening a mic no longer drops music to the phone-quality call profile; pick

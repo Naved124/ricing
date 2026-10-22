@@ -474,8 +474,10 @@ The chooser card (`card.qml`) shows the plate on screen now (from `theme.json`),
 ## Audio
 
 The `audio/` stow package is the same for every rice. PipeWire's `allowed-rates` let the
-card follow a stream's rate (no resampling of 44.1 kHz music) and `resample.quality = 10`
-covers the rest; ALSA outputs never suspend (no pop). WirePlumber offers every installed
+card follow a stream's rate (no resampling of 44.1 kHz music); ALSA outputs never suspend
+(no pop). Leave `resample.quality` at PipeWire's default: a client builds its resampler
+in its realtime data loop, and with rtkit that thread has an `RLIMIT_RTTIME`, so quality
+10 had the kernel SIGKILL mpv's `data-loop.0` as a video started (a test checks). WirePlumber offers every installed
 Bluetooth codec (never set `bluez5.codecs`: it would shut out LHDC), LDAC at `auto`,
 AAC at bitrate mode 5, and `bluetooth.autoswitch-to-headset-profile = false` so a mic
 never drops music to HFP. `install --fresh` adds `pipewire-audio` (which pulls libldac,
