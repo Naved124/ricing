@@ -136,6 +136,7 @@ files=(
     "/usr/share/fonts/TTF/SymbolsNerdFontMono-Regular.ttf|ttf-nerd-fonts-symbols-mono"
     "/usr/lib/qt6/bin/qsb|qt6-shadertools"      # tools/shaders compiles the shells' shaders
     "-|ttf-jetbrains-mono"
+    "-|mpv-mpris"                             # mpv shows in the shells' media (MPRIS) like Spotify
 )
 
 missing_pkgs() {
