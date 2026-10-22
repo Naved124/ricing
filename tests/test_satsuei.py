@@ -590,6 +590,71 @@ class Characters(unittest.TestCase):
             self.assertRegex(base, rf'key\("{re.escape(k)}"\),\s+hl\.dsp\.global\("quickshell:{name}"\)')
             self.assertIn(f'name: "{name}"', shell)
 
+class Custom(unittest.TestCase):
+    """Step 9: the user's own characters, and the strip that casts them."""
+
+    def test_the_folder(self):
+        chars = (SAT / "chars/Characters.qml").read_text()
+        for needle in ('"/satsuei/characters"', "FolderListModel", "watchChanges: true", '["mkdir", "-p", root.dir]',
+                       "baseBpm: 100", "scale: 1", "offsetX: 0", "offsetY: 0", "flip: false", "trimBottom: 0",
+                       "puppet: 0.6", "frames: 0", '"thumb.png"', "libwebp_anim", "info.frames > 0",
+                       "builtins.concat(customs)", "Settings.s.shuffleDaily", "Settings.s.shuffledOn = today()"):
+            self.assertIn(needle, chars)
+        # a folder named like a built-in, or with no dance, isn't cast
+        self.assertIn("root.builtins.some(c => c.id === id)", chars)
+        self.assertIn("entry = clips.dance ?", chars)
+
+    def test_it_plays_like_a_builtin(self):
+        c = (SAT / "chars/Custom.qml").read_text()
+        self.assertIn("Rig {", c)
+        for needle in ("AnimatedImage", "AnimatedSprite", "playing: r.playing", "(clipName !== \"dance\" || Media.playing)",
+                       "Math.max(0.6, Math.min(1.6, Tempo.bpm / (meta.baseBpm || 100))) * (0.75 + 0.6 * Math.min(1, Beat.level))",
+                       "1 - 0.07 * Tempo.kick * r.puppet", "Tempo.drop", "xScale: r.meta.flip ? -1 : 1",
+                       "r.meta.trimBottom", "r.meta.offsetX", "r.meta.offsetY", "0.75 : 1", '"Z" : "z"'):
+            self.assertIn(needle, c)
+        # one way in for every host
+        actor = (SAT / "chars/Actor.qml").read_text()
+        self.assertIn("item.cast = Qt.binding(() => root.cast)", actor)
+        for f in ("chars/Dancer.qml", "desk/Stats.qml", "center/Strip.qml"):
+            self.assertIn("Actor {", (SAT / f).read_text(), f)
+
+    def test_the_strip(self):
+        strip = (SAT / "center/Strip.qml").read_text()
+        for needle in ('"Dancer"', '"Edge mascot"', '"Shuffle daily"', '"+add"', "xdg-open", "Characters.set(root.role",
+                       "Characters.all.concat", "running: root.open && !tile.add", "interval: 66"):
+            self.assertIn(needle, strip)
+        self.assertIn("Strip {", (SAT / "center/Center.qml").read_text())
+        install = (REPO / "install").read_text()
+        self.assertIn("|qt6-imageformats", install)
+        self.assertIn("ffmpeg:ffmpeg", install)
+
+    def test_every_shader_is_there(self):
+        for f in SAT.rglob("*.qml"):
+            for url in re.findall(r'resolvedUrl\("([^"]+\.qsb)"\)', f.read_text()):
+                self.assertTrue((f.parent / url).resolve().exists(), f"{f.relative_to(SAT)}: {url}")
+
+    @unittest.skipUnless(has_pyside(), "needs PySide6")
+    def test_a_gif_takes_the_stage(self):
+        import qs_smoke
+        folder = STUB_HOME / ".config/satsuei/characters"
+        shutil.rmtree(folder / "test", ignore_errors=True)
+        folder.mkdir(parents=True, exist_ok=True)
+        shutil.copytree(REPO / "tests/fixtures/satsuei-char/test", folder / "test")
+        try:
+            errors, pokes = qs_smoke.smoke(SAT, seconds=4.5, poke=REPO / "tests/pokes/satsuei-cast.qml")
+        finally:
+            shutil.rmtree(folder / "test", ignore_errors=True)
+        self.assertEqual(errors, [])
+        found, cast = pokes[0], pokes[1]
+        self.assertEqual(found["ids"], ["hana", "mochi", "kon", "bit", "yuki", "test"])
+        t = found["test"]
+        self.assertEqual((t["name"], t["ja"], t["file"]), ("Testy", "テスト", "Custom.qml"))
+        self.assertEqual(t["meta"]["baseBpm"], 110)
+        self.assertEqual(t["meta"]["puppet"], 0.6)            # a default filled in
+        self.assertTrue(t["clips"]["dance"]["path"].endswith("/test/dance.gif"))
+        self.assertEqual((cast["dancer"], cast["mascot"], cast["open"]), ("test", "bit", True))
+
+
 class Desk(unittest.TestCase):
     """The system card every shell has, as Satsuei's timesheet."""
 
@@ -605,7 +670,7 @@ class Desk(unittest.TestCase):
                        "(win.frame + 1) % 10", "color: Theme.urgent"):
             self.assertIn(needle, st)
         # the little dancer: slow ticks, still while covered, fanning when hot
-        for needle in ("item.interval = 66", 'win.hot ? "wave" : "idle"', "!win.covered", "v < 0.7 : v > 0.8",
+        for needle in ("interval: 66", 'win.hot ? "wave" : "idle"', "!win.covered", "v < 0.7 : v > 0.8",
                        "win.streak >= 3"):
             self.assertIn(needle, st)
         shell = (SAT / "services/Shell.qml").read_text()

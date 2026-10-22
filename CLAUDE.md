@@ -409,6 +409,17 @@ mock's 120 × 160 canvas, curve renderer); their clothes are the plate's tokens 
 their skin and eyes `Style.art`. `services/Tempo.qml` guesses the tempo from Beat's
 kicks; `Characters.qml` says who plays the dancer and the mascot.
 
+The user's own characters are folders in `~/.config/satsuei/characters/<id>/`: a
+`dance` clip (required), optional `idle`/`wave`/`sleep`/`thumb.png` and `meta.json`
+(`name nameJa baseBpm scale offsetX offsetY flip trimBottom puppet`, and `frames fps`
+for a `.png` sprite sheet). GIF and animated WebP play as they are (WebP needs
+qt6-imageformats); an APNG is converted once by ffmpeg into
+`~/.cache/satsuei/characters/`, since Qt shows only its first frame. `Characters`
+watches the folders (`FolderListModel` plus each `meta.json`), so they appear with no
+restart. `chars/Custom.qml` is a `Rig` that plays the clips and moves the whole sprite
+(the beat puppet); `chars/Actor.qml` shows any character, built-in or not, and every
+host (the media card, the timesheet, `center/Strip.qml`) goes through it.
+
 The system card (`desk/Stats.qml`) is a timesheet: CUT and the day, ten frames inked
 down three columns (CPU, MEM, DSK) with a playhead stepping once a second, the readout
 beside, and the dancer small on its top edge (15 fps, still while windows cover it,

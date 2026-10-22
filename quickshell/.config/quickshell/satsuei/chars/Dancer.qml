@@ -34,14 +34,11 @@ Item {
         }
     }
 
-    Loader {
-        id: actor
+    Actor {
         anchors.fill: parent
-        source: Qt.resolvedUrl(root.cast.file)
-        onLoaded: {
-            item.mode = Qt.binding(() => Media.playing ? "dance" : "idle");
-            item.energy = Qt.binding(() => 0.45 + Math.min(1, Beat.level) * 0.75);
-            item.running = Qt.binding(() => root.running);
-        }
+        cast: root.cast
+        mode: Media.playing ? "dance" : "idle"
+        energy: 0.45 + Math.min(1, Beat.level) * 0.75
+        running: root.running
     }
 }

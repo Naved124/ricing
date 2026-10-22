@@ -112,6 +112,8 @@ optional=(
     # Satsuei: the palette from the wallpaper, its blur maps, the folder
     # watcher and the file pickers
     matugen:matugen-bin inotifywait:inotify-tools zenity:zenity
+    # Satsuei: custom characters' APNGs become animated WebP
+    ffmpeg:ffmpeg
 )
 # Python modules, checked by import: Pillow regenerates Paper's paper textures
 # and wallpaper (rices/paper/assets/gen.py)
@@ -137,6 +139,7 @@ files=(
     "/usr/lib/qt6/bin/qsb|qt6-shadertools"      # tools/shaders compiles the shells' shaders
     "-|ttf-jetbrains-mono"
     "-|mpv-mpris"                             # mpv shows in the shells' media (MPRIS) like Spotify
+    "/usr/lib/qt6/plugins/imageformats/libqwebp.so|qt6-imageformats"   # Satsuei's characters as animated WebP
 )
 
 missing_pkgs() {

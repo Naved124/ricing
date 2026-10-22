@@ -343,14 +343,12 @@ PanelWindow {
                 radius: 2.5
                 color: Theme.at(Theme.ink, 0.25)
             }
-            Loader {
+            Actor {
                 anchors.fill: parent
-                source: Qt.resolvedUrl("../chars/" + Characters.dancer.file)
-                onLoaded: {
-                    item.interval = 66;
-                    item.mode = Qt.binding(() => win.hot ? "wave" : "idle");
-                    item.running = Qt.binding(() => win.visible && !win.covered);
-                }
+                cast: Characters.dancer
+                interval: 66
+                mode: win.hot ? "wave" : "idle"
+                running: win.visible && !win.covered
             }
         }
     }

@@ -23,6 +23,7 @@ import qs.services
 Item {
     id: rig
 
+    property var cast: null                 // its entry in Characters.all
     property string mode: "idle"            // dance | idle | wave | sleep
     property real energy: 0.6               // 0–1: the music's loudness × volume
     property real bpm: Tempo.bpm

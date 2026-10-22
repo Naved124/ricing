@@ -14,7 +14,7 @@ import qs.services
 // mock's .2,.9,.25,1.05 over 0.55 s). Top to bottom:
 //   · you: the avatar seal, user@host, uptime, recording, power
 //   · what's playing (MediaCard), the dancer standing on its top right edge
-//   · the character strip (chars/, from step 9)
+//   · the character strip (Strip): who dances, who peeks from the edge
 //   · seven toggles: Wi-Fi, Bluetooth, Quiet, Night light, Compositing, Mascot,
 //     the Timesheet (the desk's system card)
 //   · volume (to 150%) and brightness (past the backlight it's the pass's
@@ -189,12 +189,11 @@ PanelWindow {
                         }
                     }
 
-                    // ── the character strip (step 9) ────────────────────────
-                    Item {
+                    // ── the character strip ────────────────────────────────
+                    Strip {
                         id: stripSlot
                         width: parent.width
-                        height: childrenRect.height
-                        visible: children.length > 0
+                        open: win.open
                     }
 
                     // ── toggles ────────────────────────────────────────────
