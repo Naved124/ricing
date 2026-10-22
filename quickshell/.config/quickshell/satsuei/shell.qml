@@ -12,6 +12,7 @@ import Quickshell.Io
 import Quickshell.Hyprland
 import qs.bar
 import qs.center
+import qs.chars
 import qs.common
 import qs.keys
 import qs.launcher
@@ -84,6 +85,17 @@ ShellRoot {
         description: "Open the power menu"
         onPressed: Shell.togglePower()
     }
+    // Satsuei's own (base.lua binds them; only this shell registers them)
+    GlobalShortcut {
+        name: "satsuei-dancer-next"
+        description: "The next character as the dancer"
+        onPressed: Shell.toast("person", `Dancer: ${Characters.byId(Characters.next("dancer")).name}`)
+    }
+    GlobalShortcut {
+        name: "satsuei-mascot-next"
+        description: "The next character as the edge mascot"
+        onPressed: Shell.toast("person", `Mascot: ${Characters.byId(Characters.next("mascot")).name}`)
+    }
     GlobalShortcut {
         name: "clipboard"
         description: "Open clipboard history in the launcher"
@@ -124,6 +136,11 @@ ShellRoot {
         function toggleFx(name: string): void { Settings.setFx(name, !Settings.fx(name)); }
         // hold the hour (0–24), or follow the clock again with a negative one
         // a test subtitle (the mock's "Send a test")
+        // who plays the dancer (the media card) or the mascot (the screen edge)
+        function setCharacter(role: string, id: string): string {
+            return Characters.set(role, id) ? id : `no character called ${id}`;
+        }
+        function nextCharacter(role: string): string { return Characters.next(role); }
         function testNote(): void {
             Quickshell.execDetached(["notify-send", "-a", "Calendar", "Study block starts in 10 minutes."]);
         }

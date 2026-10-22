@@ -169,6 +169,11 @@ bind(key("ALT + SHIFT + D"), hl.dsp.exec_cmd("rice mode auto"),   "Rice · Light
 -- Only Abyss's shell registers these; elsewhere they do nothing.
 bind(key("CTRL + R"),         hl.dsp.global("quickshell:reef-interactive"), "Rice · Reef: touch on/off (Abyss)")
 bind(key("CTRL + SHIFT + R"), hl.dsp.global("quickshell:reef-stats"),       "Rice · Reef: stats overlay (Abyss)")
+-- Satsuei's plate and its characters. Only Satsuei's shell registers these.
+bind(key("CTRL + W"),        hl.dsp.global("quickshell:satsuei-walls"),       "Rice · Wallpaper selector (Satsuei)")
+bind(key("ALT + C"),         hl.dsp.global("quickshell:satsuei-cast"),        "Rice · Cast: choose the characters (Satsuei)")
+bind(key("ALT + SHIFT + C"), hl.dsp.global("quickshell:satsuei-dancer-next"), "Rice · Next dancer (Satsuei)")
+bind(key("ALT + M"),         hl.dsp.global("quickshell:satsuei-mascot-next"), "Rice · Next edge mascot (Satsuei)")
 
 -- mouse
 bind(key("mouse:272"), hl.dsp.window.drag(),   "Mouse · Move window",   { mouse = true })

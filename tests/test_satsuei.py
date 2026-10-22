@@ -570,5 +570,25 @@ class Characters(unittest.TestCase):
         self.assertIn("while (b < 70) b *= 2;", tempo)
 
 
+    def test_the_cast(self):
+        chars = (SAT / "chars/Characters.qml").read_text()
+        for c in ("hana", "mochi", "kon", "bit", "yuki"):
+            self.assertIn(f'id: "{c}"', chars)
+            self.assertTrue((SAT / f"chars/{c.capitalize()}.qml").exists())
+        # each dances its own way
+        self.assertIn("0.99 + 0.07 * Math.sin(r.beat * 2)", (SAT / "chars/Mochi.qml").read_text())   # squash 0.92-1.06
+        self.assertIn("Math.max(0, Math.sin(beat)) * 14", (SAT / "chars/Kon.qml").read_text())       # every other beat
+        bit = (SAT / "chars/Bit.qml").read_text()
+        self.assertIn("steps: 4", bit)
+        self.assertIn("Tempo.kick", bit)
+        self.assertIn("Math.cos(phase * Math.PI)", (SAT / "chars/Yuki.qml").read_text())             # a turn in 4 beats
+        shell = (SAT / "shell.qml").read_text()
+        self.assertIn("function setCharacter(role: string, id: string)", shell)
+        self.assertIn("function nextCharacter(role: string)", shell)
+        base = (REPO / "hypr/.config/hypr/base.lua").read_text()
+        for k, name in (("ALT + SHIFT + C", "satsuei-dancer-next"), ("ALT + M", "satsuei-mascot-next")):
+            self.assertRegex(base, rf'key\("{re.escape(k)}"\),\s+hl\.dsp\.global\("quickshell:{name}"\)')
+            self.assertIn(f'name: "{name}"', shell)
+
 if __name__ == "__main__":
     unittest.main()

@@ -187,7 +187,10 @@ class Binds(unittest.TestCase):
             have = set()
             for f in (SHELLS / shell).rglob("*.qml"):
                 have |= set(re.findall(r'GlobalShortcut \{(?:\s*id: \w+)?\s*name: "([\w-]+)"', f.read_text()))
-            want = names if shell == "abyss" else {n for n in names if not n.startswith("reef-")}
+            # the reef's are Abyss's alone, satsuei-* Satsuei's (test_satsuei)
+            want = {n for n in names if not n.startswith("satsuei-")}
+            if shell != "abyss":
+                want = {n for n in want if not n.startswith("reef-")}
             with self.subTest(shell):
                 self.assertEqual(want - have, set())
 

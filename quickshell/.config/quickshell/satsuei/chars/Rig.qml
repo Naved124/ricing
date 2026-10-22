@@ -15,9 +15,10 @@ import qs.services
 // Modes: dance (on the beat: `phase` runs at half the tempo, faster when it's
 // loud), idle (breathing, a small tilt), wave (the right arm up, at 12 rad/s)
 // and sleep (the head down 14°, eyes almost shut, slow breathing).
-// `profile` scales each motion ({ bob, tilt, sway, arms, legs, extra, speed }),
+// `profile` scales each motion ({ bob, tilt, sway, arms, legs, extra, speed },
+// and `steps`: hold each dance pose for 1/steps of a beat),
 // so every character dances its own way; a character can read `beat` (the
-// phase in radians) and `t` for moves of its own.
+// phase in radians: one beat is π) and `t` for moves of its own.
 // It ticks at 30 fps only while `running`; between ticks nothing redraws.
 Item {
     id: rig
@@ -58,14 +59,18 @@ Item {
         scale: Math.min(rig.width / 120, rig.height / 160)
     }
 
-    function k(name) { return rig.profile[name] ?? 1; }
+    // the profile shapes the dance; waving and sleeping are everyone's
+    function k(name) { return rig.mode === "dance" ? rig.profile[name] ?? 1 : 1; }
 
     property real blinkAt: 2 + Math.random() * 3
     function step(dt) {
         t += dt;
         if (mode === "dance" && !Motion.reduced)
             phase += dt * (bpm / 60) / 2 * (0.75 + energy * 0.6) * k("speed");
-        const b = beat, e = energy;
+        // a stepped dancer (Bit) holds each pose for a quarter of a beat
+        const steps = profile.steps ?? 0;
+        const b = steps > 0 && mode === "dance" ? Math.floor(beat / Math.PI * steps) / steps * Math.PI : beat;
+        const e = energy;
         let bo = 0, ti = 0, sw = 0, l = 8, r = -8, ll = 0, lr = 0, x = 0, ey = 1;
         if (Motion.reduced) {
             // still, but alive: open eyes, arms down
