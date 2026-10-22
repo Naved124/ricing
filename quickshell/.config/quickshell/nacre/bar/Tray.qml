@@ -11,7 +11,9 @@ Item {
     id: root
 
     required property var bar
-    readonly property var items: SystemTray.items.values
+    // a network applet's icon is left out: the bar's own network mark is the
+    // one, and the network widget does what the applet would
+    readonly property var items: SystemTray.items.values.filter(i => !/nm-applet|networkmanager|network-manager|iwgtk|connman/i.test((i.id ?? "") + " " + (i.title ?? "")))
 
     visible: items.length > 0
     implicitHeight: 26

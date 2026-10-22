@@ -63,7 +63,6 @@ panel_out   = 320
 stagger     = 30
 
 [gtk]
-cursor       = "Bibata-Modern-Ice"
 cursor_size  = 24
 
 [nvim]

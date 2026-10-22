@@ -336,6 +336,37 @@ class Switch(unittest.TestCase):
         self.assertEqual(r.returncode, 0, r.stderr)
         self.log.unlink(missing_ok=True)
 
+    def test_one_cursor_by_the_light_set_only_when_it_changes(self):
+        def cursors():
+            return [c for c in self.calls() if c.startswith("hyprctl setcursor")]
+        # before any mode is chosen: Ice
+        self.to_nacre()
+        state = Path(self.env["XDG_STATE_HOME"]) / "rice/cursor"
+        self.assertEqual(state.read_text().strip(), "Bibata-Modern-Ice 24")
+        index = Path(self.env["HOME"]) / ".icons/default/index.theme"
+        self.assertIn("Inherits=Bibata-Modern-Ice", index.read_text())
+        # by day: Classic, set once
+        self.rice("mode", "light", "--instant")
+        self.assertEqual(cursors(), ["hyprctl setcursor Bibata-Modern-Classic 24"])
+        self.assertIn("gsettings set org.gnome.desktop.interface cursor-theme Bibata-Modern-Classic", self.calls())
+        # another rice in the same mode: not touched
+        self.log.unlink()
+        self.assertEqual(self.rice("paper").returncode, 0)
+        self.assertEqual(cursors(), [])
+        self.assertFalse(any("cursor-theme" in c for c in self.calls()))
+        # at night: Ice again
+        self.rice("mode", "dark", "--instant")
+        self.assertEqual(cursors(), ["hyprctl setcursor Bibata-Modern-Ice 24"])
+        # every rendered build carries its mode's cursor; a palette can't pick its own
+        for mode, name in (("light", "Bibata-Modern-Classic"), ("dark", "Bibata-Modern-Ice")):
+            regreet = (self.rices / f"paper/build/{mode}/regreet/regreet.toml").read_text()
+            self.assertIn(f'cursor_theme_name = "{name}"', regreet)
+        text = (self.rices / "paper/palette.toml").read_text()
+        (self.rices / "paper/palette.toml").write_text(text.replace("[gtk]\n", '[gtk]\ncursor = "Adwaita"\n'))
+        r = subprocess.run(["rice-render", "paper"], env=self.env, capture_output=True, text=True)
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("the cursor is the mode's", r.stderr)
+
     def test_a_dark_only_rice_opens_dark_by_day(self):
         self.to_deep()
         active = Path(self.env["HOME"]) / ".local/share/rice/active"

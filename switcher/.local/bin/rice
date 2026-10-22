@@ -158,9 +158,37 @@ dissolve() {
 apply_hypr() {
     have hyprctl || return 0
     hyprctl reload >/dev/null
-    local cursor size
-    cursor="$(palette "$1" gtk cursor)"; size="$(palette "$1" gtk cursor_size)"
-    [[ -n "$cursor" ]] && hyprctl setcursor "$cursor" "${size:-24}" >/dev/null || true
+}
+
+# the cursor: one for every rice, by the light (rice-render's CURSORS):
+# Bibata Modern Classic by day, Ice at night, in a dark-only rice and before
+# any mode is chosen. It's set only when it changes (the last one is in
+# $STATE_DIR/cursor), so switching between rices in the same mode leaves it be;
+# login (RICE_FORCE) always sets it.
+cursor_name() {
+    local m
+    m="$(fixed_mode "$1")"
+    if [[ -z "$m" ]]; then
+        if [[ -s "$STATE_DIR/mode" ]]; then m="$(mode)"; else m=dark; fi
+    fi
+    [[ "$m" == light ]] && echo Bibata-Modern-Classic || echo Bibata-Modern-Ice
+}
+apply_cursor() {
+    local want size
+    want="$(cursor_name "$1")"
+    size="$(palette "$1" gtk cursor_size)"; size="${size:-24}"
+    if [[ "$want $size" == "$(cat "$STATE_DIR/cursor" 2>/dev/null || true)" && "${RICE_FORCE:-0}" != 1 ]]; then
+        return 0
+    fi
+    if have hyprctl; then hyprctl setcursor "$want" "$size" >/dev/null || true; fi
+    if have gsettings; then
+        gsettings set org.gnome.desktop.interface cursor-theme "$want" || true
+        gsettings set org.gnome.desktop.interface cursor-size "$size" || true
+    fi
+    # XWayland and apps that read neither: the default cursor theme
+    mkdir -p "$HOME/.icons/default"
+    printf '[Icon Theme]\nInherits=%s\n' "$want" > "$HOME/.icons/default/index.theme"
+    write_state cursor "$want $size"
 }
 
 # Hyprland's screen shader, set explicitly on every switch: the rice's own
@@ -310,8 +338,6 @@ apply_gtk() {
     local s=org.gnome.desktop.interface v
     v="$(look "$1" gtk_theme)";          [[ -n "$v" ]] && gsettings set $s gtk-theme "$v"
     v="$(look "$1" icon_theme)";         [[ -n "$v" ]] && gsettings set $s icon-theme "$v"
-    v="$(palette "$1" gtk cursor)";      [[ -n "$v" ]] && gsettings set $s cursor-theme "$v"
-    v="$(palette "$1" gtk cursor_size)"; [[ -n "$v" ]] && gsettings set $s cursor-size "$v"
     v="$(look "$1" color_scheme)";       [[ -n "$v" ]] && gsettings set $s color-scheme "$v"
     local ui mono size msize style
     # apps' text size: app_size, or the shell's ui_size when a rice doesn't set one
@@ -364,6 +390,7 @@ step() { "$@" || log "$1 failed (exit $?), continuing"; }
 # everything that makes the desktop look like the rice now in `current`
 apply_all() {
     step apply_hypr "$1"
+    step apply_cursor "$1"
     step apply_screen_shader "$1"
     step apply_gtk "$1"
     step apply_kitty
@@ -458,6 +485,7 @@ session() {
     step mode_cmd tick --instant          # before the shells start, so they start in it
     step render "$cur"
     step apply_gtk "$cur"
+    RICE_FORCE=1 step apply_cursor "$cur"
     step apply_notifications "$cur"
     step apply_wallpaper "$cur"
     step apply_shell "$cur"
@@ -627,6 +655,12 @@ mode_set() {
     local target="$1" source="$2" instant="$3" cur how=(jump "$1") frozen=0 t0 fixed
     cur="$(current)" || die "no active rice"
     if [[ "$target" == "$(mode)" && "${RICE_FORCE:-0}" != 1 ]]; then
+        # nothing chosen yet reads as light, but wears the night's cursor:
+        # choosing light now writes it down and brings the day's
+        if [[ ! -s "$STATE_DIR/mode" ]]; then
+            write_state mode "$target"
+            step apply_cursor "$cur"
+        fi
         write_state mode-source "$source"
         log "already $target"; return 0
     fi
@@ -654,6 +688,7 @@ mode_set() {
     point_active
     step apply_mode_hypr
     step apply_mode_gtk "$cur"
+    step apply_cursor "$cur"
     step apply_mode_apps "$cur" "$target"
     step mode_ipc "${how[@]}"
     printf '%s\n' "$(( $(now_ms) - t0 ))" > "$RUN_DIR/mode-timing"

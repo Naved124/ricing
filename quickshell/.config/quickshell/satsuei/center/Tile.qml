@@ -13,6 +13,10 @@ Rectangle {
     property bool on: false
     signal toggled()
     signal secondary()
+    // a double-click does `secondary` too (the Wi-Fi tile: the network
+    // widget); a single click then waits out the double-click time
+    property bool doubleOpens: false
+    Timer { id: single; interval: 250; onTriggered: root.toggled() }
 
     implicitHeight: 68
     radius: 14
@@ -52,6 +56,15 @@ Rectangle {
         hoverEnabled: true
         cursorShape: Qt.PointingHandCursor
         acceptedButtons: Qt.LeftButton | Qt.RightButton
-        onClicked: m => m.button === Qt.RightButton ? root.secondary() : root.toggled()
+        onClicked: m => {
+            if (m.button === Qt.RightButton) { root.secondary(); return; }
+            if (root.doubleOpens) single.restart();
+            else root.toggled();
+        }
+        onDoubleClicked: m => {
+            if (!root.doubleOpens || m.button !== Qt.LeftButton) return;
+            single.stop();
+            root.secondary();
+        }
     }
 }

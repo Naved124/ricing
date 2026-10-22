@@ -210,6 +210,9 @@ PanelWindow {
                             sub: Net.wifiEnabled ? (Net.wifi?.name ?? "On") : "Off"
                             on: Net.wifiEnabled
                             onToggled: Net.setWifi(!Net.wifiEnabled)
+                            // right-click or double-click: the network widget (the shared shell's)
+                            doubleOpens: true
+                            onSecondary: { Shell.centerOpen = false; Quickshell.execDetached(["qs", "-c", "rice", "ipc", "call", "network", "open"]); }
                         }
                         Tile {
                             width: tiles.tileW

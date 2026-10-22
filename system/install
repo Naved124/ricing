@@ -7,6 +7,8 @@
 #   sudo system/install --limine       colours, font and wallpaper in limine.conf
 #   sudo system/install --plymouth     the splash, its initramfs hook, `splash` on
 #                                      the kernel command line
+#   sudo system/install --network      NetworkManager drives Wi-Fi through iwd
+#                                      (wifi.backend=iwd), from the next boot
 #   sudo system/install --refresh      re-theme whichever of these is set up
 #                                      (what `rice system` runs after a switch)
 #   sudo system/install --undo         put back everything the last run changed
@@ -28,7 +30,7 @@ stamp=$(date +%Y%m%d-%H%M%S)
 backups="$R/var/backups/rice"
 backup="$backups/$stamp"
 
-greetd=0 limine=0 plymouth=0 refresh=0 undo=0 dry=0 yes=0 quiet=0
+greetd=0 limine=0 plymouth=0 network=0 refresh=0 undo=0 dry=0 yes=0 quiet=0
 
 say()  { [ "$quiet" = 1 ] || printf '%s\n' "$*"; }
 warn() { printf 'warning: %s\n' "$*" >&2; }
@@ -47,6 +49,7 @@ while [ $# -gt 0 ]; do
         --greetd) greetd=1 ;;
         --limine) limine=1 ;;
         --plymouth) plymouth=1 ;;
+        --network) network=1 ;;
         --refresh) refresh=1 ;;
         --undo) undo=1 ;;
         -n|--dry-run) dry=1 ;;
@@ -64,7 +67,7 @@ fi
 
 # ── backups ─────────────────────────────────────────────────────────────
 # manifest lines:  file <path>  |  absent <path>  |  dm <unit>  |  plymouth <theme>
-#                  |  initramfs
+#                  |  initramfs  |  enabled <unit> (was off)  |  disabled <unit> (was on)
 record() {
     [ "$dry" = 1 ] && return 0
     mkdir -p "$backup"
@@ -124,6 +127,12 @@ undo_last() {
                 say "  splash theme back to $path" ;;
             initramfs)
                 : ;;
+            enabled)
+                run systemctl disable "$path" >/dev/null 2>&1 || true
+                say "  $path no longer starts at boot" ;;
+            disabled)
+                run systemctl enable "$path"
+                say "  $path starts at boot again" ;;
         esac
     done
     if grep -qx 'initramfs' "$last/manifest"; then
@@ -229,6 +238,37 @@ setup_greetd() {
         run systemctl enable greetd.service
         say "  greetd replaces ${current:-the console login} from the next boot"
     fi
+}
+
+# ── NetworkManager on iwd ───────────────────────────────────────────────
+# NetworkManager keeps the connections (and the shells' network widget talks
+# to it with nmcli); iwd does the Wi-Fi underneath instead of wpa_supplicant.
+# iwd mustn't configure addresses itself, and wpa_supplicant mustn't hold the
+# card too. Nothing restarts now: Wi-Fi would drop mid-session.
+unit_enabled() { systemctl ${R:+--root="$R"} is-enabled --quiet "$1" 2>/dev/null; }
+setup_network() {
+    say "network: NetworkManager with the iwd backend"
+    need nmcli:networkmanager iwctl:iwd || warn "NetworkManager and iwd are both needed"
+    printf '%s\n' "# rice: NetworkManager drives Wi-Fi through iwd (system/install --network)" \
+        "[device]" "wifi.backend=iwd" | put /etc/NetworkManager/conf.d/rice-iwd.conf
+    local conf=/etc/iwd/main.conf
+    if grep -qsiE '^[[:space:]]*EnableNetworkConfiguration[[:space:]]*=[[:space:]]*true' "$R$conf"; then
+        sed -E 's/^([[:space:]]*EnableNetworkConfiguration[[:space:]]*=[[:space:]]*)true/\1false/I' "$R$conf" | put "$conf"
+        say "  iwd leaves addresses to NetworkManager"
+    fi
+    if unit_enabled wpa_supplicant.service; then
+        record "disabled wpa_supplicant.service"
+        run systemctl disable wpa_supplicant.service
+    fi
+    local u
+    for u in iwd.service NetworkManager.service; do
+        if ! unit_enabled "$u"; then
+            record "enabled $u"
+            run systemctl enable "$u"
+        fi
+    done
+    say "  from the next boot (or now: sudo systemctl restart iwd NetworkManager, which drops Wi-Fi for a moment)"
+    say "  saved networks stay: NetworkManager keeps them"
 }
 
 # ── Limine ──────────────────────────────────────────────────────────────
@@ -398,6 +438,7 @@ PY
 [ "$limine" = 1 ] && setup_limine
 [ "$plymouth" = 1 ] && setup_plymouth
 [ "$greetd" = 1 ] && setup_greetd
+[ "$network" = 1 ] && setup_network
 
 if [ "$dry" = 1 ]; then
     say "dry run: nothing was changed"

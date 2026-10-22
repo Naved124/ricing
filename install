@@ -125,6 +125,7 @@ themes=(
     "adw-gtk3|adw-gtk-theme"
     "Colloid-Light|colloid-icon-theme-git"
     "Bibata-Modern-Ice|bibata-cursor-theme-bin"
+    "Bibata-Modern-Classic|bibata-cursor-theme-bin"
     "Papirus-Light|papirus-icon-theme"
 )
 
@@ -176,7 +177,7 @@ missing_files() {
 # widget talks to NetworkManager, screen sharing and file pickers need the
 # portals, password prompts need a polkit agent, and three themes are AUR-only.
 fresh_pkgs=(
-    git base-devel networkmanager bluez bluez-utils power-profiles-daemon
+    git base-devel networkmanager iwd bluez bluez-utils power-profiles-daemon
     pipewire pipewire-pulse pipewire-alsa wireplumber
     xdg-desktop-portal-hyprland xdg-desktop-portal-gtk hyprpolkitagent
     firefox nautilus noto-fonts noto-fonts-cjk noto-fonts-emoji wpa_supplicant
@@ -244,9 +245,11 @@ if [ "$fresh" = 1 ]; then
 
     # NetworkManager next to another network daemon would fight over the
     # interfaces mid-install, so the old one is only disabled: it keeps the
-    # network up until the reboot, and NetworkManager starts from then on
+    # network up until the reboot, and NetworkManager starts from then on.
+    # iwd stays: `sudo system/install --network` makes it NetworkManager's
+    # Wi-Fi backend
     others=()
-    for svc in systemd-networkd iwd dhcpcd netctl; do
+    for svc in systemd-networkd dhcpcd netctl; do
         systemctl is-active --quiet "$svc" 2>/dev/null && others+=("$svc")
     done
     if [ ${#others[@]} -eq 0 ]; then
@@ -258,6 +261,7 @@ if [ "$fresh" = 1 ]; then
     fi
     run sudo systemctl enable --now bluetooth.service power-profiles-daemon.service
     ok "NetworkManager, Bluetooth and power profiles enabled"
+    echo "  for Wi-Fi through iwd: sudo system/install --network"
 fi
 
 step "Packages"

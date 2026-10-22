@@ -160,7 +160,11 @@ differ. The pieces are listed in the checklist below.
 - **Control centre** (Super+N): toggles (Wi-Fi, Bluetooth, Do Not Disturb, night
   light, microphone, power profile, light/dark/auto, screen recording, the system card,
   plus the rice's own, such as Paper's grain), volume to 150% and brightness. Media and
-  notification history live in the island, not here.
+  notification history live in the island, not here. The Wi-Fi tile's right-click and
+  double-click (`doubleOpens`) open the shared shell's network widget
+  (`rice/Network.qml` + `Wifi.qml`, nmcli; `qs -c rice ipc call network open`), dressed
+  in the active rice; the trays leave network applets out, so the bar has one network
+  mark. `system/install --network` puts NetworkManager on iwd.
 - **Desk**: the system card on the bottom layer, draggable, its place and visibility
   remembered; it hides while that monitor has a fullscreen window.
 - **Mode**: every shell colour crossfades with `Theme.k`; nothing in a shell is fixed
@@ -192,7 +196,12 @@ Shared:
 - `[shape]` `window rounding_power panel popup chip border gaps_in gaps_out`.
 - `[motion]` bezier `bloom settle sink` and durations `open close move workspace
   scratchpad focus border_loop panel_in panel_out stagger`.
-- `[gtk]` `cursor cursor_size`.
+- `[gtk]` `cursor_size`. The cursor isn't the rice's: it's one for every rice, by the
+  light. `rice-render` sets `gtk.cursor` to Bibata Modern Classic in light builds and
+  Ice in dark ones (a palette that sets its own is an error), and `rice` applies Classic
+  by day and Ice at night, in a dark-only rice and before any mode is chosen. It does
+  this through `hyprctl setcursor`, gsettings and `~/.icons/default`, only when the
+  cursor changes (`$STATE_DIR/cursor`), so a switch within one mode leaves it alone.
 - `[nvim]` `colorscheme = "rice"`.
 - `[install]` generated files that live outside `build/`, e.g. the shell's `Theme.qml`.
 - `[meta] overlay = "<path under XDG_STATE_HOME>"`: a generated palette whose
@@ -273,7 +282,7 @@ is meant to alter light mode, and say so in the commit.
 ## How a switch hooks in
 
 `rice <name>`: render → freeze (shared shell overlay) → swap `current` → apply:
-`hyprctl reload` + cursor, the screen shader (`hyprctl eval`), GTK via gsettings (theme, icons, cursor, fonts, colour
+`hyprctl reload`, the cursor (when it changes), the screen shader (`hyprctl eval`), GTK via gsettings (theme, icons, cursor, fonts, colour
 scheme), kitty, nvim, notifications daemon, wallpaper, the rice's Quickshell
 (old one killed, new one started), `spicetify refresh`, `hooks/post-switch` →
 dissolve with the rice's `transition` shader. A failing step is logged and skipped.

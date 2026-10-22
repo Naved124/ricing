@@ -294,8 +294,9 @@ rice-rec toggle      record the screen to ~/Videos, again to stop (also: region)
 2. `grim` screenshots every monitor, and the always-running shared shell (`qs -c rice`)
    pins the shots above everything (`qs -c rice ipc call rice freeze <dir>`).
 3. Under the overlay, `current` is swapped atomically and each step runs:
-   - `hyprctl reload` and the cursor;
-   - GTK theme, icons, cursor and fonts through `gsettings`;
+   - `hyprctl reload`, and the cursor if it changes (one for every rice: Bibata Modern
+     Classic in light mode, Ice in dark and dark-only rices);
+   - GTK theme, icons and fonts through `gsettings`;
    - `SIGUSR1` to kitty, and `:colorscheme` to every running nvim;
    - notifications: swaync is stopped when the rice's shell is the daemon, otherwise
      started or reloaded;
@@ -495,6 +496,29 @@ sudo system/install --undo         # put back everything the last run changed
   running session isn't touched.
 - **Keyring**: adds GNOME Keyring to greetd's PAM file, so the password you type at
   ReGreet also unlocks it and apps can keep their sign-ins.
+
+## Network
+
+Every rice has the same network widget: right-click or double-click the Wi-Fi tile in the
+control centre (or run `qs -c rice ipc call network open`). It's drawn in the active rice's
+colours, fonts and corners. In it you can:
+
+- turn Wi-Fi on or off and rescan
+- join a network (a password is asked for once and kept by NetworkManager), or a hidden one
+- see your address, gateway and DNS, and set DNS servers: the network's own, Cloudflare,
+  Google, Quad9 or your own list
+- for each saved network: whether it joins on its own, show its password, forget it
+
+It talks to NetworkManager through `nmcli`. To have NetworkManager drive Wi-Fi through
+**iwd** instead of wpa_supplicant:
+
+```sh
+sudo system/install --network     # from the next boot; --undo puts it back
+```
+
+That writes `wifi.backend=iwd` to `/etc/NetworkManager/conf.d/rice-iwd.conf`, enables
+iwd and turns off wpa_supplicant. Your saved networks stay. The bar shows one network
+mark: a network applet's own tray icon (nm-applet, iwgtk) is left out.
 
 Every changed file is backed up to `/var/backups/rice/<time>/` first. After switching rice,
 `rice system` re-themes whichever of the three you set up (it asks for sudo).

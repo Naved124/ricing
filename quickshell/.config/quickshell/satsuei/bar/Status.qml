@@ -145,9 +145,12 @@ Row {
     Row {
         anchors.verticalCenter: parent.verticalCenter
         spacing: 8
-        visible: SystemTray.items.values.length > 0
+        visible: tray.count > 0
         Repeater {
-            model: SystemTray.items.values
+            id: tray
+            // a network applet's icon is left out: the bar's own network mark is the
+            // one, and the network widget does what the applet would
+            model: SystemTray.items.values.filter(i => !/nm-applet|networkmanager|network-manager|iwgtk|connman/i.test((i.id ?? "") + " " + (i.title ?? "")))
             delegate: IconImage {
                 id: trayIcon
                 required property var modelData

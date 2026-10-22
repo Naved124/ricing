@@ -19,6 +19,11 @@ FAKE = r"""#!/bin/sh
 echo "$(basename "$0") $*" >> "$RICE_TEST_LOG"
 case "$(basename "$0")" in
     findmnt) echo "$RICE_SYSTEM_ROOT/boot" ;;
+    systemctl)
+        # is-enabled: the units listed in RICE_TEST_ENABLED are
+        for a in "$@"; do last=$a; done
+        case " $* " in *" is-enabled "*)
+            case " $RICE_TEST_ENABLED " in *" $last "*) exit 0 ;; *) exit 1 ;; esac ;; esac ;;
     plymouth-set-default-theme)
         if [ -n "$1" ]; then echo "$1" > "$RICE_TEST_PLY"; else cat "$RICE_TEST_PLY" 2>/dev/null || echo bgrt; fi ;;
 esac
@@ -135,6 +140,26 @@ class SystemInstall(unittest.TestCase):
         for _ in range(2):
             self.run_install("--greetd")
         self.assertEqual(pam.read_text().count("pam_gnome_keyring"), 2)
+
+    def test_network_moves_wifi_to_iwd_and_undoes(self):
+        conf = self.root / "etc/iwd/main.conf"
+        conf.parent.mkdir(parents=True)
+        conf.write_text("[General]\nEnableNetworkConfiguration=true\n")
+        self.env["RICE_TEST_ENABLED"] = "wpa_supplicant.service NetworkManager.service"
+        self.run_install("--network")
+        nm = self.root / "etc/NetworkManager/conf.d/rice-iwd.conf"
+        self.assertIn("[device]\nwifi.backend=iwd\n", nm.read_text())
+        self.assertIn("EnableNetworkConfiguration=false", conf.read_text())
+        calls = self.calls()
+        self.assertIn("systemctl disable wpa_supplicant.service", calls)
+        self.assertIn("systemctl enable iwd.service", calls)
+        self.assertNotIn("systemctl enable NetworkManager.service", calls)     # already on
+        self.run_install("--undo")
+        self.assertFalse(nm.exists())
+        self.assertEqual(conf.read_text(), "[General]\nEnableNetworkConfiguration=true\n")
+        calls = self.calls()
+        self.assertIn("systemctl enable wpa_supplicant.service", calls)
+        self.assertIn("systemctl disable iwd.service", calls)
 
     def test_plymouth_hook_cmdline_and_rebuild(self):
         for _ in range(2):

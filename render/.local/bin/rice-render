@@ -135,6 +135,10 @@ MODES = ("light", "dark")
 MODE_TABLES = ("colors", "roles", "gradient", "ansi", "opacity", "wallpaper")
 # [modes.<mode>.meta] keys that templates and `rice` know by their old [gtk] names
 GTK_KEYS = {"gtk_theme": "theme", "icon_theme": "icons", "color_scheme": "color_scheme"}
+# one cursor for every rice, by the light: Bibata Modern Classic by day, Ice at
+# night (and in a dark-only rice, and before a mode is chosen: `rice`). A
+# switch between rices in the same mode never reloads it.
+CURSORS = {"light": "Bibata-Modern-Classic", "dark": "Bibata-Modern-Ice"}
 
 
 def declared_modes(data: dict, path: Path) -> tuple[str, ...]:
@@ -174,7 +178,10 @@ def flatten_mode(data: dict, mode: str, path: Path) -> dict:
             data[t] = m[t]
     look = m.get("meta", {})
     data["meta"] = {**data.get("meta", {}), **look}
-    data["gtk"] = {**data.get("gtk", {}), **{GTK_KEYS[k]: v for k, v in look.items() if k in GTK_KEYS}}
+    if "cursor" in data.get("gtk", {}):
+        raise RenderError(f"{path}: [gtk] cursor: the cursor is the mode's, not the rice's (rice-render's CURSORS)")
+    data["gtk"] = {**data.get("gtk", {}), **{GTK_KEYS[k]: v for k, v in look.items() if k in GTK_KEYS},
+                   "cursor": CURSORS[mode]}
     data["mode"] = mode
     data["has_mode"] = mode in modes
     data["modes"] = list(own)

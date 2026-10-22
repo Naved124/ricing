@@ -79,7 +79,6 @@ stagger     = 30
 
 # the cursor is the same in both modes; the GTK theme and icons are per mode
 [gtk]
-cursor       = "Bibata-Modern-Classic"
 cursor_size  = 24
 
 [nvim]

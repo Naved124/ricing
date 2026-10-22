@@ -159,7 +159,9 @@ PanelWindow {
                             on: Net.wifiEnabled
                             available: !!Net.wifiDevice
                             onToggled: Net.setWifi(!Net.wifiEnabled)
-                            onSecondary: { Shell.centerOpen = false; Quickshell.execDetached(["kitty", "-e", "nmtui"]); }
+                            // right-click or double-click: the network widget (the shared shell's)
+                            doubleOpens: true
+                            onSecondary: { Shell.centerOpen = false; Quickshell.execDetached(["qs", "-c", "rice", "ipc", "call", "network", "open"]); }
                         }
                         Toggle {
                             readonly property var connected: Bluetooth.devices.values.filter(d => d.connected)

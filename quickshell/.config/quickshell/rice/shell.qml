@@ -10,6 +10,9 @@
 //   qs -c rice ipc call rice reload            re-read the rice list
 //   qs -c rice ipc call rice reveal <mode>     reveal the desktop after `rice mode`
 //                                              with the rice's mode shader (lamp, orient)
+//   qs -c rice ipc call network open|close|toggle
+//                                              the network widget (each rice's Wi-Fi tile:
+//                                              right-click or double-click)
 
 import QtQuick
 import Quickshell
@@ -20,16 +23,24 @@ ShellRoot {
     id: root
 
     // how long each transition shader runs, by meta.transition (or transition_out)
-    readonly property var durations: ({ ripple: 900, peel: 950, fade: 450, flood: 1100, drain: 1000 })
+    readonly property var durations: ({ ripple: 900, peel: 950, fade: 450, flood: 1100, drain: 1000, leak: 1000 })
     // a mode change in a rice without a mode shader fades the frozen frame away
     readonly property int modeReveal: 600
 
     Chooser { id: chooser }
+    Network { id: network }
 
     Variants {
         id: frames
         model: Quickshell.screens
         Freeze {}
+    }
+
+    IpcHandler {
+        target: "network"
+        function open(): void { network.open = true; }
+        function close(): void { network.open = false; }
+        function toggle(): void { network.toggle(); }
     }
 
     IpcHandler {
