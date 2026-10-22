@@ -27,6 +27,7 @@ Singleton {
     readonly property int radiusPanel:  {{ shape.panel }}
     readonly property int radiusPopup:  {{ shape.popup }}
     readonly property int radiusChip:   {{ shape.chip }}
+    readonly property int radiusWindowSmall: {{ shape.popup }}
     readonly property int gapsIn:       {{ shape.gaps_in }}
     readonly property int gapsOut:      {{ shape.gaps_out }}
     readonly property real glassOpacity: {{ opacity.glass }}
@@ -37,6 +38,8 @@ Singleton {
     readonly property var sink:   [{{ motion.sink | join(", ") }}, 1, 1]
     readonly property int durOpen:      {{ motion.open }}
     readonly property int durClose:     {{ motion.close }}
+    readonly property int durMove:      {{ motion.move }}
+    readonly property int durFocus:     {{ motion.focus }}
     readonly property int durWorkspace: {{ motion.workspace }}
     readonly property int durPanelIn:   {{ motion.panel_in }}
     readonly property int durPanelOut:  {{ motion.panel_out }}

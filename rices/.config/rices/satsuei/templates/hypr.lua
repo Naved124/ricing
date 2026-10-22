@@ -85,8 +85,15 @@ hl.animation({ leaf = "layers",       enabled = true, speed = 3, bezier = "bloom
 ---------------------------------------------------------------------------
 -- forced opaque: browsers, video, images, editors, games
 hl.window_rule({ name = "satsuei-opaque", match = { tag = "opaque" }, opacity = "1.0 override 1.0 override" })
--- glassy: terminals, files, music, system tools show the plate through them
+-- glassy: files, music, system tools are frosted glass over the plate
+-- (Hyprland's blur behind them); untagged apps (browsers, Electron) stay solid
 hl.window_rule({ name = "satsuei-glassy", match = { tag = "glassy" }, opacity = "{{ opacity.active }} override {{ opacity.inactive }} override" })
+-- terminals frost themselves (kitty's background at {{ opacity.terminal }}), so the window
+-- stays whole and the text keeps its full strength
+hl.window_rule({
+    name = "satsuei-terminal", match = { class = "^(kitty|foot|Alacritty|com.mitchellh.ghostty|org.wezfurlong.wezterm)$" },
+    opacity = "1.0 override 1.0 override",
+})
 -- floating dialogs: the popups' rounding (Hyprland allows at most 20)
 hl.window_rule({ name = "satsuei-dialog", match = { tag = "dialog" }, rounding = {{ shape.popup }} })
 -- picture-in-picture: no border

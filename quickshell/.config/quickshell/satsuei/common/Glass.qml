@@ -11,6 +11,9 @@ Item {
 
     property real radius: Style.radiusPanel
     property color fill: Theme.glassFill
+    property color line: Theme.rim       // the rim (a power choice lights it)
+    property real halo: 0                // the shared surfaces' glow; Satsuei's glass has none
+    property bool deep: false            // the same shadow either way
     property bool shadow: true
     property bool sheen: true
     default property alias content: inner.data
@@ -30,7 +33,7 @@ Item {
         anchors.fill: parent
         radius: root.radius
         color: root.fill
-        border.color: Theme.rim
+        border.color: root.line
         border.width: 1
     }
     // the highlight: 1 px of light just inside the top edge

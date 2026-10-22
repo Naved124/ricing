@@ -358,6 +358,10 @@ class Glass(unittest.TestCase):
                        '"^satsuei-(bar|center|studio|subs|walls|cast|launcher|osd|power|toast|keys)$"'):
             self.assertIn(needle, hypr)
         self.assertIn("vibrancy   = 0.2", mode)
+        # nothing goes see-through for losing focus; glassy windows are frosted, terminals whole
+        self.assertIn("inactive_opacity = 1.0", mode)
+        self.assertIn('match = { tag = "glassy" }, opacity = "0.88 override 0.88 override"', hypr)
+        self.assertIn('name = "satsuei-terminal"', hypr)
         seed = json.loads((RICE / "seed/theme.json").read_text())
         self.assertIn(f'"rgba({seed["accent"][1:]}ee)", "rgba({seed["accent2"][1:]}ee)"', mode)
         # kitty is glass too
@@ -406,6 +410,32 @@ class Glass(unittest.TestCase):
         import qs_smoke
         errors, _ = qs_smoke.smoke(SAT, seconds=3.0, poke=REPO / "tests/pokes/satsuei-episode.qml")
         self.assertEqual(errors, [])
+
+
+class SharedSurfaces(unittest.TestCase):
+    """The entry points every shell has (the shared binds reach them)."""
+
+    def test_the_shortcuts_and_ipc(self):
+        shell = (SAT / "shell.qml").read_text()
+        have = set(re.findall(r'GlobalShortcut \{(?:\s*id: \w+)?\s*name: "([\w-]+)"', shell))
+        self.assertTrue({"launcher", "launcher-tap", "clipboard", "center", "keybinds", "power"} <= have)
+        self.assertIn('target: "shell"', shell)
+        self.assertIn("function recording(on: bool)", shell)
+        self.assertIn('target: "osd"', (SAT / "osd/Osd.qml").read_text())
+        for f in ("launcher/Launcher.qml", "keys/KeySheet.qml", "power/Power.qml", "osd/Osd.qml", "osd/Toast.qml"):
+            text = (SAT / f).read_text()
+            self.assertNotIn("abyss", text.lower(), f)
+            self.assertNotIn("Reefs", text, f)
+
+    def test_the_volume_goes_to_150(self):
+        self.assertIn("maxVolume: 1.5", (SAT / "services/Audio.qml").read_text())
+
+    @unittest.skipUnless(has_pyside(), "needs PySide6")
+    def test_every_surface_opens_clean(self):
+        import qs_smoke
+        errors, pokes = qs_smoke.smoke(SAT, seconds=7, poke=REPO / "tests/pokes/satsuei-walk.qml")
+        self.assertEqual(errors, [])
+        self.assertEqual(pokes[-1]["mode"], "dark")
 
 
 class Center(unittest.TestCase):
@@ -465,7 +495,7 @@ class Subtitles(unittest.TestCase):
     @unittest.skipUnless(has_pyside(), "needs PySide6")
     def test_one_at_a_time_and_critical_stays(self):
         import qs_smoke
-        errors, pokes = qs_smoke.smoke(SAT, seconds=14, poke=REPO / "tests/pokes/satsuei-subs.qml")
+        errors, pokes = qs_smoke.smoke(SAT, seconds=17, poke=REPO / "tests/pokes/satsuei-subs.qml")
         self.assertEqual(errors, [])
         by = {p["tag"]: p for p in pokes}
         self.assertEqual((by["first"]["queue"], by["first"]["current"]), (2, 1))

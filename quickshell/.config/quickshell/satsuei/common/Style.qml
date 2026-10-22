@@ -27,6 +27,7 @@ Singleton {
     readonly property int radiusPanel:  22
     readonly property int radiusPopup:  16
     readonly property int radiusChip:   11
+    readonly property int radiusWindowSmall: 16
     readonly property int gapsIn:       6
     readonly property int gapsOut:      12
     readonly property real glassOpacity: 0.4
@@ -37,6 +38,8 @@ Singleton {
     readonly property var sink:   [0.65, 0, 0.25, 1, 1, 1]
     readonly property int durOpen:      450
     readonly property int durClose:     300
+    readonly property int durMove:      450
+    readonly property int durFocus:     300
     readonly property int durWorkspace: 600
     readonly property int durPanelIn:   550
     readonly property int durPanelOut:  350

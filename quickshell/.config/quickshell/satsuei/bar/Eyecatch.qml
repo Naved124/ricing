@@ -5,10 +5,12 @@ import qs.common
 import qs.services
 
 // The eyecatch: on every episode (workspace) change, a large "EP 0n" in Dela
-// Gothic One and its label, spaced out in capitals in the accent, at the
-// bottom left of that screen. It rises in (0.4 s fade, 0.5 s lift), holds for
-// 1.3 s and fades. The labels are settings.json's `episodes` (Terminal,
-// Notes, Wallpaper, Web, Music unless changed). It takes no input.
+// Gothic One and under it what's on: the focused app's name, spaced out in
+// capitals in the accent, and its window's title, dim, like an episode's
+// subtitle. An empty episode shows its label from settings.json's `episodes`
+// (Terminal, Notes, Wallpaper, Web, Music unless changed). At the bottom left
+// of that screen; it rises in (0.4 s fade, 0.5 s lift), holds for 1.3 s and
+// fades. It takes no input.
 PanelWindow {
     id: win
 
@@ -35,7 +37,17 @@ PanelWindow {
     mask: Region {}
     visible: col.opacity > 0 || show
 
+    // what's on: the focused window's app (its desktop entry's name when
+    // there is one), read live, since Hyprland names the window just after
+    // the workspace changes
+    readonly property bool here: monitor === Hypr.monitorFor(Hypr.focusedScreen)
+    readonly property string app: {
+        if (!here || !Hypr.activeClass) return "";
+        return DesktopEntries.heuristicLookup(Hypr.activeClass)?.name ?? Hypr.activeClass;
+    }
+    readonly property string title: here && app ? Hypr.activeTitle : ""
     function label(id) {
+        if (app) return app;
         const eps = Settings.s.episodes ?? [];
         return eps[id - 1] ?? "";
     }
@@ -82,6 +94,17 @@ PanelWindow {
             weight: 800
             spacing: 0.3
             color: Theme.accent
+            style: Text.Raised
+            styleColor: Theme.at(Theme.ink, 0.5)
+        }
+        Label {
+            visible: text !== ""
+            width: Math.min(implicitWidth, 480)
+            elide: Text.ElideRight
+            text: win.title
+            size: 13
+            weight: 500
+            color: Theme.fgDim
             style: Text.Raised
             styleColor: Theme.at(Theme.ink, 0.5)
         }

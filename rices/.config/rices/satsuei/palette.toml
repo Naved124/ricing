@@ -162,7 +162,7 @@ color14  = "#66dbb0"
 color15  = "#e2dad9"
 
 [modes.dark.opacity]
-terminal = 0.72    # kitty is glass too
-active   = 0.97
-inactive = 0.90
+terminal = 0.72    # kitty is glass too (its own background, under Hyprland's blur)
+active   = 0.88    # the glassy tag (files, music, system tools): frosted, focused or not
+inactive = 0.88
 glass    = 0.40    # the mock's panels: the tint at 40% over Hyprland's blur

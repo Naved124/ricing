@@ -13,5 +13,5 @@ Item {
     }
     Timer { interval: 300; running: true; onTriggered: parent.report("first") }
     Timer { interval: 6500; running: true; onTriggered: parent.report("second") }
-    Timer { interval: 13000; running: true; onTriggered: parent.report("later") }
+    Timer { interval: 12000; running: true; onTriggered: parent.report("later") }
 }

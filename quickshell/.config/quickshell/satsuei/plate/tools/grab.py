@@ -5,10 +5,11 @@
         one frame of the pass over the seed plate (or PATH, through satsuei-wall
         theme for its light source; its blur maps made in a scratch folder)
     grab.py --bench [--frames 240] [--size 1920x1080]
-        GPU time of the pass a frame, from OpenGL timer queries around the
-        scene's render pass (the scene is only the pass), with time moving as
-        it does on the desktop (the window's clear and the swap's blit are in
-        it too, so it's a little over the pass alone). On the laptop:
+        GPU time of the pass a frame, from OpenGL timer queries around each
+        frame, with vsync off (or the query would count the wait for the
+        screen), time moving as it does on the desktop. It runs twice, with
+        the pass and with it hidden, and reports the difference: the pass
+        alone, without the window's clear and present. On the laptop:
             python3 ~/.config/quickshell/satsuei/plate/tools/grab.py --bench
         Headless here it needs xvfb-run and QSG_RHI_BACKEND=opengl, and the
         number is the software rasterizer's, not a GPU's.
@@ -91,7 +92,12 @@ def main() -> int:
     shutil.copy(HERE / "Harness.qml", dst / "Harness.qml")
 
     from PySide6.QtCore import QObject, Qt, QTimer, QUrl
-    from PySide6.QtGui import QGuiApplication
+    from PySide6.QtGui import QGuiApplication, QSurfaceFormat
+
+    if a.bench:
+        fmt = QSurfaceFormat.defaultFormat()
+        fmt.setSwapInterval(0)                  # no vsync: count the work, not the wait
+        QSurfaceFormat.setDefaultFormat(fmt)
     from PySide6.QtQuick import QQuickView
 
     app = QGuiApplication(sys.argv[:1])
@@ -114,7 +120,7 @@ def main() -> int:
         GL_TIME_ELAPSED = 0x88BF
         GL_QUERY_RESULT = 0x8866
         ids = (ctypes.c_uint * 1)()
-        state = {"made": False, "open": False, "ns": [], "frames": 0, "t0": 0.0}
+        state = {"made": False, "open": False, "ns": [], "frames": 0, "t0": 0.0, "phase": "pass", "runs": {}}
 
         def begin():
             if lib is None:
@@ -143,24 +149,36 @@ def main() -> int:
         def step():
             pas.setProperty("time", pas.property("time") + 1 / 30)
 
+        def summary(ns, el):
+            ms = sorted(v / 1e6 for v in ns)
+            return {"gpu_ms_median": round(statistics.median(ms), 3),
+                    "gpu_ms_p95": round(ms[int(len(ms) * 0.95) - 1], 3),
+                    "wall_ms_frame": round(el / a.frames * 1000, 2)}
+
         def swapped():
             state["frames"] += 1
             if state["frames"] == 30:
                 state["t0"] = time.time()
             if state["frames"] >= 30 + a.frames:
-                ns = state["ns"]
                 el = time.time() - state["t0"]
-                if ns:
-                    ms = [v / 1e6 for v in ns]
-                    print(json.dumps({"size": [w, h], "frames": len(ms), "gpu_ms_median": round(statistics.median(ms), 3),
-                                      "gpu_ms_p95": round(sorted(ms)[int(len(ms) * 0.95) - 1], 3),
-                                      "wall_ms_frame": round(el / a.frames * 1000, 2),
-                                      "renderer": os.environ.get("QSG_RHI_BACKEND", "default")}))
-                else:
+                if not state["ns"]:
                     print(json.dumps({"error": "no GL timer queries (not an OpenGL scene graph?)",
                                       "wall_ms_frame": round(el / a.frames * 1000, 2)}))
-                sys.stdout.flush()
-                os._exit(0)
+                    sys.stdout.flush()
+                    os._exit(1)
+                state["runs"][state["phase"]] = summary(state["ns"], el)
+                if state["phase"] == "pass":
+                    # again with the pass hidden: what's left is the window itself
+                    state.update(phase="empty", ns=[], frames=0)
+                    pas.setProperty("visible", False)
+                else:
+                    r = state["runs"]
+                    print(json.dumps({"size": [w, h], "frames": a.frames,
+                                      "pass_gpu_ms": round(r["pass"]["gpu_ms_median"] - r["empty"]["gpu_ms_median"], 3),
+                                      "with_pass": r["pass"], "window_alone": r["empty"],
+                                      "renderer": os.environ.get("QSG_RHI_BACKEND", "default")}))
+                    sys.stdout.flush()
+                    os._exit(0)
             QTimer.singleShot(0, step)
 
         view.frameSwapped.connect(swapped)

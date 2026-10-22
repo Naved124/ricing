@@ -212,7 +212,17 @@ PanelWindow {
                             sub: !win.adapter ? "No adapter" : !win.adapter.enabled ? "Off"
                                  : (Bluetooth.devices.values.find(d => d.connected)?.name ?? "On")
                             on: !!win.adapter?.enabled
-                            onToggled: if (win.adapter) win.adapter.enabled = !win.adapter.enabled
+                            // an rfkill block makes `enabled` a no-op, so unblock first
+                            onToggled: {
+                                if (win.adapter?.enabled) { win.adapter.enabled = false; return; }
+                                Quickshell.execDetached(["sh", "-c", "rfkill unblock bluetooth; sleep 0.4; bluetoothctl power on"]);
+                                if (win.adapter) btLater.restart();
+                            }
+                            Timer {
+                                id: btLater
+                                interval: 600
+                                onTriggered: if (win.adapter && !win.adapter.enabled) win.adapter.enabled = true
+                            }
                         }
                         Tile {
                             width: tiles.tileW

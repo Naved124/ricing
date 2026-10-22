@@ -19,7 +19,9 @@ hl.config({
     },
 
     decoration = {
-        inactive_opacity = {{ opacity.inactive }},
+        -- nothing goes see-through for losing focus: browsers and Electron
+        -- apps stay solid; the glassy tag's windows are frosted (hypr.lua)
+        inactive_opacity = 1.0,
         blur = {
             brightness = {{ meta.hypr_blur_brightness }},
             vibrancy   = {{ meta.hypr_blur_vibrancy }},
