@@ -165,4 +165,5 @@ color15  = "#e2dad9"
 terminal = 0.72    # kitty is glass too (its own background, under Hyprland's blur)
 active   = 0.88    # the glassy tag (files, music, system tools): frosted, focused or not
 inactive = 0.88
+gtk      = 0.60    # GTK's window, view, header and sidebar fills (templates/gtk/gtk.css.append)
 glass    = 0.40    # the mock's panels: the tint at 40% over Hyprland's blur

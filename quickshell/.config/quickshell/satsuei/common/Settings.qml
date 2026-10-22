@@ -58,8 +58,6 @@ Singleton {
             property string rotate: "off"      // off, 15m, 30m, 1h, daily
             property string sort: "name"       // name, date, colour
             property string lastRotate: ""
-            // the eyecatch's label for each episode (workspace)
-            property var episodes: ["Terminal", "Notes", "Wallpaper", "Web", "Music"]
         }
     }
 }

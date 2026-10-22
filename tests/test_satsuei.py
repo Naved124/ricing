@@ -16,6 +16,7 @@ import sys
 import tempfile
 import tomllib
 import unittest
+from unittest import mock
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
@@ -350,6 +351,18 @@ class Glass(unittest.TestCase):
             out.append(rr.render_text(src.read_text(), ctx, str(src)))
         return out[0], out[1]
 
+    def test_gtk_windows_let_the_blur_in(self):
+        # a solid GTK fill marks the window opaque and Hyprland skips the blur
+        # behind it, so Satsuei's gtk.css.append makes the big fills glass
+        ctx = rr.load_modes(RICE)["dark"]
+        templates = REPO / "render/.local/share/rice/templates"
+        with mock.patch.object(rr, "SHARED", templates):
+            css = next(v.decode() for k, v in rr.mode_outputs(RICE, ctx).items() if k.name == "gtk.css")
+        shared = (templates / "gtk/gtk.css").read_text()
+        self.assertTrue(css.startswith(rr.render_text(shared, ctx, "gtk.css")))
+        self.assertIn(f"@define-color window_bg_color {rr.Filters(ctx).rgba(ctx['roles']['bg'], '0.6')};", css)
+        self.assertIn("@define-color popover_bg_color #", css)
+
     def test_hyprland(self):
         hypr, mode = self.hypr()
         for needle in ("size              = 8", "passes            = 3", "new_optimizations = true",
@@ -400,10 +413,9 @@ class Glass(unittest.TestCase):
     def test_the_eyecatch(self):
         eye = (SAT / "bar/Eyecatch.qml").read_text()
         for needle in ('"EP " + String(win.shownId).padStart(2, "0")', "interval: 1300 + 400", "duration: 400",
-                       "duration: 500", "Settings.s.episodes", "toUpperCase()", "spacing: 0.3", "mask: Region {}",
+                       "duration: 500", 'app || "Empty"', "toUpperCase()", "spacing: 0.3", "mask: Region {}",
                        '"satsuei-eyecatch"'):
             self.assertIn(needle, eye)
-        self.assertIn('["Terminal", "Notes", "Wallpaper", "Web", "Music"]', (SAT / "common/Settings.qml").read_text())
 
     @unittest.skipUnless(has_pyside(), "needs PySide6")
     def test_an_episode_change_runs_clean(self):

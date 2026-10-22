@@ -6,11 +6,11 @@ import Quickshell.Wayland
 import qs.common
 import qs.services
 
-// The power menu (Super+Escape): the water dims and five glass orbs rise in
-// a row: lock, suspend, log out, restart, shut down. The one under the
-// pointer (or chosen with the arrows) glows like a jelly's halo. The three
+// The power menu (Super+Escape): "That's a wrap" over the dimmed plate, and
+// five glass orbs rise in a row: lock, suspend, log out, restart, shut down.
+// The one under the pointer (or chosen with the arrows) glows. The three
 // that end the session take a second click: the first rings the orb in
-// pink and says so. Arrows/hjkl and Enter, 1–5, or Esc.
+// the urgent colour and says so. Arrows/hjkl and Enter, 1–5, or Esc.
 PanelWindow {
     id: win
 
@@ -47,7 +47,7 @@ PanelWindow {
     // a second click has to come soon
     Timer { id: disarm; interval: 3000; onTriggered: win.armed = -1 }
 
-    // the water darkens; Hyprland blurs this layer
+    // the plate darkens; Hyprland blurs this layer
     Rectangle {
         id: veil
         anchors.fill: parent
@@ -82,7 +82,7 @@ PanelWindow {
 
         Label {
             anchors.horizontalCenter: parent.horizontalCenter
-            text: win.armed >= 0 ? `${win.actions[win.armed].name}? Click again` : "Surface"
+            text: win.armed >= 0 ? `${win.actions[win.armed].name}? Click again` : "That's a wrap"
             font.family: Style.fontDisplay
             size: 30
             weight: Style.weightDisplay

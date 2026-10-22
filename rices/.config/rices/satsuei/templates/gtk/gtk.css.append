@@ -1,0 +1,13 @@
+
+/* Satsuei: GTK windows are glass over the plate. A window whose fill is
+   solid tells Hyprland it's opaque, and Hyprland then draws no blur behind
+   it however see-through its opacity rule makes it, so the plate showed
+   through sharp. These fills let the blur in (views and bars stack on the
+   window's, so they come out denser). Popovers, dialogs and cards stay solid. */
+@define-color window_bg_color {{ roles.bg | rgba(opacity.gtk) }};
+@define-color view_bg_color {{ roles.bg | mix(roles.surface, 0.3) | rgba(opacity.gtk) }};
+@define-color headerbar_bg_color {{ roles.surface | rgba(opacity.gtk) }};
+@define-color headerbar_backdrop_color {{ roles.bg | rgba(opacity.gtk) }};
+@define-color sidebar_bg_color {{ roles.surface | rgba(opacity.gtk) }};
+@define-color sidebar_backdrop_color {{ roles.bg | rgba(opacity.gtk) }};
+@define-color secondary_sidebar_bg_color {{ roles.surface | rgba(opacity.gtk) }};

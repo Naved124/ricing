@@ -551,7 +551,12 @@ low_battery() {
 apply_mode_hypr() {
     have hyprctl || return 0
     [[ -f "$ACTIVE/hypr-mode.lua" ]] || return 0
-    hyprctl eval "$(cat "$ACTIVE/hypr-mode.lua")" >/dev/null
+    local out
+    # say why when Hyprland refuses it (its answer is otherwise thrown away)
+    if ! out="$(hyprctl eval "$(cat "$ACTIVE/hypr-mode.lua")" 2>&1)"; then
+        log "hyprctl eval: ${out:-no answer}"
+        return 1
+    fi
 }
 
 # GTK and portal-aware apps (Firefox, libadwaita, kitty's auto themes)

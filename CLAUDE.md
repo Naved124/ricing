@@ -396,6 +396,11 @@ is `satsuei-*`. By the user's choice it departs from the shared shell in three w
   selector, Super+Alt+C the Cast picker, Super+Alt+Shift+C / Super+Alt+M the next
   dancer / mascot. Super+W stays the browser.
 
+GTK windows are glass too: a solid GTK fill marks a window opaque and Hyprland
+then draws no blur behind it, so `templates/gtk/gtk.css.append` makes the window,
+view, header and sidebar fills `opacity.gtk` (a rice's `<name>.append` is rendered
+onto the end of the shared `<name>`, so it adds to a shared template without a copy).
+
 `Theme.qml` is not generated: it reads `theme.json` and crossfades every token over
 600 ms (Behaviors inside a singleton crash the engine, so it mixes from a snapshot);
 `Style.qml` is, from the palette, and holds no plate colour.

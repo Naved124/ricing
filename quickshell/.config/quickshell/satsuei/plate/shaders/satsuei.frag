@@ -45,6 +45,12 @@ layout(binding = 4) uniform sampler2D rayMap;     // rays.frag's, an eighth of t
 
 float luma(vec3 c) { return dot(c, vec3(0.299, 0.587, 0.114)); }
 float h21(vec2 p) { p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
+// four at once for a mote's cell: is there one, where, how big
+vec4 h42(vec2 p) {
+    vec4 q = fract(p.xyxy * vec4(0.1031, 0.1030, 0.0973, 0.1099) + vec4(0.0, 0.0, 0.37, 0.71));
+    q += dot(q, q.wzxy + 33.33);
+    return fract((q.xxyz + q.yzzw) * q.zywx);
+}
 
 void main() {
     vec2 f = qt_TexCoord0 * res;
@@ -72,13 +78,13 @@ void main() {
             g.y += time * (0.04 + 0.025 * fk);                      // up the screen
             g.x += sin(time * 0.17 + fk * 2.0) * 0.35;
             vec2 id = floor(g), fr = fract(g);
-            float r = h21(id + fk * 7.13);
-            if (r > 0.5) {
-                vec2 pp = 0.2 + 0.6 * vec2(h21(id + 3.1), h21(id + 9.7));
-                pp += 0.12 * vec2(sin(time * 0.6 + r * 20.0), cos(time * 0.45 + r * 13.0));
+            vec4 r = h42(id + fk * 7.13);
+            if (r.x > 0.5) {
+                vec2 pp = 0.2 + 0.6 * r.yz;
+                pp += 0.12 * vec2(sin(time * 0.6 + r.x * 20.0), cos(time * 0.45 + r.x * 13.0));
                 float dd = length((fr - pp) * sz);
-                float rad = 0.8 + 1.8 * h21(id + 1.7) + fk * 0.7;
-                float tw = 0.55 + 0.45 * sin(time * (0.8 + r * 1.6) + r * 40.0);
+                float rad = 0.8 + 1.8 * r.w + fk * 0.7;
+                float tw = 0.55 + 0.45 * sin(time * (0.8 + r.x * 1.6) + r.x * 40.0);
                 m += smoothstep(rad, 0.0, dd) * tw * (1.0 - fk * 0.18);
             }
         }

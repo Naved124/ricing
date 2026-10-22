@@ -8,7 +8,9 @@
     rice-render --check         exit 1 if any output would change (for tests/CI)
 
 Templates live in ~/.local/share/rice/templates (shared by every rice) and
-<rice>/templates (a rice's own overrides or extra files). Every rice is
+<rice>/templates (a rice's own overrides or extra files; <name>.append is
+rendered onto the end of <name>, so a rice can add to a shared file without
+copying it). Every rice is
 rendered in both modes, into <rice>/build/light/ and <rice>/build/dark/, plus
 the paths listed in the palette's [install] table. A rice with no
 [modes.dark.*] tables renders its light tables into dark/ too. A rice that
@@ -627,6 +629,8 @@ def template_files(rice: Path, mode: str = "light", own: tuple[str, ...] = MODES
             if not f.is_file() or f.name.startswith(".") or f.name.endswith("~"):
                 continue
             rel = f.relative_to(root)
+            if rel.suffix == ".append":
+                continue                        # added to its file in mode_outputs
             m = MODE_FILE.match(rel.name)
             if not m:
                 plain[rel.as_posix()] = f
@@ -672,7 +676,11 @@ def mode_outputs(rice: Path, ctx: dict) -> dict[Path, bytes]:
         if src.suffix in {".png", ".jpg", ".ttf", ".otf", ".qsb"}:
             out[build / name] = src.read_bytes()
         else:
-            out[build / name] = render_text(src.read_text(), ctx, str(src)).encode()
+            text = render_text(src.read_text(), ctx, str(src))
+            extra = rice / "templates" / (rel + ".append")
+            if extra.is_file():
+                text += render_text(extra.read_text(), ctx, str(extra))
+            out[build / name] = text.encode()
 
     meta = {
         "name": ctx["meta"]["name"],

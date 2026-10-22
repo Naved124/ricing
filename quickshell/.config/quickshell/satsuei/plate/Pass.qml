@@ -36,7 +36,15 @@ Item {
     readonly property bool ready: (animated ? anim.status : still.status) === Image.Ready
     readonly property bool maps: bloomSource !== "" && softSource !== ""
 
-    // the plate, at its own size (the shader covers the screen with it)
+    // the plate, decoded no larger than it covers the screen at (the shader
+    // covers the screen with it): a 4K picture sampled at 1080p with no mips
+    // costs the pass more than all its effects
+    readonly property size cover: {
+        const W = Math.ceil(width * 1.04), H = Math.ceil(height * 1.04), I = plateSize;
+        if (W <= 0 || H <= 0 || I.width <= 0 || I.height <= 0) return Qt.size(1920, 1080);
+        // the side that covers decides; the other follows the picture
+        return I.width / I.height > W / H ? Qt.size(0, Math.min(H, I.height)) : Qt.size(Math.min(W, I.width), 0);
+    }
     Image {
         id: still
         visible: false
@@ -45,7 +53,7 @@ Item {
         cache: false
         mipmap: !root.maps
         smooth: true
-        sourceSize: root.maps ? undefined : Qt.size(1280, 720)
+        sourceSize: root.maps ? root.cover : Qt.size(1280, 720)
     }
     AnimatedImage {
         id: anim
@@ -77,8 +85,9 @@ Item {
     readonly property Image softTex: maps && softImg.status === Image.Ready ? softImg : plateTex
     readonly property real lod: maps ? 0 : 3.4
     readonly property size plateSz: {
-        const s = plateTex.sourceSize;
-        return s.width > 0 ? s : root.plateSize;
+        // what was decoded (sourceSize reads back the 0 it was given)
+        const t = plateTex;
+        return t.implicitWidth > 0 && t.implicitHeight > 0 ? Qt.size(t.implicitWidth, t.implicitHeight) : root.plateSize;
     }
 
     // the shafts, an eighth of the size

@@ -7,11 +7,11 @@ import Quickshell.Wayland
 import qs.common
 import qs.services
 
-// Volume and brightness: a slim depth gauge at the right edge, a column of
-// glass the level fills with teal light, tiny plankton rising inside it
-// while it changes. Up to 150% for the volume: past the 100% mark the light
-// runs violet. It touches the water beside it when it changes, appears
-// when either changes and drifts away 1.2 s later.
+// Volume and brightness: a slim gauge at the right edge, a column of glass
+// the level fills with the plate's accent, specks rising inside it while it
+// changes. Up to 150% for the volume: past the 100% mark the light runs into
+// the second accent. It glows beside itself when it changes, appears when
+// either changes and drifts away 1.2 s later.
 PanelWindow {
     id: win
 
@@ -32,7 +32,7 @@ PanelWindow {
         moving = true;
         hideTimer.restart();
         stillTimer.restart();
-        // the gauge's foot, where its light meets the water
+        // the gauge's foot, where its light meets the glass
     }
 
     screen: Hypr.focusedScreen

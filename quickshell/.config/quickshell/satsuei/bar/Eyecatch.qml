@@ -7,8 +7,7 @@ import qs.services
 // The eyecatch: on every episode (workspace) change, a large "EP 0n" in Dela
 // Gothic One and under it what's on: the focused app's name, spaced out in
 // capitals in the accent, and its window's title, dim, like an episode's
-// subtitle. An empty episode shows its label from settings.json's `episodes`
-// (Terminal, Notes, Wallpaper, Web, Music unless changed). At the bottom left
+// subtitle. An empty episode says so. At the bottom left
 // of that screen; it rises in (0.4 s fade, 0.5 s lift), holds for 1.3 s and
 // fades. It takes no input.
 PanelWindow {
@@ -46,11 +45,7 @@ PanelWindow {
         return DesktopEntries.heuristicLookup(Hypr.activeClass)?.name ?? Hypr.activeClass;
     }
     readonly property string title: here && app ? Hypr.activeTitle : ""
-    function label(id) {
-        if (app) return app;
-        const eps = Settings.s.episodes ?? [];
-        return eps[id - 1] ?? "";
-    }
+    function label(id) { return app || "Empty"; }
 
     Connections {
         target: win.monitor
