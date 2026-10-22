@@ -400,7 +400,7 @@ class CommittedOutputs(unittest.TestCase):
 class ShellModes(unittest.TestCase):
     """Every shell follows the mode the same way."""
     SHELLS = REPO / "quickshell/.config/quickshell"
-    MODE = ["nacre/Mode.qml", "paper/common/Mode.qml", "rice/Mode.qml", "abyss/Mode.qml"]
+    MODE = ["nacre/Mode.qml", "paper/common/Mode.qml", "rice/Mode.qml", "abyss/Mode.qml", "satsuei/common/Mode.qml"]
 
     def test_the_mode_copies_are_identical(self):
         first = (self.SHELLS / self.MODE[0]).read_text()

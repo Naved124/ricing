@@ -73,6 +73,7 @@ def prepare(shell: Path, root: Path) -> Path:
 def run(shell: Path, seconds: float, poke: Path | None, pokes: list | None = None) -> list[str]:
     os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
     os.environ.setdefault("QT_QUICK_BACKEND", "software")
+    os.environ["QML_XHR_ALLOW_FILE_READ"] = "1"     # the FileView stand-in reads Satsuei's files
     from PySide6.QtCore import QTimer, QUrl, qInstallMessageHandler, QtMsgType
     from PySide6.QtGui import QGuiApplication
     from PySide6.QtQml import QQmlApplicationEngine

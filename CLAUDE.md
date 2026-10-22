@@ -39,6 +39,8 @@ user-facing guide; this file is the contract every rice has to keep.
 | `quickshell/.config/quickshell/nacre/` | Nacre's own shell: bar, the island (`bar/Island.qml`: time, media, notifications), launcher, centre, OSD, notifs, lock, power, key sheet, wallpaper, the system card (`desk/Stats.qml`) |
 | `quickshell/.config/quickshell/paper/` | Paper's own shell (same entry points); `common/Theme.qml` is generated, `common/Sheet.qml` is the paper every panel is cut from |
 | `quickshell/.config/quickshell/abyss/` | Abyss's own shell (same entry points); `reef/` is the live wallpaper (below), `common/Glass.qml` the glass every panel is |
+| `quickshell/.config/quickshell/satsuei/` | Satsuei's own shell (same entry points; the exceptions are under "Satsuei" below); `common/Theme.qml` reads `theme.json`, `common/Style.qml` is generated |
+| `switcher/.local/bin/satsuei-wall` | Satsuei's look from a wallpaper: matugen → `~/.local/state/satsuei/theme.json` + the palette overlay, the light source, the blur maps |
 | `fonts/.local/share/fonts/paper/` | Paper's vendored OFL fonts with their licences |
 | `zsh/.config/zsh/rice.zsh` | **shared** zsh setup (one line in `~/.zshrc` sources it); colours from `active/zsh.zsh`, reloaded on the next prompt after a switch |
 | `install` | user installer (`--fresh` for a bare Arch install) |
@@ -191,6 +193,12 @@ Shared:
 - `[gtk]` `cursor cursor_size`.
 - `[nvim]` `colorscheme = "rice"`.
 - `[install]` generated files that live outside `build/`, e.g. the shell's `Theme.qml`.
+- `[meta] overlay = "<path under XDG_STATE_HOME>"`: a generated palette whose
+  `[modes.*]` tables `rice-render` merges over this one, key by key, while it exists
+  (Satsuei: `satsuei-wall` writes the plate's colours to `satsuei/palette.toml`).
+  The rice's own `palette.toml` then holds the seed look, and `[install]` files must
+  not read a colour the overlay writes (they're committed). `rice recolour` renders
+  the active rice again and pushes the colours out live, as a mode change does.
 
 Per mode (`[modes.light.*]`, `[modes.dark.*]`):
 

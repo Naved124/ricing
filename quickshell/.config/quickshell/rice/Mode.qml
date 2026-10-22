@@ -16,7 +16,7 @@ import Quickshell.Io
 // A rice with one mode (Abyss) sets `only: "dark"`: it stays there whatever
 // the file says, and answers `get` with it.
 //
-// The same file sits in every shell (paper/common, nacre, rice, abyss); the
+// The same file sits in every shell (paper/common, nacre, rice, abyss, satsuei/common); the
 // tests keep the copies identical.
 Scope {
     id: mode

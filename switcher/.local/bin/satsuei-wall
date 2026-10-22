@@ -1,0 +1,606 @@
+#!/usr/bin/env python3
+"""satsuei-wall — Satsuei's look, taken from a wallpaper.
+
+    satsuei-wall set <path>        make <path> the plate: copy it into the state and
+                                   the library, read its palette and light source,
+                                   render the blur maps, write theme.json and the
+                                   palette overlay, and re-theme the desktop
+    satsuei-wall theme <path>      print the tokens <path> would give, as JSON
+                                   (nothing is written; the selector's preview)
+    satsuei-wall light <x> <y>     move the light source (0–1, from the top left)
+    satsuei-wall scan [dir]        cache a thumbnail and palette for every picture
+                                   in the wallpaper folder (see Library.qml)
+    satsuei-wall current           print the current plate's path
+
+The palette comes from matugen (`matugen image <path> --json hex`, dark scheme)
+when it's installed, else from the same k-means the mock used. Either way the
+tokens are clamped so the rice keeps the night rules (tests/test_night.py):
+the glass tint near L 12%, text 7–14:1 on it, accents and ANSI at least 4.5:1.
+
+Files (XDG_STATE_HOME=~/.local/state):
+    satsuei/plate-<id>.<ext>   the plate (plate.<ext> links to it)
+    satsuei/bloom-<id>.png     1/4 size, heavy blur   (the pass samples these
+    satsuei/soft-<id>.png      1/8 size, heavier blur  instead of mipmaps)
+    satsuei/theme.json         what the shell reads (Theme.qml watches it)
+    satsuei/palette.toml       what rice-render merges over the palette
+    ~/.local/share/satsuei/walls/   every plate that has been set
+    ~/.cache/satsuei/walls/<sha1>/  thumb.webp + palette.json per scanned file
+
+Needs ImageMagick (magick, or IM6's convert/identify).
+"""
+
+from __future__ import annotations
+
+import colorsys
+import hashlib
+import json
+import math
+import os
+import shutil
+import subprocess
+import sys
+import tempfile
+import time
+from pathlib import Path
+
+HOME = Path.home()
+STATE = Path(os.environ.get("XDG_STATE_HOME") or HOME / ".local/state") / "satsuei"
+DATA = Path(os.environ.get("XDG_DATA_HOME") or HOME / ".local/share") / "satsuei"
+CACHE = Path(os.environ.get("XDG_CACHE_HOME") or HOME / ".cache") / "satsuei"
+CONFIG = Path(os.environ.get("XDG_CONFIG_HOME") or HOME / ".config")
+PICTURES = (".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp", ".tif", ".tiff", ".avif", ".jxl")
+
+
+def die(msg: str) -> None:
+    print(f"satsuei-wall: {msg}", file=sys.stderr)
+    sys.exit(1)
+
+
+def log(msg: str) -> None:
+    if not os.environ.get("SATSUEI_QUIET"):
+        print(f"satsuei-wall: {msg}", file=sys.stderr)
+
+
+# ── colour ───────────────────────────────────────────────────────────────────
+
+def hex_rgb(h: str) -> tuple[float, float, float]:
+    h = h.lstrip("#")
+    return tuple(int(h[i:i + 2], 16) / 255 for i in (0, 2, 4))
+
+
+def rgb_hex(c) -> str:
+    return "#" + "".join(f"{round(max(0, min(1, v)) * 255):02x}" for v in c)
+
+
+def lin(v: float) -> float:
+    return v / 12.92 if v <= 0.04045 else ((v + 0.055) / 1.055) ** 2.4
+
+
+def luminance(h: str) -> float:
+    r, g, b = (lin(v) for v in hex_rgb(h))
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b
+
+
+def contrast(a: str, b: str) -> float:
+    la, lb = sorted((luminance(a), luminance(b)), reverse=True)
+    return (la + 0.05) / (lb + 0.05)
+
+
+def lstar(h: str) -> float:
+    """CIE L* (the night rules' lightness)."""
+    y = luminance(h)
+    return 116 * y ** (1 / 3) - 16 if y > 216 / 24389 else 24389 / 27 * y
+
+
+def hsl(h: str) -> tuple[float, float, float]:
+    """(hue 0–360, saturation, lightness)."""
+    hh, ll, ss = colorsys.rgb_to_hls(*hex_rgb(h))
+    return hh * 360, ss, ll
+
+
+def from_hsl(h: float, s: float, l: float) -> str:
+    return rgb_hex(colorsys.hls_to_rgb((h % 360) / 360, max(0, min(1, l)), max(0, min(1, s))))
+
+
+def hue_dist(a: float, b: float) -> float:
+    d = abs(a - b) % 360
+    return 360 - d if d > 180 else d
+
+
+def mix(a: str, b: str, t: float) -> str:
+    """a, t of the way to b."""
+    return rgb_hex([x + (y - x) * t for x, y in zip(hex_rgb(a), hex_rgb(b))])
+
+
+def solve_l(h: float, s: float, ok, lo: float = 0.0, hi: float = 1.0) -> str:
+    """The colour of hue h, saturation s whose HSL lightness is the smallest in
+    [lo, hi] for which ok(colour) holds (bisection; ok must be monotone)."""
+    if ok(from_hsl(h, s, lo)):
+        return from_hsl(h, s, lo)
+    if not ok(from_hsl(h, s, hi)):
+        return from_hsl(h, s, hi)
+    for _ in range(30):
+        mid = (lo + hi) / 2
+        if ok(from_hsl(h, s, mid)):
+            hi = mid
+        else:
+            lo = mid
+    return from_hsl(h, s, hi)
+
+
+def at_lstar(h: float, s: float, target: float) -> str:
+    return solve_l(h, s, lambda c: lstar(c) >= target)
+
+
+# ── pictures ─────────────────────────────────────────────────────────────────
+
+def im(*tool: str) -> list[str]:
+    """An ImageMagick command: IM7's `magick <tool>`, else IM6's own binaries."""
+    if shutil.which("magick"):
+        return ["magick", *tool[1:]] if tool[0] == "convert" else ["magick", *tool]
+    name = tool[0]
+    if not shutil.which(name):
+        die("ImageMagick isn't installed (yay -S --needed imagemagick)")
+    return list(tool)
+
+
+def frames(path: Path) -> int:
+    try:
+        out = subprocess.run(im("identify", "-format", "%n\n", str(path)), capture_output=True,
+                             text=True, timeout=60).stdout.split()
+        return int(out[0]) if out else 1
+    except (subprocess.SubprocessError, ValueError):
+        return 1
+
+
+def size_of(path: Path) -> tuple[int, int]:
+    out = subprocess.run(im("identify", "-format", "%w %h\n", f"{path}[0]"), capture_output=True,
+                         text=True, timeout=60).stdout.split()
+    return (int(out[0]), int(out[1])) if len(out) >= 2 else (0, 0)
+
+
+def pixels(path: Path, width: int) -> tuple[int, int, list[tuple[int, int, int]]]:
+    """The first frame shrunk to `width` columns, as 8-bit RGB triples."""
+    p = subprocess.run(im("convert", f"{path}[0]", "-auto-orient", "-alpha", "remove", "-alpha", "off",
+                          "-colorspace", "sRGB", "-resize", f"{width}x", "-depth", "8", "ppm:-"),
+                       capture_output=True, timeout=120)
+    if p.returncode != 0 or not p.stdout.startswith(b"P6"):
+        die(f"can't read {path}: {p.stderr.decode(errors='replace').strip()[:300]}")
+    data, fields, i = p.stdout, [], 2
+    while len(fields) < 3:                      # width, height, maxval, comments skipped
+        while data[i:i + 1].isspace():
+            i += 1
+        if data[i:i + 1] == b"#":
+            i = data.index(b"\n", i) + 1
+            continue
+        j = i
+        while not data[j:j + 1].isspace():
+            j += 1
+        fields.append(int(data[i:j]))
+        i = j
+    i += 1
+    w, h, _ = fields
+    raw = data[i:i + w * h * 3]
+    return w, h, [tuple(raw[k:k + 3]) for k in range(0, len(raw), 3)]
+
+
+def kmeans(px: list[tuple[int, int, int]], k: int = 8, rounds: int = 14) -> list[dict]:
+    """The mock's clustering: seeds spread over the luminance order."""
+    lum = lambda p: 0.2126 * p[0] + 0.7152 * p[1] + 0.0722 * p[2]
+    order = sorted(px, key=lum)
+    cent = [list(order[int((i + 0.5) / k * len(order))]) for i in range(k)]
+    assign = [0] * len(px)
+    for _ in range(rounds):
+        sums = [[0, 0, 0, 0] for _ in cent]
+        for n, p in enumerate(px):
+            best, bd = 0, 1e18
+            for j, c in enumerate(cent):
+                d = (p[0] - c[0]) ** 2 + (p[1] - c[1]) ** 2 + (p[2] - c[2]) ** 2
+                if d < bd:
+                    best, bd = j, d
+            assign[n] = best
+            s = sums[best]
+            s[0] += p[0]; s[1] += p[1]; s[2] += p[2]; s[3] += 1
+        cent = [[s[0] / s[3], s[1] / s[3], s[2] / s[3]] if s[3] else c for s, c in zip(sums, cent)]
+    counts = [0] * k
+    for a in assign:
+        counts[a] += 1
+    out = [{"hex": rgb_hex([v / 255 for v in c]), "n": counts[j] / len(px)}
+           for j, c in enumerate(cent) if counts[j]]
+    for c in out:
+        c["hsl"] = hsl(c["hex"])
+    return sorted(out, key=lambda c: -c["n"])
+
+
+def light_source(w: int, h: int, px) -> tuple[float, float]:
+    """The brightest cell of a 16×9 grid, a little biased toward the top."""
+    gx, gy = 16, 9
+    best, bx, by = -1e9, 0.5, 0.2
+    for j in range(gy):
+        for i in range(gx):
+            s = n = 0
+            for y in range(j * h // gy, (j + 1) * h // gy):
+                for x in range(i * w // gx, (i + 1) * w // gx):
+                    r, g, b = px[y * w + x]
+                    s += 0.3 * r + 0.59 * g + 0.11 * b
+                    n += 1
+            if not n:
+                continue
+            s = s / n - j * 2
+            if s > best:
+                best, bx, by = s, (i + 0.5) / gx, (j + 0.5) / gy
+    return round(bx, 4), round(by, 4)
+
+
+# ── matugen ──────────────────────────────────────────────────────────────────
+
+def matugen(path: Path) -> dict | None:
+    """primary, secondary, tertiary, surface, error of the dark scheme, or None."""
+    exe = os.environ.get("SATSUEI_MATUGEN") or shutil.which("matugen")
+    if not exe or os.environ.get("SATSUEI_MATUGEN") == "none":
+        return None
+    with tempfile.TemporaryDirectory() as d:
+        # one still, small: matugen reads the first frame of a GIF slowly or not at all
+        still = Path(d) / "still.png"
+        subprocess.run(im("convert", f"{path}[0]", "-resize", "512x512>", str(still)),
+                       capture_output=True, timeout=120)
+        src = still if still.exists() else path
+        base = [exe, "image", str(src), "--json", "hex", "-m", "dark"]
+        # newer matugen asks which source colour to use unless told; older ones
+        # don't know the flag. --dry-run keeps a user's matugen config from firing.
+        for extra in (["--source-color-index", "0", "--dry-run"], ["--dry-run"], []):
+            try:
+                p = subprocess.run(base + extra, capture_output=True, text=True, timeout=60,
+                                   stdin=subprocess.DEVNULL, cwd=d)
+            except (OSError, subprocess.SubprocessError):
+                return None
+            if p.returncode == 0 and "{" in p.stdout:
+                break
+        else:
+            log("matugen failed; using the built-in palette")
+            return None
+    try:
+        doc = json.loads(p.stdout[p.stdout.index("{"):])
+    except ValueError:
+        return None
+    colors = doc.get("colors", {})
+
+    def pick(name: str) -> str | None:
+        v = colors.get("dark", {}).get(name) if isinstance(colors.get("dark"), dict) else None
+        if v is None and isinstance(colors.get(name), dict):          # matugen 3: name → mode
+            v = colors[name].get("dark") or colors[name].get("default")
+        if isinstance(v, dict):
+            v = v.get("color") or v.get("hex")
+        return v.lower() if isinstance(v, str) and v.startswith("#") else None
+
+    got = {k: pick(k) for k in ("primary", "secondary", "tertiary", "surface", "error", "on_surface")}
+    return got if got["primary"] and got["surface"] else None
+
+
+# ── tokens ───────────────────────────────────────────────────────────────────
+
+ANSI_HUES = {1: 6, 2: 128, 3: 44, 4: 222, 5: 302, 6: 178}
+
+
+def tokens(path: Path) -> dict:
+    w, h, px = pixels(path, 120)
+    clusters = kmeans(px)
+    lx, ly = light_source(w, h, px)
+    mg = matugen(path)
+
+    score = lambda c: c["hsl"][1] * (1 - min(1, abs(c["hsl"][2] - 0.6) * 1.5)) * math.sqrt(c["n"] + 0.02)
+    if mg:
+        acc_h, acc_s, acc_l = hsl(mg["primary"])
+        # the second accent wants a clearly different hue: tertiary, else secondary
+        a2 = [mg[k] for k in ("tertiary", "secondary") if mg.get(k)]
+        far = [c for c in a2 if hue_dist(hsl(c)[0], acc_h) >= 30]
+        acc2_h, acc2_s, acc2_l = hsl((far or sorted(a2, key=lambda c: -hue_dist(hsl(c)[0], acc_h)) or [mg["primary"]])[0])
+        ink_h, ink_s, _ = hsl(mg["surface"])
+        source = "matugen"
+    else:
+        acc = max(clusters, key=score)
+        rest = [c for c in clusters if c is not acc] or [acc]
+        acc2 = max(rest, key=lambda c: score(c) * (0.1 + hue_dist(c["hsl"][0], acc["hsl"][0]) / 40))
+        ink = min(clusters, key=lambda c: c["hsl"][2])
+        (acc_h, acc_s, acc_l), (acc2_h, acc2_s, acc2_l), (ink_h, ink_s, _) = acc["hsl"], acc2["hsl"], ink["hsl"]
+        source = "kmeans"
+    if hue_dist(acc_h, acc2_h) < 30:
+        acc2_h = acc_h + 50
+
+    tint_s = min(0.40, max(0.18, ink_s))
+    tint = from_hsl(ink_h, tint_s, 0.12)               # the glass, ~12% lightness
+    bg = at_lstar(ink_h, tint_s, 9.5)                  # app backgrounds (night rules: L* 7–12)
+    surface = at_lstar(ink_h, tint_s, 13.0)            # L* 10–16
+    overlay = at_lstar(ink_h, tint_s, 18.0)
+    border = at_lstar(ink_h, tint_s * 0.9, 27.0)
+    shadow = at_lstar(ink_h, tint_s, 2.5)
+    ink = from_hsl(ink_h, tint_s, 0.07)
+    hair = from_hsl(ink_h, min(0.38, max(0.2, ink_s)), 0.17)
+
+    on = lambda floor: (lambda c: contrast(c, bg) >= floor and contrast(c, surface) >= floor)
+    # the vivid primary, its lightness held to 0.64–0.74 (the mock's clamp)
+    accent = from_hsl(acc_h, max(acc_s, 0.62), min(0.74, max(0.64, acc_l)))
+    if not on(4.5)(accent):
+        accent = solve_l(acc_h, max(acc_s, 0.62), on(4.5), 0.64, 0.92)
+    accent2 = from_hsl(acc2_h, max(acc2_s, 0.38), min(0.80, max(0.68, acc2_l)))
+    if not on(4.5)(accent2):
+        accent2 = solve_l(acc2_h, max(acc2_s, 0.38), on(4.5), 0.68, 0.92)
+    fg_s = min(0.30, tint_s * 0.6)
+    fg = solve_l(ink_h, fg_s, lambda c: contrast(c, bg) >= 12.5, 0.5, 0.97)
+    fg_dim = solve_l(ink_h, fg_s, lambda c: contrast(c, bg) >= 6.0 and contrast(c, surface) >= 4.6, 0.3, 0.95)
+    dark_on = from_hsl(ink_h, tint_s, 0.08)
+    on_accent = dark_on if luminance(accent) > 0.2 else fg
+    on_accent2 = dark_on if luminance(accent2) > 0.2 else fg
+
+    def hued(hh: float, s: float = 0.62) -> str:
+        # a terminal hue, nudged a little toward the accent so the set belongs
+        d = ((acc_h - hh + 180) % 360) - 180
+        return solve_l(hh + d * 0.12, s, lambda c: contrast(c, bg) >= 5.2, 0.55, 0.92)
+
+    urgent = mg and mg.get("error") and solve_l(hsl(mg["error"])[0], 0.75, on(4.8), 0.6, 0.92) or hued(355, 0.75)
+    success, warning = hued(140, 0.5), hued(48, 0.75)
+    ansi = {f"color{i}": hued(hh) for i, hh in ANSI_HUES.items()}
+    ansi["color0"] = at_lstar(ink_h, tint_s, 22)
+    ansi["color7"] = fg_dim
+    ansi["color8"] = at_lstar(ink_h, tint_s * 0.8, 42)
+    for i, hh in ANSI_HUES.items():
+        h0, s0, l0 = hsl(ansi[f"color{i}"])
+        ansi[f"color{i + 8}"] = from_hsl(h0, s0, min(0.9, l0 + 0.08))
+    ansi["color15"] = fg
+    selection = mix(bg, accent, 0.28)
+
+    bright = max(clusters, key=lambda c: c["hsl"][2])["hex"]
+    return {
+        "version": 1,
+        "source": source,
+        "accent": accent, "accent2": accent2, "onAccent": on_accent, "onAccent2": on_accent2,
+        "tint": tint, "glass": tint, "ink": ink, "hair": hair,
+        "fg": fg, "fgDim": fg_dim,
+        "bg": bg, "surface": surface, "overlay": overlay, "border": border, "shadow": shadow,
+        "selection": selection, "urgent": urgent, "success": success, "warning": warning,
+        "ansi": ansi,
+        "swatches": [c["hex"] for c in clusters[:6]],
+        "bright": [round(v, 4) for v in hex_rgb(bright)],
+        "lightX": lx, "lightY": ly,
+    }
+
+
+# ── files ────────────────────────────────────────────────────────────────────
+
+def atomic(path: Path, text: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_name(f".{path.name}.tmp")
+    tmp.write_text(text)
+    tmp.replace(path)
+
+
+def sha1(path: Path) -> str:
+    h = hashlib.sha1()
+    with path.open("rb") as f:
+        for block in iter(lambda: f.read(1 << 20), b""):
+            h.update(block)
+    return h.hexdigest()
+
+
+def blur_maps(src: Path, ident: str, size: tuple[int, int]) -> tuple[Path, Path]:
+    """bloom: 1/4 size, heavy blur; soft: 1/8 size, heavier."""
+    w = max(64, size[0])
+    out = []
+    for name, div, sigma in (("bloom", 4, 60), ("soft", 8, 24)):
+        dst = STATE / f"{name}-{ident}.png"
+        cols = max(16, w // div)
+        subprocess.run(im("convert", f"{src}[0]", "-auto-orient", "-alpha", "remove", "-alpha", "off",
+                          "-colorspace", "sRGB", "-resize", f"{cols}x", "-blur", f"0x{max(1.5, cols / sigma):.2f}",
+                          "-strip", "-depth", "8", str(dst)), check=True, capture_output=True, timeout=180)
+        out.append(dst)
+    return out[0], out[1]
+
+
+def toml_str(v: str) -> str:
+    return '"' + v.replace("\\", "\\\\").replace('"', '\\"') + '"'
+
+
+def overlay(t: dict) -> str:
+    """The palette's per-wallpaper half, for rice-render ([meta] overlay)."""
+    colors = {k: t[k] for k in ("accent", "accent2", "tint", "ink", "fg", "bg", "surface", "overlay",
+                                "border", "shadow", "selection", "urgent", "success", "warning", "hair")}
+    colors["fg_dim"] = t["fgDim"]
+    colors["on_accent"] = t["onAccent"]
+    for i, s in enumerate(t["swatches"]):
+        colors[f"plate{i + 1}"] = s
+    lines = ["# written by satsuei-wall from the current plate; rice-render merges it",
+             "# over rices/satsuei/palette.toml. Don't edit: set another wallpaper.", "",
+             "[modes.dark.colors]"]
+    lines += [f"{k:<10} = {toml_str(v)}" for k, v in colors.items()]
+    lines += ["", "[modes.dark.ansi]"]
+    lines += [f"color{i:<3} = {toml_str(t['ansi'][f'color{i}'])}" for i in range(16)]
+    lines += ["", "[modes.dark.gradient]",
+              'stops = ["accent", "accent2", "accent", "accent2", "accent"]', "angle = 45", ""]
+    return "\n".join(lines)
+
+
+def settings() -> dict:
+    try:
+        return json.loads((STATE / "settings.json").read_text())
+    except (OSError, ValueError):
+        return {}
+
+
+def wall_dir() -> Path:
+    d = settings().get("wallDir") or "~/Pictures/Wallpapers"
+    return Path(os.path.expanduser(d))
+
+
+def current_theme() -> dict:
+    try:
+        return json.loads((STATE / "theme.json").read_text())
+    except (OSError, ValueError):
+        return {}
+
+
+def recolour() -> None:
+    """Re-theme the desktop when Satsuei is the active rice."""
+    cur = CONFIG / "rices/current"
+    if os.environ.get("SATSUEI_NO_APPLY") or not shutil.which("rice-render"):
+        return
+    try:
+        active = cur.resolve().name
+    except OSError:
+        return
+    subprocess.run(["rice-render", "-q", "satsuei"], check=False)
+    if active == "satsuei" and shutil.which("rice"):
+        subprocess.run(["rice", "recolour"], check=False)
+
+
+def cmd_set(path: Path, apply: bool = True) -> dict:
+    if not path.is_file():
+        die(f"no such file: {path}")
+    STATE.mkdir(parents=True, exist_ok=True)
+    ident = sha1(path)[:12]
+    ext = path.suffix.lower() or ".png"
+    plate = STATE / f"plate-{ident}{ext}"
+    if not plate.exists():
+        shutil.copyfile(path, plate)
+    # the library keeps every plate ever set, by name (a clash gets the hash)
+    lib = DATA / "walls"
+    lib.mkdir(parents=True, exist_ok=True)
+    if path.resolve().parent != lib.resolve():
+        keep = lib / path.name
+        if keep.exists() and sha1(keep) != sha1(path):
+            keep = lib / f"{path.stem}-{ident[:6]}{ext}"
+        if not keep.exists():
+            shutil.copyfile(path, keep)
+    t = tokens(plate)
+    size = size_of(plate)
+    bloom, soft = blur_maps(plate, ident, size)
+    t.update({"plate": str(plate), "name": path.name, "origin": str(path.resolve()), "id": ident,
+              "animated": frames(plate) > 1, "width": size[0], "height": size[1],
+              "bloom": str(bloom), "soft": str(soft), "stamp": int(time.time())})
+    # plate.<ext> for anything that wants a fixed name
+    for old in STATE.glob("plate.*"):
+        old.unlink()
+    (STATE / f"plate{ext}").symlink_to(plate.name)
+    atomic(STATE / "theme.json", json.dumps(t, indent=2) + "\n")
+    atomic(STATE / "palette.toml", overlay(t))
+    # the plate before this one stays, so the shell can fade from it
+    keep = {ident, current_ident(t)}
+    prev = os.environ.get("SATSUEI_PREVIOUS")
+    for f in STATE.glob("*-*.*"):
+        tag = f.stem.rsplit("-", 1)[-1]
+        if f.name.split("-")[0] in ("plate", "bloom", "soft") and tag not in keep and tag != prev:
+            f.unlink(missing_ok=True)
+    if apply:
+        recolour()
+    log(f"{path.name}: accent {t['accent']}, accent 2 {t['accent2']}, glass {t['tint']} ({t['source']}), "
+        f"light at {t['lightX']:.2f}, {t['lightY']:.2f}")
+    return t
+
+
+def current_ident(t: dict) -> str:
+    return t.get("id", "")
+
+
+def cmd_light(x: float, y: float) -> None:
+    t = current_theme()
+    if not t:
+        die("no plate yet: satsuei-wall set <picture>")
+    t["lightX"], t["lightY"] = round(min(1, max(0, x)), 4), round(min(1, max(0, y)), 4)
+    t["lightPicked"] = True
+    atomic(STATE / "theme.json", json.dumps(t, indent=2) + "\n")
+
+
+def scan_one(f: Path) -> dict | None:
+    """Thumbnail and palette for one picture, cached by its hash."""
+    ident = sha1(f)
+    d = CACHE / "walls" / ident
+    meta = d / "palette.json"
+    if meta.exists():
+        try:
+            m = json.loads(meta.read_text())
+            if m.get("version") == 1:
+                return m
+        except ValueError:
+            pass
+    d.mkdir(parents=True, exist_ok=True)
+    thumb = d / "thumb.webp"
+    subprocess.run(im("convert", f"{f}[0]", "-auto-orient", "-resize", "480x", "-quality", "82", str(thumb)),
+                   capture_output=True, timeout=120)
+    if not thumb.exists():                      # an IM without webp: a PNG does
+        thumb = d / "thumb.png"
+        subprocess.run(im("convert", f"{f}[0]", "-auto-orient", "-resize", "480x", str(thumb)),
+                       capture_output=True, timeout=120)
+    t = tokens(f)
+    size = size_of(f)
+    m = {"version": 1, "sha1": ident, "thumb": str(thumb), "width": size[0], "height": size[1],
+         "animated": frames(f) > 1, **{k: t[k] for k in ("accent", "accent2", "tint", "onAccent", "fg",
+                                                          "fgDim", "ink", "hair", "swatches", "lightX",
+                                                          "lightY", "bright", "source")}}
+    atomic(meta, json.dumps(m, indent=2) + "\n")
+    return m
+
+
+def cmd_scan(root: Path) -> None:
+    """One JSON line per picture: {"path", "rel", "mtime", ...palette} or
+    {"path", "pending": true} first for the ones still to do, so the selector
+    can draw their shimmer straight away."""
+    root = root.expanduser()
+    if not root.is_dir():
+        print(json.dumps({"error": f"no folder {root}"}), flush=True)
+        return
+    files = sorted(p for p in root.rglob("*") if p.is_file() and p.suffix.lower() in PICTURES
+                   and not any(part.startswith(".") for part in p.relative_to(root).parts))
+    index = CACHE / "index.json"
+    try:
+        known = json.loads(index.read_text())
+    except (OSError, ValueError):
+        known = {}
+    todo = []
+    for f in files:
+        st = f.stat()
+        k = known.get(str(f))
+        head = {"path": str(f), "rel": f.relative_to(root).as_posix(), "mtime": int(st.st_mtime)}
+        if k and k.get("size") == st.st_size and k.get("mtime") == int(st.st_mtime) \
+                and (CACHE / "walls" / k["sha1"] / "palette.json").exists():
+            m = json.loads((CACHE / "walls" / k["sha1"] / "palette.json").read_text())
+            print(json.dumps({**head, **m}), flush=True)
+        else:
+            print(json.dumps({**head, "pending": True}), flush=True)
+            todo.append((f, head, st))
+    for f, head, st in todo:
+        try:
+            m = scan_one(f)
+        except SystemExit:
+            m = None
+        if m:
+            known[str(f)] = {"sha1": m["sha1"], "size": st.st_size, "mtime": int(st.st_mtime)}
+            print(json.dumps({**head, **m}), flush=True)
+        else:
+            print(json.dumps({**head, "error": "unreadable"}), flush=True)
+    atomic(index, json.dumps({k: v for k, v in known.items() if Path(k).exists()}, indent=1))
+    print(json.dumps({"done": True, "count": len(files)}), flush=True)
+
+
+def main(argv: list[str]) -> None:
+    if not argv or argv[0] in ("-h", "--help", "help"):
+        print(__doc__.strip())
+        return
+    cmd, rest = argv[0], argv[1:]
+    if cmd == "set" and rest:
+        cmd_set(Path(rest[0]).expanduser(), apply="--no-apply" not in rest)
+    elif cmd == "theme" and rest:
+        print(json.dumps(tokens(Path(rest[0]).expanduser()), indent=2))
+    elif cmd == "light" and len(rest) == 2:
+        cmd_light(float(rest[0]), float(rest[1]))
+    elif cmd == "scan":
+        cmd_scan(Path(rest[0]) if rest else wall_dir())
+    elif cmd == "current":
+        t = current_theme()
+        if not t:
+            sys.exit(1)
+        print(t.get("plate", ""))
+    else:
+        die(f"don't know {' '.join(argv)!r} (satsuei-wall --help)")
+
+
+if __name__ == "__main__":
+    main(sys.argv[1:])

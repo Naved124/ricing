@@ -524,7 +524,7 @@ class Switch(unittest.TestCase):
         self.assertEqual(r.returncode, 0, r.stderr)
         d = json.loads(r.stdout)
         self.assertEqual(d["current"], "plain")
-        self.assertEqual([x["name"] for x in d["rices"]], ["abyss", "nacre", "paper", "plain"])
+        self.assertEqual([x["name"] for x in d["rices"]], ["abyss", "nacre", "paper", "plain", "satsuei"])
         rices = {x["name"]: x for x in d["rices"]}
         self.assertTrue(rices["nacre"]["card"] and rices["paper"]["card"])
         nacre = rices["nacre"]["meta"]

@@ -1,0 +1,168 @@
+# Satsuei (撮影) — the compositing stage of anime production, where the
+# finished background art and the cels get their light. Dark only.
+#   · the plate: any picture or animated GIF/WebP the user picks
+#   · the pass: a shader over it that adds light without repainting it
+#     (diffusion, bloom, shafts from the light source, motes, the hour's grade)
+#   · the cels: glass UI tinted by the plate's darkest colour, lit by its accent
+#
+# Only what never changes lives here. The colours below are the seed plate's
+# (seed/wall.webp, the mock's); `satsuei-wall set <picture>` writes another
+# plate's to ~/.local/state/satsuei/palette.toml, which rice-render merges
+# over this file ([meta] overlay), so every app follows the wallpaper.
+# satsuei-wall clamps them to the night rules (tests/test_night.py).
+
+[meta]
+name          = "satsuei"
+title         = "Satsuei"
+tagline       = "light, composited over your wallpaper"
+modes         = ["dark"]      # dark only: `rice mode` leaves it alone
+transition    = "leak"        # switching in: a light leak sweeps across the plate
+shell         = "satsuei"     # Quickshell config: qs -c satsuei
+notifications = "shell"       # the shell is the daemon: subtitles at the bottom
+wallpaper     = "shell"       # the shell draws the plate and its pass
+lock          = "shell"       # an episode title card over the graded plate
+overlay       = "satsuei/palette.toml"   # under XDG_STATE_HOME, from satsuei-wall
+
+[fonts]
+display   = "Dela Gothic One"     # the clock, episode numbers, title cards
+ui        = "M PLUS Rounded 1c"
+mono      = "JetBrains Mono"      # the terminal and numbers
+ui_size   = 14
+mono_size = 15
+weight         = 500
+weight_strong  = 700
+display_weight = 400              # Dela Gothic One has one weight
+
+[shape]
+window         = 16
+rounding_power = 2.0
+panel          = 22
+popup          = 16
+chip           = 11
+border         = 2
+gaps_in        = 6
+gaps_out       = 12
+
+[motion]
+# cubic-bezier control points (the mock's drawers: .2,.9,.25,1.05)
+bloom  = [0.2, 0.9, 0.25, 1.05]   # arrivals overshoot a touch
+settle = [0.3, 1.4, 0.5, 1.0]     # springs: the switches, the mascot
+sink   = [0.65, 0.0, 0.25, 1.0]   # the windows' slide between episodes
+# milliseconds
+open        = 450
+close       = 300
+move        = 450
+workspace   = 600     # the episode slide
+scratchpad  = 450
+focus       = 300
+border_loop = 40000
+panel_in    = 550
+panel_out   = 350
+stagger     = 30
+
+[gtk]
+cursor       = "Bibata-Modern-Ice"
+cursor_size  = 24
+
+[nvim]
+colorscheme = "rice"
+
+[install]
+"quickshell/Style.qml" = ".config/quickshell/satsuei/common/Style.qml"
+
+# ── dark (the only mode) ───────────────────────────────────────────────────
+
+[modes.dark.meta]
+gtk_theme     = "adw-gtk3-dark"
+icon_theme    = "Colloid-Dark"
+color_scheme  = "prefer-dark"
+# Hyprland's glass (hypr-mode.lua)
+hypr_blur_brightness = 0.9
+hypr_blur_vibrancy   = 0.2
+
+[modes.dark.colors]
+accent     = "#ff8e7a"
+accent2    = "#ddc48c"
+tint       = "#261917"
+ink        = "#160e0e"
+fg         = "#e2dad9"
+bg         = "#241816"
+surface    = "#2d1e1c"
+overlay    = "#3c2725"
+border     = "#543a37"
+shadow     = "#0d0908"
+selection  = "#613932"
+urgent     = "#e76354"
+success    = "#53c65b"
+warning    = "#e2b236"
+hair       = "#362321"
+fg_dim     = "#ac9390"
+on_accent  = "#191110"
+plate1     = "#4c4047"
+plate2     = "#302c36"
+plate3     = "#1b1a21"
+plate4     = "#0c0c0e"
+plate5     = "#f5e2dc"
+plate6     = "#755757"
+
+# the characters' own art, the same on every plate (Style.qml): skin, cheeks,
+# eyes and their shine, the mouth, Mochi's cream, socks, Kon's hood, Bit's
+# shell and screen, Yuki's sheet. Their clothes are the plate's accents.
+art_skin   = "#ffe6dc"
+art_blush  = "#ff8ea2"
+art_eye    = "#241c36"
+art_shine  = "#fdfbfc"
+art_mouth  = "#7a3848"
+art_cream  = "#fbf1e2"
+art_sock   = "#f4eef2"
+art_fox    = "#f0924a"
+art_robot  = "#e8ecf2"
+art_screen = "#1a1d2a"
+art_ghost  = "#f2f5fb"
+
+[modes.dark.roles]
+bg        = "bg"
+surface   = "surface"
+overlay   = "overlay"
+border    = "border"
+fg        = "fg"
+muted     = "fg_dim"
+accent    = "accent"
+urgent    = "urgent"
+selection = "selection"
+success   = "success"
+warning   = "warning"
+cursor    = "accent"
+link      = "accent2"
+shadow    = "shadow"
+term_bg   = "bg"
+term_fg   = "fg"
+
+[modes.dark.gradient]
+# the active border: accent → accent 2
+stops = ["accent", "accent2", "accent", "accent2", "accent"]
+angle = 45
+
+[modes.dark.ansi]
+color0   = "#472f2c"
+color1   = "#da6d60"
+color2   = "#54d345"
+color3   = "#d3a345"
+color4   = "#8384e2"
+color5   = "#d95ec4"
+color6   = "#45d39f"
+color7   = "#ac9390"
+color8   = "#7f5b56"
+color9   = "#e28b81"
+color10  = "#72db66"
+color11  = "#dbb366"
+color12  = "#a4a5ea"
+color13  = "#e17fd0"
+color14  = "#66dbb0"
+color15  = "#e2dad9"
+
+[modes.dark.opacity]
+terminal = 0.72    # kitty is glass too
+active   = 0.97
+inactive = 0.90
+glass    = 0.40    # the mock's panels: the tint at 40% over Hyprland's blur

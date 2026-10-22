@@ -179,6 +179,18 @@ def flatten_mode(data: dict, mode: str, path: Path) -> dict:
     return data
 
 
+def merge(base: dict, over: dict) -> dict:
+    """base with over's tables merged in, key by key."""
+    out = dict(base)
+    for k, v in over.items():
+        out[k] = merge(out[k], v) if isinstance(v, dict) and isinstance(out.get(k), dict) else v
+    return out
+
+
+def state_home() -> Path:
+    return Path(os.environ.get("XDG_STATE_HOME") or HOME / ".local/state")
+
+
 def load_palette(rice: Path, mode: str = "light") -> dict:
     path = rice / "palette.toml"
     try:
@@ -187,6 +199,21 @@ def load_palette(rice: Path, mode: str = "light") -> dict:
         raise RenderError(f"{path}: not found")
     except tomllib.TOMLDecodeError as e:
         raise RenderError(f"{path}: {e}")
+    # a rice whose colours come from elsewhere (Satsuei: satsuei-wall, from the
+    # wallpaper) names an overlay under XDG_STATE_HOME; while it's there, its
+    # tables win over the palette's (which then hold the seed look)
+    ov = data.get("meta", {}).get("overlay")
+    if ov:
+        ovpath = state_home() / ov
+        try:
+            extra = tomllib.loads(ovpath.read_text())
+        except FileNotFoundError:
+            extra = {}
+        except tomllib.TOMLDecodeError as e:
+            raise RenderError(f"{ovpath}: {e}")
+        if set(extra) - {"modes"}:
+            raise RenderError(f"{ovpath}: an overlay holds [modes.*] tables only")
+        data = merge(data, extra)
     data = flatten_mode(data, mode, path)
     # apps' interface text (GTK, Qt, zathura, imv) may run bigger than the shell's
     fonts = data.get("fonts")

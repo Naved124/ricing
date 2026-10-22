@@ -16,6 +16,8 @@
 #   rice mode status [-v] the mode, where it came from, and the next switch
 #   rice choose          toggle the chooser (Super+Shift+T)
 #   rice reapply         run every apply step again for the active rice (restarts its shell)
+#   rice recolour        render the active rice again and recolour the desktop live, the
+#                        way a mode change does (satsuei-wall set runs it for Satsuei)
 #   rice session         start the active rice at login (no freeze, no transition)
 #   rice lock            lock the screen with the rice's lock (its shell, or hyprlock)
 #   rice grain on|off|toggle|status
@@ -656,6 +658,28 @@ mode_set() {
     log "$target"
 }
 
+# recolour: the active rice's palette changed underneath it (Satsuei's comes
+# from the wallpaper), so render it and push the colours out the way a mode
+# change does, with no freeze and no reload. GTK re-reads its gtk.css only on
+# a theme change, so the theme is nudged away and back.
+recolour() {
+    local cur theme
+    cur="$(current)" || die "no active rice"
+    take_lock
+    step render "$cur"
+    step apply_mode_hypr
+    if have gsettings; then
+        theme="$(look "$cur" gtk_theme)"
+        if [[ -n "$theme" ]]; then
+            gsettings set org.gnome.desktop.interface gtk-theme Adwaita || true
+            gsettings set org.gnome.desktop.interface gtk-theme "$theme" || true
+        fi
+    fi
+    step apply_mode_apps "$cur" "$(mode)"
+    rice_ipc reload || true
+    log "$cur recoloured"
+}
+
 # ── auto mode: the sun's light and dark ──────────────────────────────────
 # rice-sun (beside this script) works sunrise and sunset out offline from
 # ~/.config/rice/mode.toml and prints JSON; RICE_NOW stands in for the clock.
@@ -788,7 +812,7 @@ json() {
     printf ']}\n'
 }
 
-usage() { sed -n '2,28p' "$0" | sed 's/^# \{0,1\}//'; }
+usage() { sed -n '2,31p' "$0" | sed 's/^# \{0,1\}//'; }
 
 case "${1:-}" in
     ""|-h|--help|help) usage ;;
@@ -806,6 +830,7 @@ case "${1:-}" in
     mode) shift; mode_cmd "$@" ;;
     choose) choose ;;
     reapply) RICE_FORCE=1 switch_to "$(current)" ;;
+    recolour|recolor) recolour ;;
     session) session ;;
     lock) lock ;;
     grain) shift; grain "$@" ;;

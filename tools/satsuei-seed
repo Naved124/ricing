@@ -1,0 +1,63 @@
+#!/usr/bin/env python3
+"""Regenerate Satsuei's seed look from rices/satsuei/seed/wall.webp.
+
+The seed is what Satsuei wears before any `satsuei-wall set`: seed/theme.json
+and its blur maps for the shell, and the plate colours in palette.toml's
+[modes.dark.colors] / [modes.dark.ansi] for rice-render. Run it after changing
+satsuei-wall's token rules (tests check the palette still matches). Uses
+matugen when it's installed (or SATSUEI_MATUGEN), like satsuei-wall.
+"""
+
+import json
+import os
+import re
+import shutil
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
+
+repo = Path(__file__).resolve().parent.parent
+rice = repo / "rices/.config/rices/satsuei"
+seed = rice / "seed"
+
+with tempfile.TemporaryDirectory() as home:
+    env = {**os.environ, "HOME": home, "XDG_STATE_HOME": f"{home}/state", "XDG_DATA_HOME": f"{home}/data",
+           "SATSUEI_NO_APPLY": "1", "SATSUEI_QUIET": "1"}
+    subprocess.run([str(repo / "switcher/.local/bin/satsuei-wall"), "set", str(seed / "wall.webp")],
+                   env=env, check=True)
+    state = Path(home) / "state/satsuei"
+    t = json.loads((state / "theme.json").read_text())
+    overlay = (state / "palette.toml").read_text()
+    shutil.copyfile(t["bloom"], seed / "bloom.png")
+    shutil.copyfile(t["soft"], seed / "soft.png")
+
+# the seed's paths are relative to seed/ (Theme.qml resolves them)
+for k in ("origin", "stamp", "id"):
+    t.pop(k, None)
+t.update({"plate": "wall.webp", "bloom": "bloom.png", "soft": "soft.png", "name": "wall.webp", "seed": True})
+(seed / "theme.json").write_text(json.dumps(t, indent=2) + "\n")
+
+
+def block(text: str, table: str) -> list[str]:
+    m = re.search(rf"^\[{re.escape(table)}\]\n(.*?)(?=^\[|\Z)", text, re.S | re.M)
+    return [l for l in m.group(1).splitlines() if l.strip() and not l.startswith("#")]
+
+
+pal = (rice / "palette.toml").read_text()
+for table in ("modes.dark.colors", "modes.dark.ansi"):
+    new = {l.split("=")[0].strip(): l for l in block(overlay, table)}
+    out, seen = [], set()
+    m = re.search(rf"^\[{re.escape(table)}\]\n(.*?)(?=^\[|\Z)", pal, re.S | re.M)
+    for line in m.group(1).splitlines():
+        key = line.split("=")[0].strip() if "=" in line and not line.lstrip().startswith("#") else None
+        if key in new:
+            out.append(new[key])
+            seen.add(key)
+        else:
+            out.append(line)
+    missing = [v for k, v in new.items() if k not in seen]
+    body = "\n".join(missing + out) if missing else "\n".join(out)
+    pal = pal[:m.start(1)] + body.rstrip("\n") + "\n\n" + pal[m.end(1):].lstrip("\n")
+(rice / "palette.toml").write_text(pal)
+print(f"seed: accent {t['accent']}, accent 2 {t['accent2']}, glass {t['tint']} ({t['source']})", file=sys.stderr)
