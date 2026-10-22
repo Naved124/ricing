@@ -62,7 +62,7 @@ PanelWindow {
         anchors.top: parent.top
         anchors.bottom: parent.bottom
         anchors.right: parent.right
-        anchors.topMargin: 10 + 34 + 12        // under the bar
+        anchors.topMargin: 12 + 38 + 12        // under the bar
         anchors.bottomMargin: Theme.gapsOut
         anchors.rightMargin: Theme.gapsOut
         width: 380

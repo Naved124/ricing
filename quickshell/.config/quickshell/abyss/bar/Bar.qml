@@ -6,8 +6,9 @@ import qs
 import qs.common
 import qs.services
 
-// The bar: the mock's floating pill, glass in the water: 720 wide (or the
-// screen less 16 a side), 34 tall, 10 from the top, a line edge and a faint
+// The bar: a pill of glass floating in the water, the same size as Nacre's:
+// the screen's width less the windows' outer gap a side (its ends line up
+// with the windows below), 38 tall, 12 from the top, a line edge and a faint
 // teal halo. The workspaces and the window's title on the left, the status
 // on the right in ink-dim (its details drop below the bar on hover); the
 // middle is the island's (Island.qml, a layer of its own). No clock: the
@@ -20,9 +21,10 @@ PanelWindow {
     screen: modelData
 
     readonly property var monitor: Hypr.monitorFor(screen)
-    readonly property int pillWidth: Math.min(720, width - 32)
-    readonly property int pillHeight: 34
-    readonly property int top: 10
+    readonly property int side: Theme.gapsOut     // ends line up with the windows below
+    readonly property int pillWidth: width - side * 2
+    readonly property int pillHeight: 38
+    readonly property int top: 12
     readonly property int islandHalf: 170      // half the island at its widest in the bar
     // a status detail shown under the bar: { x, text }
     property var detail: null

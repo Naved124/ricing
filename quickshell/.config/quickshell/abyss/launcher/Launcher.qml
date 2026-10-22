@@ -22,7 +22,7 @@ PanelWindow {
     readonly property bool open: Shell.launcherOpen
     readonly property int maxRows: 7
     readonly property int rowHeight: 48
-    readonly property int barBottom: 10 + 34
+    readonly property int barBottom: 12 + 38
 
     screen: Hypr.focusedScreen
     visible: open || sheet.opacity > 0
