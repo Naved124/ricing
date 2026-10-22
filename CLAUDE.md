@@ -477,7 +477,10 @@ The `audio/` stow package is the same for every rice. PipeWire's `allowed-rates`
 card follow a stream's rate (no resampling of 44.1 kHz music); ALSA outputs never suspend
 (no pop). Leave `resample.quality` at PipeWire's default: a client builds its resampler
 in its realtime data loop, and with rtkit that thread has an `RLIMIT_RTTIME`, so quality
-10 had the kernel SIGKILL mpv's `data-loop.0` as a video started (a test checks). WirePlumber offers every installed
+10 had the kernel SIGKILL mpv's `data-loop.0` as a video started (a test checks). Even
+without it the kills went on (mpv and cava together), so clients aren't realtime at all:
+`client.conf.d` sets `module.rt = false` (the condition on client.conf's module-rt);
+the daemon stays realtime. WirePlumber offers every installed
 Bluetooth codec (never set `bluez5.codecs`: it would shut out LHDC), LDAC at `auto`,
 AAC at bitrate mode 5, and `bluetooth.autoswitch-to-headset-profile = false` so a mic
 never drops music to HFP. `install --fresh` adds `pipewire-audio` (which pulls libldac,

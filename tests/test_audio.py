@@ -9,6 +9,7 @@ REPO = Path(__file__).resolve().parent.parent
 AUDIO = REPO / "audio/.config"
 CONFS = {
     "pipewire": AUDIO / "pipewire/pipewire.conf.d/10-rice-hifi.conf",
+    "client": AUDIO / "pipewire/client.conf.d/10-rice-client.conf",
     "bluetooth": AUDIO / "wireplumber/wireplumber.conf.d/50-rice-bluetooth.conf",
     "alsa": AUDIO / "wireplumber/wireplumber.conf.d/51-rice-alsa.conf",
 }
@@ -52,6 +53,10 @@ class Audio(unittest.TestCase):
         # at the start of a video).
         for path in AUDIO.rglob("*.conf"):
             self.assertNotRegex(body(path), r"resample\.quality", path.name)
+
+    def test_clients_are_not_realtime(self):
+        # libpipewire-module-rt in client.conf loads only while module.rt != false
+        self.assertRegex(body(CONFS["client"]), r"module\.rt\s*=\s*false")
 
     def test_bluetooth_keeps_its_quality(self):
         text = CONFS["bluetooth"].read_text()
