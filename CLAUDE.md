@@ -44,6 +44,7 @@ user-facing guide; this file is the contract every rice has to keep.
 | `quickshell/.config/quickshell/satsuei/` | Satsuei's own shell (same entry points; the exceptions are under "Satsuei" below); `common/Theme.qml` reads `theme.json`, `common/Style.qml` is generated |
 | `switcher/.local/bin/satsuei-wall` | Satsuei's look from a wallpaper: matugen → `~/.local/state/satsuei/theme.json` + the palette overlay, the light source, the blur maps |
 | `fonts/.local/share/fonts/paper/` | Paper's vendored OFL fonts with their licences |
+| `audio/.config/pipewire/`, `audio/.config/wireplumber/` | **shared** audio: drop-ins for bit-perfect wired output and the best Bluetooth codecs (see Audio) |
 | `zsh/.config/zsh/rice.zsh` | **shared** zsh setup (one line in `~/.zshrc` sources it); colours from `active/zsh.zsh`, reloaded on the next prompt after a switch |
 | `install` | user installer (`--fresh` for a bare Arch install) |
 | `system/install` | sudo part: Limine theme, Plymouth, greetd/ReGreet, keyring PAM, with backup/`--undo` |
@@ -469,6 +470,17 @@ The chooser card (`card.qml`) shows the plate on screen now (from `theme.json`),
 `Theme.qml` is not generated: it reads `theme.json` and crossfades every token over
 600 ms (Behaviors inside a singleton crash the engine, so it mixes from a snapshot);
 `Style.qml` is, from the palette, and holds no plate colour.
+
+## Audio
+
+The `audio/` stow package is the same for every rice. PipeWire's `allowed-rates` let the
+card follow a stream's rate (no resampling of 44.1 kHz music) and `resample.quality = 10`
+covers the rest; ALSA outputs never suspend (no pop). WirePlumber offers every installed
+Bluetooth codec (never set `bluez5.codecs`: it would shut out LHDC), LDAC at `auto`,
+AAC at bitrate mode 5, and `bluetooth.autoswitch-to-headset-profile = false` so a mic
+never drops music to HFP. `install --fresh` adds `pipewire-audio` (which pulls libldac,
+libfreeaptx, libfdk-aac, liblc3), the sound firmware and rtkit, and offers LHDC from the
+AUR, whose failure only warns. `tests/test_audio.py` checks all of it.
 
 ## Things learned the hard way
 

@@ -16,9 +16,11 @@
 #   --system        also theme Limine, the Plymouth splash and the greetd/ReGreet
 #                   login screen (runs sudo system/install --all; asks for sudo)
 #   --fresh         for a new minimal Arch install: also add what a desktop
-#                   needs (NetworkManager, PipeWire, Bluetooth, portals, polkit
-#                   agent, Firefox, Nautilus, Noto fonts), build paru for the AUR
-#                   packages, enable the services, and imply --system
+#                   needs (NetworkManager, PipeWire with LDAC/aptX/AAC/LC3 and the
+#                   sound firmware, Bluetooth, portals, polkit agent, Firefox,
+#                   Nautilus, Noto fonts), build paru for the AUR packages, offer
+#                   the LHDC codec from the AUR, enable the services, and imply
+#                   --system
 #   -y, --yes       don't ask before installing packages
 #   -n, --dry-run   print the steps instead of running them
 #
@@ -27,7 +29,7 @@
 set -euo pipefail
 
 repo=$(cd "$(dirname "$0")" && pwd)
-packages=(switcher render rices hypr quickshell systemd fonts zsh)
+packages=(switcher render rices hypr quickshell systemd fonts zsh audio)
 backup="${XDG_STATE_HOME:-$HOME/.local/state}/rice/backup/$(date +%Y%m%d-%H%M%S)"
 fontdir="${XDG_DATA_HOME:-$HOME/.local/share}/fonts/rice"
 fonts_url="https://raw.githubusercontent.com/google/fonts/main/ofl"
@@ -179,6 +181,11 @@ missing_files() {
 fresh_pkgs=(
     git base-devel networkmanager iwd bluez bluez-utils power-profiles-daemon
     pipewire pipewire-pulse pipewire-alsa wireplumber
+    # audio: pipewire-audio carries the Bluetooth codecs (LDAC, aptX, aptX HD,
+    # AAC, LC3; it pulls their libraries in), the firmware and UCM profiles
+    # most laptops' speakers and headphone jacks need, and rtkit so PipeWire
+    # runs realtime and doesn't crackle under load
+    pipewire-audio sof-firmware alsa-firmware alsa-ucm-conf alsa-utils rtkit
     xdg-desktop-portal-hyprland xdg-desktop-portal-gtk hyprpolkitagent
     firefox nautilus noto-fonts noto-fonts-cjk noto-fonts-emoji wpa_supplicant
     gnome-keyring libsecret seahorse
@@ -241,6 +248,21 @@ if [ "$fresh" = 1 ]; then
         ok "AUR helper: $helper"
     else
         build_paru
+    fi
+
+    # LHDC isn't in Arch's PipeWire. The AUR builds PipeWire master's whole
+    # Bluetooth plugin set with it into /usr/lib/spa-0.2-lhdc, and WirePlumber
+    # loads that set first; if a PipeWire update ever breaks it, every
+    # Bluetooth codec goes with it until it's removed or rebuilt
+    lhdc=(liblhdcv5 pipewire-bluez5-lhdc-git wireplumber-lhdc-config)
+    if helper=$(aur_helper) \
+        && ask "Add the LHDC Bluetooth codec (AUR, built from PipeWire master; undo: $helper -Rns ${lhdc[*]})?"; then
+        if run "$helper" -S --needed --noconfirm "${lhdc[@]}"; then
+            run systemctl --user daemon-reload 2>/dev/null || true
+            ok "LHDC v5 (after the next login, or systemctl --user restart wireplumber)"
+        else
+            warn "LHDC didn't build; LDAC, aptX, AAC and LC3 still work"
+        fi
     fi
 
     # NetworkManager next to another network daemon would fight over the

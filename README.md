@@ -193,14 +193,34 @@ reboot
 ```
 
 `--fresh` adds what a minimal system lacks: NetworkManager (the bar's network widget
-uses it), PipeWire, Bluetooth, the Hyprland and GTK portals, a polkit agent, Firefox,
+uses it), PipeWire with every Bluetooth codec Arch has (LDAC, aptX, aptX HD, AAC, LC3)
+and the sound firmware laptops need (`sof-firmware`, `alsa-ucm-conf`), Bluetooth, the
+Hyprland and GTK portals, a polkit agent, Firefox,
 Nautilus, Noto fonts, GNOME Keyring and the Mesa/Vulkan/video drivers for an Intel
 or AMD GPU. It builds `paru` from source for the AUR-only themes (a few
-minutes; a prebuilt `paru-bin` breaks whenever pacman updates its library), hands the
+minutes; a prebuilt `paru-bin` breaks whenever pacman updates its library), offers the
+LHDC codec from the AUR (see Audio below), hands the
 network from iwd to NetworkManager at the next boot, enables the Bluetooth and
 power-profiles services, and does everything `--system`
 does. After the reboot you get the themed Limine menu, the splash, ReGreet, and then
 the desktop.
+
+### Audio
+
+Every rice gets the same sound setup (the `audio/` package, PipeWire and WirePlumber
+drop-ins):
+
+- **Wired**: the card switches to the music's own rate (44.1, 48, 88.2, 96, 176.4 or
+  192 kHz) instead of resampling everything to 48 kHz; when a stream must be resampled,
+  it's at the best quality; the jack never suspends, so sound starting doesn't pop.
+- **Bluetooth**: LDAC (adaptive, from 990 kbps), aptX, aptX HD, AAC (highest bitrate),
+  LC3, SBC-XQ, and LHDC v5 if you said yes to it. The headphones get the best codec you
+  both have. Opening a mic no longer drops music to the phone-quality call profile; pick
+  the headset profile yourself for a call.
+- The codec in use: `pactl list cards | grep -i codec`; the rate the card runs at: `pw-top`.
+- LHDC comes from the AUR (`liblhdcv5 pipewire-bluez5-lhdc-git wireplumber-lhdc-config`)
+  and runs PipeWire's development Bluetooth plugins. If Bluetooth audio ever stops after
+  an update, remove them with `yay -Rns` and the other codecs come back.
 
 How each app follows the rice:
 
