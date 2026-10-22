@@ -713,7 +713,7 @@ class Lock(unittest.TestCase):
             self.assertIn(needle, lock)
         self.assertNotIn('property: "locked"', lock)
         surf = (SAT / "lock/LockSurface.qml").read_text()
-        for needle in ("Pass {", "grade: 1", "rays: 0", "blurEnabled: true", "Theme.at(Theme.ink, 0.7)", "第${root.ep.n}話 · EPISODE ${root.ep.n}",
+        for needle in ("Pass {", "pass: Settings.s.pass ? 1 : 0", "Settings.s.pass && Settings.s.grade ? 1 : 0", "rays: 0", "blurEnabled: true", "Theme.at(Theme.ink, 0.7)", "第${root.ep.n}話 · EPISODE ${root.ep.n}",
                        "display: true", "root.ep.ja", "root.ep.en", '"HH:mm"', '"dddd, d MMMM"', "Glass {", "radius: 24",
                        "echoMode: TextInput.Password", '"Press Enter to unlock"', "root.lock.submit()", "Theme.accent"):
             self.assertIn(needle, surf)

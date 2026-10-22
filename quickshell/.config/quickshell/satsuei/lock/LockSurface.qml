@@ -7,8 +7,8 @@ import qs.common
 import qs.plate
 import qs.services
 
-// One monitor's title card: the plate with the hour's grade only, blurred a
-// little, darkened and fading into the glass tint at the bottom. Bottom left,
+// One monitor's title card: the plate with the hour's grade only (or as it
+// is, with the Compositing switch off), blurred a little, darkened and fading into the glass tint at the bottom. Bottom left,
 // 第295話 · EPISODE 295 in the accent, today's title huge in Dela Gothic One
 // with its English under it, and the time and date; bottom right, the
 // password in a glass pill with the accent's arrow. A wrong password shakes
@@ -36,12 +36,13 @@ Item {
         animated: false
         plateSize: Theme.plateSize
         light: Qt.point(Theme.lightX, Theme.lightY)
-        bloom: 0.6
+        // the Compositing switch holds here too: off, the plate as it is
+        bloom: Settings.s.pass && Settings.s.bloom ? 0.6 : 0
         rays: 0
         motes: 0
         grain: 0
-        grade: 1
-        pass: 1
+        grade: Settings.s.pass && Settings.s.grade ? 1 : 0
+        pass: Settings.s.pass ? 1 : 0
         frost: 0
         expo: Settings.s.expo * 0.8
         playing: false
