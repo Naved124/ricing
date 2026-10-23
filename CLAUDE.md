@@ -553,6 +553,40 @@ doesn't change with the accent.
   a `name-light.*` / `name-dark.*` pair is one wallpaper that crossfades with the mode
   (`gg wall set`).
 
+### Working on Golden Gate
+
+Where things are, for a change asked of one part:
+
+| Part | Files |
+|---|---|
+| menu bar, pills, tray, clock | `menubar/MenuBar.qml`, `Pill.qml`, `TrayIcon.qml` (`menubar.monoTray`: Colloid's symbolic, then Papirus's panel icons for colour badges) |
+| Dynamic Island, media card, lyrics | `menubar/Island.qml`, `IslandCard.qml`, `services/Lyrics.qml` (LRCLIB: exact `get`, else `search` without "feat."), `services/Beat.qml` |
+| Dock | `dock/Dock.qml`: up only on an empty workspace, edge reveal, right-click menu (its mask must include the menu or clicks fall through) |
+| ⌥Tab | `switcher/Switcher.qml` + `session.lua`'s `ALT + TAB` → `quickshell:switcher`; the choice is raised after the strip closes (`GG.raise`) |
+| widgets | `desk/Stats.qml` (system + weather), `desk/Widget.qml`, `services/Weather.qml` (Open-Meteo; location from ipinfo.io once, kept in Settings) |
+| sounds | `services/Chime.qml`, `sounds/*.wav` from `tools/gg-sounds` |
+| glass, blur | `templates/glass.lua` (Frosted's numbers; the menu bar is always Hyprland's blur), `templates/hypr.lua` (layer rules), `gg glass` |
+| binds, window actions | `templates/session.lua` (`GG.*`, reached by `gg win …`); keyd: `docs/goldengate/keyd-goldengate.conf` (installed to `/etc/keyd` by `install --fresh`) |
+| settings | `services/Settings.qml` (`~/.config/goldengate/settings.json`), `settings/SettingsApp.qml`, `services/Shell.qml` (`shell.json`: widgets, DND) |
+
+Traps met while building it:
+
+- Quickshell's hot reload can stop picking up edits: restart the shell (stop every
+  `goldengate` instance from `qs list --all`, then `qs -c goldengate -d`); two at once
+  leave the second without the notification server.
+- An error inside an inline `component` shows only as "X is not a type": move it to its
+  own file to see the real one (or to fix it).
+- `layer.effect: MultiEffect` with a mask punched holes through what's behind on a
+  layer surface; draw the source hidden with `layer.enabled` and a sibling `MultiEffect`
+  (`common/Sym.qml`).
+- Several `Settings.set` in a row race the file's own reload: write one object
+  (`gg set location '{…}'`).
+- A binding on `font.family` that reads `font.pixelSize` loops: set
+  `Theme.fontDisplay` by hand on large text.
+- `hyprctl reload` after changing a template (`rice-render goldengate` first); check
+  `hyprctl configerrors`. Changing a template changes light mode, so refresh
+  `tests/snapshots/light.sha256` and say so in the commit.
+
 ## Audio
 
 The `audio/` stow package is the same for every rice. PipeWire's `allowed-rates` let the
