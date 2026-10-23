@@ -516,6 +516,22 @@ doesn't change with the accent.
   bends a copy of the wallpaper, or with `glass.accurate` a still of the screen taken as the
   pane opens. **Never keep a `ScreencopyView` alive**: it holds the screencopy, and grim and
   hyprlock (the idle lock) then hang; capture, `grabToImage`, destroy.
+- **Its own binds and windows** (the exception to the shared binds, as Satsuei's are):
+  the rice's `session.lua` (rendered, loaded by `hypr.lua` on every reload, so any other
+  rice's reload drops it) unbinds what the Mac uses differently and binds its set with ⌘ as
+  Super and no global Ctrl grabs: ⌘Q quit the app, ⌘W close, ⌘H / ⌥⌘H hide, ⌘M minimize,
+  ⇧⌘M show all, ⌃⌘F full screen, ⌃⌘arrows halves then quarters, ⌃⌘Return Fill, ⌃⌘C
+  Center, ⌘` the app's next window, ⌥⌘←/→ and ⌥⌘1–9 Spaces, ⌥⌘↑/↓ Mission Control and
+  App Exposé, ⌘F4 Apps, ⌘F11 Show Desktop, ⇧⌘3/4/5 screenshots (rice-shot until the shell's
+  toolbar), ⌘N Notification Center, ⌘, Settings, ⌃⌘Q lock, ⌥⌘G the glass. Windows float
+  and centre (`windows.layout = "tiled"` turns that off; `gg set` reloads Hyprland), and one
+  asking for more than the screen opens smaller. Minimize, Hide and Show Desktop move
+  windows to `special:minimized|hidden|desktop`. Everything a window can be asked is a
+  `GG.*` Lua function; `gg win …`, the traffic lights and the shell call them through
+  `hyprctl eval`. The traffic lights are hyprbars, which `gg` loads like the glass plugins
+  (a load reloads the config, so `GG.bars()` runs once per Lua state), except on the apps
+  in `own_bar` that draw their own; tiles leave room for its 30 px bar. No Golden Gate bind
+  is in `base.lua` (a test checks).
 - **Wallpaper:** the shell draws it from `~/Pictures/Wallpapers` (shared with Satsuei);
   a `name-light.*` / `name-dark.*` pair is one wallpaper that crossfades with the mode
   (`gg wall set`).

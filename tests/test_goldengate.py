@@ -317,7 +317,7 @@ class Accent(unittest.TestCase):
 HYPRCTL = r"""#!/bin/bash
 d="$GG_FAKE_HYPR"; touch "$d/loaded"
 echo "$*" >> "$d/calls"
-name() { case "$(basename "$1")" in hyprglass.so) echo hyprglass ;; libhyprliquid.so) echo hyprliquid ;; esac; }
+name() { case "$(basename "$1")" in hyprglass.so) echo hyprglass ;; libhyprliquid.so) echo hyprliquid ;; hyprbars.so) echo hyprbars ;; esac; }
 [[ "$1" == -j ]] && shift
 case "$1 $2" in
     "plugin list")
@@ -331,9 +331,8 @@ esac
 """
 
 
-@unittest.skipUnless(shutil.which("jq"), "jq not installed")
-class Glass(unittest.TestCase):
-    """gg glass: Liquid through a plugin it loads itself, Frosted when it can't."""
+class GgCase(unittest.TestCase):
+    """gg on screen against a fake hyprctl that keeps which plugins are loaded."""
 
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
@@ -351,7 +350,7 @@ class Glass(unittest.TestCase):
         for name in ("rice", "rice-render", "gg-theme", "gsettings"):      # recolour's, not under test
             (bin_ / name).write_text("#!/bin/sh\nexit 0\n")
             (bin_ / name).chmod(0o755)
-        for so in ("hyprglass.so", "libhyprliquid.so"):
+        for so in ("hyprglass.so", "libhyprliquid.so", "hyprbars.so"):
             (root / so).write_text("")
         active = root / "data/rice/active"
         active.mkdir(parents=True)
@@ -361,6 +360,7 @@ class Glass(unittest.TestCase):
             "XDG_CONFIG_HOME": str(root / "config"), "XDG_STATE_HOME": str(root / "state"),
             "XDG_DATA_HOME": str(root / "data"), "GG_FAKE_HYPR": str(self.hypr),
             "GG_HYPRGLASS": str(root / "hyprglass.so"), "GG_HYPRLIQUID": str(root / "libhyprliquid.so"),
+            "GG_HYPRBARS": str(root / "hyprbars.so"),
         }
 
     def tearDown(self):
@@ -370,7 +370,8 @@ class Glass(unittest.TestCase):
         r = subprocess.run([str(GG), *args], env={**self.env, **env}, capture_output=True, text=True, timeout=60)
         self.assertEqual(r.returncode, 0, r.stderr)
         # never two glass plugins at once
-        self.assertLessEqual(len(self.loaded()), 1, self.loaded())
+        glass = [p for p in self.loaded() if p != "hyprbars"]
+        self.assertLessEqual(len(glass), 1, self.loaded())
         return r
 
     def loaded(self):
@@ -381,6 +382,12 @@ class Glass(unittest.TestCase):
 
     def state(self):
         return json.loads((self.root / "state/goldengate/glass.json").read_text())
+
+
+
+@unittest.skipUnless(shutil.which("jq"), "jq not installed")
+class Glass(GgCase):
+    """gg glass: Liquid through a plugin it loads itself, Frosted when it can't."""
 
     def test_liquid_loads_hyprglass_and_sends_the_glass(self):
         self.gg("glass", "liquid")
@@ -475,6 +482,186 @@ class Shell(unittest.TestCase):
 
 
 @unittest.skipUnless(shutil.which("lua"), "lua not installed")
+@unittest.skipUnless(shutil.which("jq"), "jq not installed")
+class Windows(GgCase):
+    """gg's side of session.lua: the traffic lights, the layout, gg win."""
+
+    def setUp(self):
+        super().setUp()
+        bin_ = self.root / "bin"
+        (bin_ / "rice-shot").write_text(f'#!/bin/sh\necho "$@" > {self.root}/shot\n')
+        (bin_ / "rice-shot").chmod(0o755)
+        (self.root / "data/rice/active/hypr-mode.lua").write_text("-- rendered\n")
+
+    def test_the_traffic_lights_come_and_go_with_the_rice(self):
+        self.gg("hook", "post-switch")
+        self.assertIn("hyprbars", self.loaded())
+        self.assertEqual(self.calls().count("GG.bars()"), 1)
+        # already in: its buttons aren't added twice
+        self.gg("hook", "post-switch")
+        self.assertEqual(self.calls().count("GG.bars()"), 1)
+        self.gg("hook", "leave", "paper")
+        self.assertEqual(self.loaded(), [])
+
+    def test_the_layout_reloads_hyprland(self):
+        self.gg("set", "windows.layout", '"tiled"')
+        self.assertIn('layout = "tiled"', (self.root / "state/goldengate/session-state.lua").read_text())
+        self.assertIn("reload", self.calls())
+        n = self.calls().count("reload")
+        self.gg("set", "windows.layout", '"tiled"')     # unchanged: no reload
+        self.assertEqual(self.calls().count("reload"), n)
+
+    def test_win_asks_session_lua(self):
+        self.gg("win", "tile", "left")
+        self.gg("win", "restore", "0x55ab")
+        self.gg("desktop")
+        self.assertIn('eval if GG then GG.tile("left") end', self.calls())
+        self.assertIn('eval if GG then GG.restore("0x55ab") end', self.calls())
+        self.assertIn("eval if GG then GG.desktop() end", self.calls())
+        # what reaches Lua is a name, never code
+        self.gg("win", "unhide", 'x") os.exit() --')
+        self.assertIn('GG.unhide("xos.exit--")', self.calls())
+
+    def test_screenshots_fall_back_to_rice_shot(self):
+        # no shell to answer: rice-shot takes it
+        self.gg("screenshot", "selection")
+        self.assertEqual((self.root / "shot").read_text().strip(), "region")
+        self.gg("screenshot", "screen")
+        self.assertEqual((self.root / "shot").read_text().strip(), "screen")
+
+
+class SessionLua(unittest.TestCase):
+    """The rendered session.lua (binds, floating, the GG.* window functions)
+    against a stub of Hyprland's `hl`."""
+
+    STUB = r"""
+out = {}
+local function say(...) local t = {} for _, v in ipairs({...}) do t[#t + 1] = tostring(v) end out[#out + 1] = table.concat(t, " ") end
+local function ser(v)
+    if type(v) ~= "table" then return tostring(v) end
+    local keys = {} for k in pairs(v) do keys[#keys + 1] = tostring(k) end table.sort(keys)
+    local t = {} for _, k in ipairs(keys) do t[#t + 1] = k .. "=" .. ser(v[k] == nil and v[tonumber(k)] or v[k]) end
+    return "{" .. table.concat(t, ",") .. "}"
+end
+local function dsp(path) return setmetatable({}, {
+    __index = function(_, k) return dsp(path .. "." .. k) end,
+    __call = function(_, a) return { path = path, args = a } end }) end
+MON = { x = 0, y = 0, width = 1920, height = 1080, reserved = { left = 0, right = 0, top = 34, bottom = 0 } }
+WS = { id = 2, name = "2", special = false }
+WINDOWS = WINDOWS or {}
+hl = {
+    plugin = BARS and { hyprbars = { add_button = function(b) say("button", b.icon) end } } or {},
+    config = function() end, gesture = function(g) say("gesture", g.fingers, g.direction) end,
+    on = function(e, f) say("on", e) end,
+    window_rule = function(r) say("rule", r.name) end,
+    bind = function(k, a, f) say("bind", k, f.description) end,
+    unbind = function(k) say("unbind", k) end,
+    dsp = dsp("dsp"),
+    dispatch = function(d) say("dispatch", d.path, ser(d.args)) end,
+    get_active_window = function() return WINDOWS[1] end,
+    get_active_workspace = function() return WS end,
+    get_windows = function() return WINDOWS end,
+    get_window = function(s) for _, w in ipairs(WINDOWS) do if "address:" .. w.address == s then return w end end end,
+}
+dofile(SESSION)
+if RUN then RUN() end
+for _, l in ipairs(out) do print(l) end
+"""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.root = Path(self.tmp.name)
+        ctx = rr.load_modes(RICE)
+        src = (RICE / "templates/session.lua").read_text()
+        self.lua = {m: rr.render_text(src, ctx[m], "session.lua") for m in ("light", "dark")}
+        (self.root / "session.lua").write_text(self.lua["light"])
+        (self.root / "goldengate").mkdir()
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def run_lua(self, pre="", state=None):
+        if state:
+            (self.root / "goldengate/session-state.lua").write_text(f"return {state}\n")
+        r = subprocess.run(["lua", "-e", f"SESSION = [[{self.root}/session.lua]]; " + pre + self.STUB],
+                           capture_output=True, text=True,
+                           env={**os.environ, "XDG_STATE_HOME": str(self.root), "HOME": str(self.root)})
+        self.assertEqual(r.returncode, 0, r.stderr)
+        return r.stdout.splitlines()
+
+    WIN = ('{ address = "0x1", class = "%s", mapped = true, floating = true, fullscreen = 0, '
+           'stable_id = 1, tags = {}, size = { x = 800, y = 600 }, workspace = WS, monitor = MON }')
+
+    def test_it_renders_the_same_in_both_modes(self):
+        self.assertEqual(self.lua["light"], self.lua["dark"])
+
+    def test_base_has_none_of_its_binds(self):
+        base = (REPO / "hypr/.config/hypr/base.lua").read_text()
+        for word in ("GG.", "gg ", "Mission Control", "Quit the app", "Show Desktop", "Notification Center"):
+            self.assertNotIn(word, base)
+
+    def test_every_rebound_key_is_unbound_first(self):
+        lines = self.run_lua()
+        binds = [l.split(" ", 1)[1] for l in lines if l.startswith("bind ")]
+        unbinds = {l.split(" ", 1)[1] for l in lines if l.startswith("unbind ")}
+        keys = [b.rsplit(" ", 0)[0] for b in binds]
+        self.assertGreater(len(binds), 30)
+        for b in binds:
+            self.assertTrue(any(b.startswith(u + " ") for u in unbinds), b)
+        # ⌘⇧3–5 are screenshots: base's "send to workspace 3–5" go
+        self.assertIn("SUPER + SHIFT + 4", unbinds)
+        # no global Ctrl grabs: every bind has Super
+        self.assertTrue(all(k.startswith("SUPER + ") for k in keys))
+        self.assertFalse(any(" CTRL + left" in b and "SUPER" not in b for b in binds))
+
+    def test_windows_float_unless_tiled(self):
+        self.assertIn("rule goldengate-float", self.run_lua())
+        self.assertNotIn("rule goldengate-float", self.run_lua(state='{ layout = "tiled" }'))
+
+    def test_the_gestures(self):
+        g = [l for l in self.run_lua() if l.startswith("gesture")]
+        self.assertEqual(g, ["gesture 3 horizontal", "gesture 4 up", "gesture 4 down",
+                             "gesture 4 pinchin", "gesture 4 pinchout"])
+
+    def test_traffic_lights_only_with_hyprbars(self):
+        self.assertFalse([l for l in self.run_lua() if l.startswith("button")])
+        lines = self.run_lua("BARS = true; ")
+        self.assertEqual([l for l in lines if l.startswith("button")], ["button ×", "button −", "button +"])
+        self.assertIn("rule goldengate-own-bar", lines)
+
+    def tile(self, cls, dirs, bars=False):
+        pre = ("BARS = true; " if bars else "") + "WINDOWS = nil; RUN = function() WINDOWS[1] = " + \
+              (self.WIN % cls) + "; " + " ".join(f'GG.tile("{d}");' for d in dirs) + " end; "
+        return [l for l in self.run_lua(pre) if l.startswith("dispatch")]
+
+    def test_halves_then_quarters(self):
+        # the area: 1920 x (1080 - 34 reserved), less a 10 px gap round it
+        d = self.tile("kitty", ["left"])
+        self.assertIn("dispatch dsp.window.resize {window=address:0x1,x=945,y=1026}", d)
+        self.assertIn("dispatch dsp.window.move {window=address:0x1,x=10,y=44}", d)
+        d = self.tile("kitty", ["left", "up"])
+        self.assertIn("dispatch dsp.window.resize {window=address:0x1,x=945,y=508}", d)
+        d = self.tile("kitty", ["right", "down"])
+        self.assertIn("dispatch dsp.window.move {window=address:0x1,x=965,y=562}", d)
+
+    def test_a_tile_keeps_the_title_bar_on_screen(self):
+        d = self.tile("kitty", ["left"], bars=True)
+        self.assertIn("dispatch dsp.window.move {window=address:0x1,x=10,y=74}", d)
+        self.assertIn("dispatch dsp.window.resize {window=address:0x1,x=945,y=996}", d)
+        # an app with its own title bar has no hyprbars to make room for
+        d = self.tile("org.gnome.Nautilus", ["left"], bars=True)
+        self.assertIn("dispatch dsp.window.move {window=address:0x1,x=10,y=44}", d)
+
+    def test_minimize_and_show_all(self):
+        pre = "RUN = function() WINDOWS[1] = " + (self.WIN % "kitty") + "; GG.minimize() end; "
+        d = [l for l in self.run_lua(pre) if l.startswith("dispatch")]
+        self.assertEqual(d, ["dispatch dsp.window.move {follow=false,window=address:0x1,workspace=special:minimized}"])
+        pre = ("RUN = function() WINDOWS[1] = " + (self.WIN % "kitty") +
+               "; WINDOWS[1].workspace = { id = -99, name = 'special:minimized', special = true }; GG.show_all() end; ")
+        d = [l for l in self.run_lua(pre) if l.startswith("dispatch")]
+        self.assertEqual(d, ["dispatch dsp.window.move {follow=false,window=address:0x1,workspace=2}"])
+
+
 class GlassLua(unittest.TestCase):
     """The rendered glass.lua against a stub of Hyprland's `hl`."""
 

@@ -40,3 +40,13 @@ hl.config({
 
 -- the glass's light: hyprglass's theme (hyprliquid follows the portal's colour scheme)
 if hl.plugin.hyprglass then hl.plugin.hyprglass.config({ default_theme = "{{ mode }}" }) end
+
+-- the traffic lights' bar: the window's own colour, its title in the label's,
+-- and grey lights on windows out of focus
+if hl.plugin.hyprbars then
+    hl.config({ plugin = { hyprbars = {
+        bar_color             = "{{ colors.window | hypr(ff) }}",
+        ["col.text"]          = "{{ colors.label | hypr(ff) }}",
+        inactive_button_color = "{{ colors.ink | hypr(0.16) }}",
+    } } })
+end

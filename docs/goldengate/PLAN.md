@@ -143,6 +143,20 @@ What the shader glass found (step 4):
   non-live view captures once by itself when it's ready.
 - `gg set KEY false` was refused: `jq -e` fails on `false` and `null`.
 
+What the Hyprland base found (step 5):
+
+- Hyprland 0.56's Lua has `hl.unbind(keys)`; `hl.gesture{fingers, direction, action}` takes
+  `horizontal|vertical|up|down|left|right|pinch|pinchin|pinchout` and an action name or a Lua
+  function. Bad arguments to `hl.*` don't raise: check `hyprctl configerrors`.
+- A reload starts a fresh Lua state (globals are gone); evals share it. `hl.get_window` wants
+  `"address:0x…"`; window objects have `address class pid at size floating fullscreen
+  workspace monitor tags stable_id`, monitors `x y width height reserved`.
+- **hyprbars** (hyprpm's `hyprland-plugins`) is configured by `hl.config{plugin = {hyprbars =
+  {…}}}` and `hl.plugin.hyprbars.add_button{bg_color, fg_color, size, icon, action}`, whose
+  action is a shell command; the first button added is the outermost. Loading it reloads the
+  config. `["hyprbars:no_bar"] = true` on a window rule turns its bar off. The bar sits above
+  the window's `at`, outside its `size`.
+
 Install command (needs sudo, so the user runs it):
 
     yay -S --needed hyprpm hyprliquid mactahoe-gtk-theme mactahoe-icon-theme-git kvantum \

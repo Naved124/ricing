@@ -13,8 +13,12 @@
 #                          the glass, live; clarity 0 is Ultraclear, 1 Tinted
 #   gg glass backend auto|hyprglass|hyprliquid|shader | apply | status
 #   gg wall set FILE [DARK] | next | prev | seed | status
-#   gg dock | spotlight | mission | expose | cc | nc | apps | desktop | switcher
+#   gg dock | spotlight | mission | expose | cc | nc | apps | switcher
 #                          open (or close) the shell's surfaces
+#   gg desktop             Show Desktop (and back)
+#   gg win close|quit|minimize|zoom|fill|center|hide|hide-others|show-all|cycle
+#   gg win tile left|right|up|down | restore ADDRESS | unhide CLASS
+#                          the focused window (what the traffic lights and binds do)
 #   gg settings [PANE]     System Settings, at a pane
 #   gg lock                the lock screen
 #   gg screenshot screen|selection|window|toolbar
@@ -56,9 +60,15 @@ ipc() {   # ipc TARGET FUNCTION [ARGS…]
     have qs || die "quickshell isn't installed"
     qs -c "$SHELL_NAME" ipc call "$@"
 }
-# a surface: the shell answers, or says why not
+# a surface: the shell answers, or says why not (qs exits 0 on a missing
+# target, so its answer is read)
+has_surface() {
+    local out
+    out="$(ipc "$@" 2>&1)" || return 1
+    [[ "$out" != *"not found"* ]]
+}
 surface() {
-    ipc "$@" >/dev/null 2>&1 || die "the Golden Gate shell isn't running (rice goldengate), or has no '$1 $2'"
+    has_surface "$@" || die "the Golden Gate shell isn't running (rice goldengate), or has no '$1 $2'"
 }
 
 # ── settings.json ────────────────────────────────────────────────────────
@@ -232,11 +242,12 @@ accent() {
 # back to Frosted, and glass.json says why (the shell shows it).
 HYPRGLASS="${GG_HYPRGLASS:-/var/cache/hyprpm/${USER:-$(id -un)}/HyprGlass/hyprglass.so}"
 HYPRLIQUID="${GG_HYPRLIQUID:-/usr/lib/libhyprliquid.so}"
+HYPRBARS="${GG_HYPRBARS:-/var/cache/hyprpm/${USER:-$(id -un)}/hyprland-plugins/hyprbars.so}"
 GLASS_STATE="$STATE/glass-state.lua"   # read by the rice's glass.lua
 GLASS_JSON="$STATE/glass.json"         # what's on screen, for the shell
 GLASS_LUA="${XDG_DATA_HOME:-$HOME/.local/share}/rice/active/glass.lua"
 
-plugin_path() { case "$1" in hyprglass) echo "$HYPRGLASS" ;; hyprliquid) echo "$HYPRLIQUID" ;; esac; }
+plugin_path() { case "$1" in hyprglass) echo "$HYPRGLASS" ;; hyprliquid) echo "$HYPRLIQUID" ;; hyprbars) echo "$HYPRBARS" ;; esac; }
 loaded() {   # loaded NAME: hyprctl lists it
     hyprctl -j plugin list 2>/dev/null | jq -e --arg n "$1" 'type == "array" and any(.[]; (.name | ascii_downcase) == $n)' >/dev/null 2>&1
 }
@@ -428,6 +439,68 @@ wall() {
     esac
 }
 
+# ── windows ──────────────────────────────────────────────────────────────
+# The rice's session.lua (loaded by hypr.lua on every reload) holds Golden
+# Gate's binds, floating, gestures and the GG.* window functions; these ask
+# them. session-state.lua is what it reads from the settings.
+SESSION_STATE="$STATE/session-state.lua"
+ACTIVE_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/rice/active"
+
+session_write() {   # prints "changed" when the state is new
+    local layout new
+    layout="$(get_str windows.layout)"; [[ "$layout" == tiled ]] || layout=floating
+    new="$(printf -- '-- Written by gg; the rice'"'"'s session.lua reads it.\nreturn { layout = "%s" }\n' "$layout")"
+    [[ -f "$SESSION_STATE" && "$(cat "$SESSION_STATE")" == "$new" ]] && return 0
+    printf '%s\n' "$new" > "$SESSION_STATE.tmp" && mv -f "$SESSION_STATE.tmp" "$SESSION_STATE"
+    echo changed
+}
+
+# the traffic lights: hyprbars, loaded while Golden Gate is on screen. Its
+# buttons go in once per load (a reload starts them afresh, from session.lua).
+bars_apply() {
+    active && have hyprctl || return 0
+    loaded hyprbars && return 0
+    local why
+    if why="$(plugin_try hyprbars)"; then
+        hyprctl eval "GG.bars(); dofile([[$ACTIVE_DIR/hypr-mode.lua]])" >/dev/null || log "hyprctl eval failed"
+    else
+        log "no traffic lights: $why"
+    fi
+}
+
+lua() {   # lua CODE: in Hyprland, where session.lua defined GG
+    active && have hyprctl || die "Golden Gate isn't the active rice"
+    hyprctl eval "if GG then $1 end" >/dev/null
+}
+lua_str() { printf '%s' "$1" | sed 's/[^A-Za-z0-9_.:-]//g'; }
+
+win() {
+    case "${1:-}" in
+        close|quit|zoom|fill|center|cycle) lua "GG.$1()" ;;
+        minimize) lua "GG.minimize()" ;;
+        hide) lua "GG.hide()" ;;
+        hide-others) lua "GG.hide_others()" ;;
+        show-all) lua "GG.show_all()" ;;
+        tile)
+            case "${2:-}" in left|right|up|down) lua "GG.tile(\"$2\")" ;; *) die "usage: gg win tile left|right|up|down" ;; esac ;;
+        restore) [[ -n "${2:-}" ]] || die "usage: gg win restore ADDRESS"; lua "GG.restore(\"0x$(lua_str "${2#0x}")\")" ;;
+        unhide) [[ -n "${2:-}" ]] || die "usage: gg win unhide CLASS"; lua "GG.unhide(\"$(lua_str "$2")\")" ;;
+        *) die "usage: gg win close|quit|minimize|zoom|fill|center|hide|hide-others|show-all|cycle|tile DIR|restore ADDRESS|unhide CLASS" ;;
+    esac
+}
+
+# screenshots: the shell's (its toolbar and thumbnail), else rice-shot's
+screenshot() {
+    local what="${1:-selection}"
+    has_surface capture shot "$what" && return 0
+    case "$what" in
+        screen) rice-shot screen ;;
+        window) rice-shot window ;;
+        toolbar) rice-shot edit ;;
+        *) rice-shot region ;;
+    esac
+}
+
 # ── hooks (the rice's hooks/ call these) ─────────────────────────────────
 hook() {
     case "${1:-}" in
@@ -445,18 +518,22 @@ hook() {
                 pkill -USR1 -x kitty 2>/dev/null || true
             fi
             gg-theme apply || log "gg-theme apply failed"
-            glass_apply ;;
+            # `rice` has reloaded Hyprland already: once more if the layout
+            # it read was stale
+            if [[ "$(session_write)" == changed ]]; then hyprctl reload >/dev/null || true; fi
+            glass_apply
+            bars_apply ;;
         post-mode)
             gg-theme apply "${2:-$(mode)}" || log "gg-theme apply failed" ;;
         leave)
             # the plugins are Golden Gate's only
-            plugin_unload hyprglass; plugin_unload hyprliquid
+            plugin_unload hyprglass; plugin_unload hyprliquid; plugin_unload hyprbars
             gg-theme restore || log "couldn't restore the theme settings" ;;
         *) die "usage: gg hook enter|post-switch|post-mode|leave" ;;
     esac
 }
 
-usage() { sed -n '2,30p' "$0" | sed 's/^# \{0,1\}//'; }
+usage() { sed -n '2,35p' "$0" | sed 's/^# \{0,1\}//'; }
 
 case "${1:-}" in
     ""|-h|--help|help) usage ;;
@@ -468,7 +545,8 @@ case "${1:-}" in
     get) [[ -n "${2:-}" ]] || die "usage: gg get KEY"; get "$2" ;;
     set) [[ -n "${2:-}" && -n "${3:-}" ]] || die "usage: gg set KEY JSON"; set_json "$2" "$3"
          case "$2" in glass.*|accessibility.reduceTransparency|appearance.menuBarBackground) glass_apply ;; esac
-         case "$2" in appearance.*|glass.*|accessibility.reduceTransparency) recolour ;; esac ;;
+         case "$2" in appearance.*|glass.*|accessibility.reduceTransparency) recolour ;; esac
+         case "$2" in windows.*) if [[ "$(session_write)" == changed ]] && active && have hyprctl; then hyprctl reload >/dev/null; fi ;; esac ;;
     hook) shift; hook "$@" ;;
     dock) surface dock toggle ;;
     spotlight) surface spotlight toggle ;;
@@ -477,11 +555,12 @@ case "${1:-}" in
     cc) surface controlcenter toggle ;;
     nc) surface notifications toggle ;;
     apps|launchpad) surface apps toggle ;;
-    desktop) surface windows showDesktop ;;
+    desktop) lua "GG.desktop()" ;;
+    win|window) shift; win "$@" ;;
     switcher) shift; surface switcher "${1:-next}" ;;
     settings) shift; surface settings open "${1:-}" ;;
     lock) rice lock ;;
-    screenshot) shift; surface capture shot "${1:-selection}" ;;
+    screenshot) shift; screenshot "${1:-selection}" ;;
     record) shift; surface capture record "${1:-screen}" ;;
     island) shift; [[ "${1:-}" == test ]] || die "usage: gg island test ACTIVITY"; surface island test "${2:-}" ;;
     widgets) shift; surface widgets "${1:-edit}" ;;
