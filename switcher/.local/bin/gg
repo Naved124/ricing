@@ -489,8 +489,9 @@ win() {
             case "${2:-}" in left|right|up|down) lua "GG.tile(\"$2\")" ;; *) die "usage: gg win tile left|right|up|down" ;; esac ;;
         restore) [[ -n "${2:-}" ]] || die "usage: gg win restore ADDRESS"; lua "GG.restore(\"0x$(lua_str "${2#0x}")\")" ;;
         unhide) [[ -n "${2:-}" ]] || die "usage: gg win unhide CLASS"; lua "GG.unhide(\"$(lua_str "$2")\")" ;;
+        raise) [[ -n "${2:-}" ]] || die "usage: gg win raise ADDRESS"; lua "GG.raise(\"0x$(lua_str "${2#0x}")\")" ;;
         quit-app) [[ -n "${2:-}" ]] || die "usage: gg win quit-app CLASS"; lua "GG.quit_app(\"$(lua_str "$2")\")" ;;
-        *) die "usage: gg win close|quit|minimize|zoom|fill|center|hide|hide-others|show-all|cycle|tile DIR|restore ADDRESS|unhide CLASS|quit-app CLASS" ;;
+        *) die "usage: gg win close|quit|minimize|zoom|fill|center|hide|hide-others|show-all|cycle|tile DIR|restore ADDRESS|unhide CLASS|quit-app CLASS|raise ADDRESS" ;;
     esac
 }
 

@@ -33,11 +33,15 @@ PanelWindow {
         }
         index = (index + by + list.length) % list.length;
     }
+    // the strip goes first: while it holds the keyboard, Hyprland would hand
+    // the focus back to the window it was taken from
     function pick() {
-        const w = list[index];
+        chosen = list[index] || null;
         Shell.closeAll();
-        if (w) Windows.focusWindow(w);
+        if (chosen) raiseLater.restart();
     }
+    property var chosen: null
+    Timer { id: raiseLater; interval: 90; onTriggered: if (root.chosen) Shell.gg(["win", "raise", root.chosen.address]) }
 
     anchors { top: true; bottom: true; left: true; right: true }
     exclusionMode: ExclusionMode.Ignore

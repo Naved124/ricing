@@ -73,6 +73,14 @@ function GG.quit()
     for _, w in ipairs(app_windows(a.class)) do run(hl.dsp.window.close({ window = sel(w) })) end
 end
 
+-- the window switcher's choice: focused and on top of the floating ones
+function GG.raise(address)
+    local w = hl.get_window("address:" .. address)
+    if not w then return end
+    run(hl.dsp.focus({ window = sel(w) }))
+    run(hl.dsp.window.bring_to_top({ window = sel(w) }))
+end
+
 -- the Dock's Quit: every window of one app, wherever they are
 function GG.quit_app(class)
     for _, w in ipairs(app_windows(class)) do run(hl.dsp.window.close({ window = sel(w) })) end
