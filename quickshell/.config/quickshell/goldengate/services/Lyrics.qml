@@ -32,18 +32,28 @@ Singleton {
     onArtistChanged: later.restart()
     onSpotifyChanged: later.restart()
     Timer { id: later; interval: 500; onTriggered: root.fetch() }
+    Component.onCompleted: later.restart()
 
     function fetch() {
         if (!spotify || !title) { lines = []; key = ""; return; }
-        const k = artist + "\n" + title;
-        if (k === key) return;
+        lookup(artist, title, player.length > 0 ? Math.round(player.length) : 0);
+    }
+    // the exact match first (title, artist, length), else LRCLIB's search
+    // with "(feat. …)" and " - Remastered" taken off the title
+    function lookup(a, t, secs) {
+        const k = a + "\n" + t;
+        if (k === key && (lines.length || req.running)) return;
         key = k;
         if (cache[k]) { lines = cache[k]; return; }
         lines = [];
-        const len = player.length > 0 ? ["--data-urlencode", "duration=" + Math.round(player.length)] : [];
+        req.running = false;   // a lookup still going is for another song
         req.want = k;
-        req.command = ["curl", "-sfm", "8", "--get", "https://lrclib.net/api/get",
-                       "--data-urlencode", "artist_name=" + artist, "--data-urlencode", "track_name=" + title].concat(len);
+        req.command = ["sh", "-c", `
+            r=$(curl -sm12 --get https://lrclib.net/api/get --data-urlencode "artist_name=$1" --data-urlencode "track_name=$2" \${3:+--data-urlencode "duration=$3"})
+            case "$r" in *'"syncedLyrics":"'*) printf '%s' "$r"; exit ;; esac
+            t=$(printf '%s' "$2" | sed -E 's/ *[([](feat|with|ft)\.?[^])]*[])]//I; s/ - .*(remaster|version|edit|mix).*$//I')
+            curl -sm12 --get https://lrclib.net/api/search --data-urlencode "artist_name=\${1%%,*}" --data-urlencode "track_name=$t" |
+                jq -c '[.[] | select(.syncedLyrics)][0] // {}'`, "sh", a, t, secs > 0 ? String(secs) : ""];
         req.running = true;
     }
     function parse(text, k) {
@@ -54,8 +64,9 @@ Singleton {
                 const m = l.match(/^\[(\d+):(\d+(?:\.\d+)?)\]\s*(.*)$/);
                 return m ? { t: parseInt(m[1]) * 60 + parseFloat(m[2]), text: m[3] } : null;
             }).filter(x => x && x.text.trim() !== "");
-        } catch (e) { /* no lyrics for this one */ }
-        cache[k] = out;
+            cache[k] = out;   // only a real answer is kept: a failed request tries again next time
+        } catch (e) { /* offline or an error page: nothing kept */ }
+        console.info("lyrics:", k.replace("\n", " — "), out.length, "lines");
         if (k === key) lines = out;
     }
     Process {

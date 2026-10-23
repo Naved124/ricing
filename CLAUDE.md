@@ -540,9 +540,12 @@ doesn't change with the accent.
   `common/AppIcon.qml`, symbols `common/Sym.qml` (MacTahoe's symbolic icons, recoloured).
   The shared entry points are all there (`launcher` is Spotlight, `center` Control Center).
   The menu bar's two sides are frosted pills (`menubar/Pill.qml`, Hyprland's blur whatever
-  the glass), tray icons recoloured as symbols (`menubar.monoTray`). The Dock dodges windows
-  (no autohide, no reserved space): it slides away while a window on its workspace reaches
-  it. A click on the island opens `menubar/IslandCard.qml` (cover, controls, Beat's bars,
+  the glass), tray icons recoloured as symbols (`menubar.monoTray`; colour badges such as Spotify's
+  take Colloid's symbolic or Papirus's panel icon instead). The Dock keeps out of
+  the way (no autohide, no reserved space): it stays up only on an empty workspace and slides
+  back when the pointer touches the bottom edge. ⌥Tab is the shell's window switcher
+  (`switcher/Switcher.qml`, this workspace's windows, most recent first; the one bind
+  without ⌘). A click on the island opens `menubar/IslandCard.qml` (cover, controls, Beat's bars,
   Spotify's synced lyrics from LRCLIB, `services/Lyrics.qml`). The desktop widgets
   (`desk/Stats.qml`: system and weather, Open-Meteo, `services/Weather.qml`) are toggled
   and dragged one by one. Notification sounds are `sounds/*.wav`, made by `tools/gg-sounds`.

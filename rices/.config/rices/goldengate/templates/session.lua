@@ -280,6 +280,9 @@ bind(key("CTRL + C"),      GG.center, "Windows · Center")
 -- until the app switcher (the shell's), ⌘Tab steps through windows
 bind(key("TAB"),         hl.dsp.window.cycle_next(),                    "Windows · Next app")
 bind(key("SHIFT + TAB"), hl.dsp.window.cycle_next({ next = false }),    "Windows · Previous app")
+-- ⌥Tab: the shell's window switcher, this Space's windows, most recent first
+bind("ALT + TAB",         hl.dsp.global("quickshell:switcher"),      "Windows · Switch windows (this Space)")
+bind("ALT + SHIFT + TAB", hl.dsp.global("quickshell:switcher-back"), "Windows · Switch windows, backwards")
 
 -- Spaces, Mission Control, Desktop
 bind(key("ALT + left"),  hl.dsp.focus({ workspace = "m-1" }), "Spaces · Previous")

@@ -13,8 +13,8 @@ import qs.services
 // minimized windows, and the Trash. Icons magnify under the pointer, bounce
 // while an app starts, and carry a dot while it runs. A click brings the
 // app forward (its hidden or minimized windows back) or starts it; right
-// click: Quit, or Keep in / Remove from Dock. It dodges windows: while one on
-// this screen's workspace reaches down into it, it slides away until the
+// click: Quit, or Keep in / Remove from Dock. It keeps out of the way of
+// windows: while this screen's workspace has any, it slides away until the
 // pointer touches the bottom edge, so it reserves no space.
 PanelWindow {
     id: root
@@ -26,22 +26,16 @@ PanelWindow {
     readonly property bool hiddenForFullscreen: Hypr.fullscreenOn(Hyprland.monitors.values.find(m => m.name === at) ?? null)
     readonly property var monitor: Hyprland.monitors.values.find(m => m.name === at) ?? null
     readonly property bool menuShown: Shell.open === "dockmenu"
-    // a window on this screen's workspace over the Dock's strip
+    // any window on this screen's workspace: the Dock stays up only on an empty one
     readonly property bool covered: {
         const m = monitor;
-        if (!m || !m.activeWorkspace) return false;
-        const sc = m.scale || 1, mh = m.height / sc, mw = m.width / sc;
-        const top = m.y + mh - (size + 24), half = pane.width / 2 + 8, cx = m.x + mw / 2;
-        return Windows.regular.some(w => w.workspace.id === m.activeWorkspace.id
-            && w.at[1] + w.size[1] > top && w.at[0] < cx + half && w.at[0] + w.size[0] > cx - half);
+        return !!m && !!m.activeWorkspace && Windows.regular.some(w => w.workspace.id === m.activeWorkspace.id);
     }
     readonly property bool wanted: !covered || hoverAll.hovered || menuShown
     // down only after a moment, so passing the pointer over the edge doesn't flicker it
     property bool raised: true
     onWantedChanged: if (wanted) { lower.stop(); raised = true; } else lower.restart()
     Timer { id: lower; interval: 450; onTriggered: root.raised = root.wanted }
-    // a floating window moved or resized sends no event: look again now and then
-    Timer { interval: 1500; running: !hoverAll.hovered; repeat: true; onTriggered: Windows.refresh() }
     property real pointerX: -1000
     property string bouncing: ""
     property string menuFor: ""

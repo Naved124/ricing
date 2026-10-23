@@ -612,8 +612,9 @@ for _, l in ipairs(out) do print(l) end
             self.assertTrue(any(b.startswith(u + " ") for u in unbinds), b)
         # ⌘⇧3–5 are screenshots: base's "send to workspace 3–5" go
         self.assertIn("SUPER + SHIFT + 4", unbinds)
-        # no global Ctrl grabs: every bind has Super
-        self.assertTrue(all(k.startswith("SUPER + ") for k in keys))
+        # no global Ctrl grabs: every bind has Super, but ⌥Tab (the window switcher)
+        self.assertTrue(all(k.startswith("SUPER + ") or k.startswith("ALT + ") and "TAB" in k for k in keys))
+        self.assertFalse(any(k.startswith("CTRL + ") for k in keys))
         self.assertFalse(any(" CTRL + left" in b and "SUPER" not in b for b in binds))
 
     def test_windows_float_unless_tiled(self):
@@ -721,7 +722,7 @@ for _, c in ipairs(calls) do print(c[1], dump(c[2]), dump(c[3])) end
         layers = [l for l in out.splitlines() if l.startswith("hg.layer")]
         names = {l.split()[1] for l in layers}
         self.assertEqual(names, {f"goldengate:{n}" for n in
-                                 ("dock", "controlcenter", "notifications", "widgets", "spotlight", "osd", "keys")})
+                                 ("dock", "controlcenter", "notifications", "widgets", "spotlight", "osd", "keys", "switcher")})
         self.assertTrue(all("mask_mode=contour" in l for l in layers))
         # the menu bar's pills are always Hyprland's frost, never the plugin's
         out = self.run_lua('{ mode = "liquid", backend = "hyprglass", clarity = 0.35, menubar = true }', "hyprglass")
@@ -748,7 +749,7 @@ for _, c in ipairs(calls) do print(c[1], dump(c[2]), dump(c[3])) end
     def test_hyprliquid_rules_every_panel(self):
         out = self.run_lua('{ mode = "liquid", backend = "hyprliquid", clarity = 0.35 }', "hyprliquid")
         rules = [l for l in out.splitlines() if l.startswith("layer_rule")]
-        self.assertEqual(len(rules), 7)
+        self.assertEqual(len(rules), 8)
         self.assertTrue(all("hyprliquid:effect=liquid_glass" in r for r in rules))
 
 

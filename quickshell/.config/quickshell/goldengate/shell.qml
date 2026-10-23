@@ -24,6 +24,7 @@ import qs.osd
 import qs.services
 import qs.settings
 import qs.spotlight
+import qs.switcher
 import qs.wallpaper
 
 ShellRoot {
@@ -52,6 +53,19 @@ ShellRoot {
             AppleMenu { screen: perScreen.modelData; at: perScreen.modelData.name }
             Keys { screen: perScreen.modelData; at: perScreen.modelData.name }
             IslandCard { screen: perScreen.modelData; at: perScreen.modelData.name }
+            Switcher {
+                id: switcher
+                screen: perScreen.modelData
+                at: perScreen.modelData.name
+                Connections {
+                    target: shell
+                    // only the focused screen's switcher answers
+                    function onSwitcherStep(by) {
+                        const m = Hyprland.focusedMonitor;
+                        if (!m || m.name === switcher.at) switcher.step(by);
+                    }
+                }
+            }
         }
     }
 
@@ -93,6 +107,9 @@ ShellRoot {
     GlobalShortcut { name: "launcher-tap"; description: "Spotlight (Super on its own)"; onPressed: if (Date.now() - shell.launcherAt > 400) Shell.toggle("spotlight") }
     GlobalShortcut { name: "clipboard"; description: "Clipboard history"; onPressed: Shell.toggle("clipboard") }
     GlobalShortcut { name: "center"; description: "Control Center"; onPressed: Shell.toggle("controlcenter") }
+    signal switcherStep(int by)
+    GlobalShortcut { name: "switcher"; description: "Window switcher (this Space)"; onPressed: shell.switcherStep(1) }
+    GlobalShortcut { name: "switcher-back"; description: "Window switcher, backwards"; onPressed: shell.switcherStep(-1) }
     GlobalShortcut { name: "keybinds"; description: "The key sheet"; onPressed: Shell.toggle("keys") }
     GlobalShortcut { name: "power"; description: "The power menu"; onPressed: Shell.toggle("power") }
 
@@ -114,6 +131,8 @@ ShellRoot {
     IpcHandler {
         target: "island"
         function test(activity: string): void { Shell.islandTest = activity || "recording"; }
+        // look lyrics up as if Spotify played this (the shell's log says what came back)
+        function lyrics(artist: string, title: string): void { Lyrics.lookup(artist, title, 0); }
         function commandDone(cmd: string, secs: string): void { Shell.islandTest = qsTr("Done: %1 (%2 s)").arg(cmd).arg(secs); }
     }
 

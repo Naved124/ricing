@@ -3,6 +3,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import Quickshell
 import Quickshell.Hyprland
+import Quickshell.Io
 import Quickshell.Wayland
 import Quickshell.Services.SystemTray
 import Quickshell.Widgets
@@ -21,6 +22,13 @@ PanelWindow {
     property string at: ""
     readonly property bool fullscreen: Hypr.fullscreenOn(Hyprland.monitors.values.find(m => m.name === at) ?? null)
     readonly property color ink: Theme.label
+    // one-colour tray icons on disk (Colloid's symbolic, Papirus's panel), for apps whose own is a colour badge
+    property var panelIcons: []
+    Process {
+        running: true
+        command: ["sh", "-c", "{ ls /usr/share/icons/Colloid-Grey-Dark/apps/symbolic | sed 's/^/c:/'; ls /usr/share/icons/Papirus/22x22/panel | sed 's/^/p:/'; } 2>/dev/null | sed 's/\\.svg$//'"]
+        stdout: StdioCollector { onStreamFinished: root.panelIcons = this.text.split("\n").filter(n => n) }
+    }
 
     anchors { top: true; left: true; right: true }
     implicitHeight: 32
@@ -78,7 +86,7 @@ PanelWindow {
                     else if (modelData.hasMenu) modelData.display(root, tray.mapToItem(null, 0, 0).x, root.implicitHeight);
                     else modelData.secondaryActivate();
                 }
-                TrayIcon { anchors.centerIn: parent; source: tray.modelData.icon ?? ""; ink: root.ink }
+                TrayIcon { anchors.centerIn: parent; source: tray.modelData.icon ?? ""; appId: tray.modelData.id ?? ""; panel: root.panelIcons; ink: root.ink }
             }
         }
         // recording: a stop button, as macOS shows one

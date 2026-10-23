@@ -36,6 +36,7 @@ local glassed = {
     { "goldengate:spotlight",     "contour" },
     { "goldengate:osd",           "contour" },
     { "goldengate:keys",          "contour" },
+    { "goldengate:switcher",      "contour" },
 }
 -- the menu bar's pills are always Frosted (Hyprland's blur), whatever the glass
 
