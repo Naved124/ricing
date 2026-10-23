@@ -22,7 +22,13 @@ FloatingWindow {
         { id: "wallpaper", t: qsTr("Wallpaper"), g: "▣" },
         { id: "about", t: qsTr("About"), g: "ⓘ" },
     ]
-    function open(p) { if (p) pane = p; visible = true; }
+    // a window the red light closed is gone though `visible` stayed true, so
+    // opening always hides it first and shows it again on the next tick
+    function open(p) {
+        if (p) pane = p;
+        visible = false;
+        Qt.callLater(() => root.visible = true);
+    }
 
     title: qsTr("System Settings")
     implicitWidth: 820

@@ -51,7 +51,8 @@ PanelWindow {
     function setPinned(list) { Shell.gg(["set", "dock.pinned", JSON.stringify(list)]); }
 
     anchors { bottom: true; left: true; right: true }
-    implicitHeight: bigSize + 28
+    // room above the magnified icons for the name over the hovered one
+    implicitHeight: bigSize + 72
     exclusiveZone: autohide || hiddenForFullscreen ? 0 : size + 18
     WlrLayershell.layer: WlrLayer.Top
     WlrLayershell.namespace: "goldengate:dock"
