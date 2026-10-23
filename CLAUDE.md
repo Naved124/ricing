@@ -581,6 +581,9 @@ Traps met while building it:
   (`common/Sym.qml`).
 - Several `Settings.set` in a row race the file's own reload: write one object
   (`gg set location '{…}'`).
+- A bottom-layer surface with Hyprland's blur is drawn over hyprbars' bar of a
+  window in front: the desktop widgets frost a copy of the wallpaper themselves
+  (`GlassPane.ownFrost`), so keep them out of the blur and plugin lists.
 - A binding on `font.family` that reads `font.pixelSize` loops: set
   `Theme.fontDisplay` by hand on large text.
 - `hyprctl reload` after changing a template (`rice-render goldengate` first); check
