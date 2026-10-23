@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=System Settings
+Comment=Golden Gate's settings: appearance, glass, Dock, menu bar
+Exec=gg settings
+Icon=preferences-system
+Categories=Settings;System;
+OnlyShowIn=Hyprland;

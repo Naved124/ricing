@@ -37,9 +37,9 @@ ShellRoot {
             id: perScreen
             required property var modelData
             Wallpaper { modelData: perScreen.modelData }
-            MenuBar { screen: perScreen.modelData }
-            Dock { screen: perScreen.modelData }
-            Stats { screen: perScreen.modelData }
+            MenuBar { screen: perScreen.modelData; at: perScreen.modelData.name }
+            Dock { screen: perScreen.modelData; at: perScreen.modelData.name }
+            Stats { screen: perScreen.modelData; at: perScreen.modelData.name }
             HotCorners { screen: perScreen.modelData }
             ControlCenter { screen: perScreen.modelData; at: perScreen.modelData.name }
             Center { screen: perScreen.modelData; at: perScreen.modelData.name }
@@ -126,6 +126,12 @@ ShellRoot {
         function dnd(on: bool): void { Shell.setDnd(on); }
         function open(name: string): void { Shell.toggle(name); }
         function opened(): string { return Shell.open; }
+        // what Mission Control would lay out, for gg and the tests
+        function windows(): string {
+            return JSON.stringify(Windows.onWorkspace(Windows.activeWorkspace).map(w => ({ cls: w.class, title: w.title, ws: w.workspace.id, size: w.size })));
+        }
         function caffeine(): void { Shell.caffeine = !Shell.caffeine; }
+        // Spotlight with text already typed, e.g. "12*7" or "firefox"
+        function search(text: string): void { Shell.searchText = text; Shell.open = "spotlight"; }
     }
 }

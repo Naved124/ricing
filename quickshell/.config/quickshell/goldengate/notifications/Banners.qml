@@ -3,7 +3,6 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import Quickshell
 import Quickshell.Wayland
-import Quickshell.Widgets
 import qs.common
 import qs.services
 
@@ -59,11 +58,11 @@ PanelWindow {
             }
         }
 
-        IconImage {
+        AppIcon {
             id: icon
             x: 14; y: 14
             implicitSize: 36
-            source: root.n ? (root.n.image || (Quickshell.iconPath(root.n.appIcon || root.n.desktopEntry || "", true))) : ""
+            app: root.n ? (root.n.desktopEntry || root.n.appIcon || root.n.appName || "") : ""
         }
         Column {
             id: col

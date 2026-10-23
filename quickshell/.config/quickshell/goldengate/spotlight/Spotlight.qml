@@ -53,7 +53,14 @@ Panel {
         r.go();
     }
 
-    onShownChanged: if (shown) { query = ""; field.text = ""; current = 0; if (clip) clipReader.running = true; field.forceActiveFocus(); }
+    onShownChanged: if (shown) {
+        field.text = Shell.searchText;
+        query = field.text;
+        Shell.searchText = "";
+        current = 0;
+        if (clip) clipReader.running = true;
+        field.forceActiveFocus();
+    }
     onQueryChanged: { current = 0; if (!clip && query.length > 2) { finder.running = false; finder.running = true; } else files = []; }
 
     Process {

@@ -9,13 +9,24 @@ Item {
     id: root
     property string app: ""
     property real implicitSize: 48
-    readonly property var entry: app ? DesktopEntries.heuristicLookup(app) : null
-    readonly property string path: app ? Quickshell.iconPath(entry && entry.icon ? entry.icon : app.toLowerCase(), true) : ""
+    readonly property var entry: app ? (DesktopEntries.byId(app) || DesktopEntries.heuristicLookup(app)) : null
+    // the entry's icon, else the name itself, its last part (com.anthropic.Claude → claude),
+    // or the name without a -full (an icon theme may have only some sizes of one)
+    readonly property string path: {
+        if (!app) return "";
+        const tries = [entry && entry.icon, app, app.toLowerCase(), app.split(".").pop().toLowerCase(), app.replace(/-full$/, "")];
+        for (const t of tries) {
+            const p = t ? Quickshell.iconPath(t, true) : "";
+            if (p) return p;
+        }
+        return "";
+    }
     implicitWidth: implicitSize
     implicitHeight: implicitSize
 
     IconImage {
         anchors.fill: parent
+        implicitSize: root.implicitSize
         visible: root.path !== ""
         source: root.path
         asynchronous: true

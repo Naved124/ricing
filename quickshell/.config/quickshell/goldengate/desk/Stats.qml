@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import Quickshell
+import Quickshell.Hyprland
 import Quickshell.Wayland
 import qs.common
 import qs.services
@@ -17,7 +18,10 @@ PanelWindow {
     WlrLayershell.layer: WlrLayer.Bottom
     WlrLayershell.namespace: "goldengate:widgets"
     color: "transparent"
-    visible: Shell.statsShown && !Hypr.fullscreenOn(Hypr.monitorFor(screen))
+    // the screen's name, given once (reading `screen` here loops as the window maps)
+    property string at: ""
+    // a full-screen window covers the bottom layer anyway
+    visible: Shell.statsShown
     mask: Region { item: card }
 
     GlassPane {

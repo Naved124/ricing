@@ -13,7 +13,7 @@ Panel {
 
     readonly property bool power: Shell.open === "power"
     name: power ? "power" : "apple"
-    part: "menubar"
+    part: "controlcenter"   // glassed like a panel (the bar itself may be clear)
     paneWidth: 240
     paneHeight: col.implicitHeight + 12
     paneX: power ? ((screen ? screen.width : 1920) - paneWidth) / 2 : 8

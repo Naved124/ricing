@@ -35,6 +35,7 @@ local glassed = {
     { "goldengate:widgets",       "contour" },
     { "goldengate:spotlight",     "contour" },
     { "goldengate:osd",           "contour" },
+    { "goldengate:keys",          "contour" },
 }
 if s.menubar then table.insert(glassed, { "goldengate:menubar", "alpha" }) end
 

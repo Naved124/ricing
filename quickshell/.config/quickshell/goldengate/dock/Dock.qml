@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import Quickshell
+import Quickshell.Hyprland
 import Quickshell.Io
 import Quickshell.Wayland
 import Quickshell.Widgets
@@ -18,7 +19,9 @@ PanelWindow {
 
     readonly property int size: Settings.dock.size
     readonly property int bigSize: Settings.dock.magnify && !Theme.reduceMotion ? Settings.dock.magnifySize : size
-    readonly property bool hiddenForFullscreen: Hypr.fullscreenOn(Hypr.monitorFor(screen))
+    // the screen's name, given once (reading `screen` here loops as the window maps)
+    property string at: ""
+    readonly property bool hiddenForFullscreen: Hypr.fullscreenOn(Hyprland.monitors.values.find(m => m.name === at) ?? null)
     readonly property bool autohide: Settings.dock.autohide
     readonly property bool raised: !autohide || hoverAll.hovered || Shell.open === "dockmenu"
     property real pointerX: -1000
@@ -26,8 +29,10 @@ PanelWindow {
     property string menuFor: ""
 
     readonly property var pinned: Settings.dock.pinned
+    // pinned apps that are installed, then running ones that aren't pinned
     readonly property var apps: {
-        const list = pinned.map(id => ({ id: id, cls: classFor(id) }));
+        const list = pinned.filter(id => DesktopEntries.byId(id) || DesktopEntries.heuristicLookup(id))
+                           .map(id => ({ id: id, cls: classFor(id) }));
         for (const cls of Windows.running)
             if (!list.some(a => a.cls === cls || a.id === cls)) list.push({ id: cls, cls: cls });
         return list;
@@ -51,7 +56,6 @@ PanelWindow {
     WlrLayershell.layer: WlrLayer.Top
     WlrLayershell.namespace: "goldengate:dock"
     color: "transparent"
-    visible: !hiddenForFullscreen
     mask: Region { item: raised ? pane : edge }
 
     Item { id: edge; anchors.bottom: parent.bottom; width: parent.width; height: 3 }
@@ -92,7 +96,7 @@ PanelWindow {
                     onMenu: { root.menuFor = modelData.id; menu.cls = modelData.cls; Shell.toggle("dockmenu"); }
                 }
             }
-            Rectangle { width: 1; height: root.size * 0.8; anchors.bottom: parent.bottom; anchors.bottomMargin: root.size * 0.1; color: Theme.separator }
+            Rectangle { width: 1; height: root.size * 0.7; anchors.bottom: parent.bottom; anchors.bottomMargin: root.size * 0.15; color: Theme.label3 }
             Repeater {
                 model: Windows.minimized
                 delegate: DockIcon {

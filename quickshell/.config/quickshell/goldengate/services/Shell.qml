@@ -27,6 +27,8 @@ Singleton {
 
     // the island's activity from `gg island test`, or a long command finishing
     property string islandTest: ""
+    // text Spotlight opens with (shell search)
+    property string searchText: ""
     property bool caffeine: false
     property bool recording: false
     property real recordingSince: 0

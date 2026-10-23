@@ -91,7 +91,7 @@ hl.window_rule({
 ---------------------------------------------------------------------------
 hl.layer_rule({
     name = "goldengate-glass",
-    match = { namespace = "^goldengate:(menubar|island|dock|controlcenter|notifications|spotlight|widgets|osd|launchpad|missioncontrol)$" },
+    match = { namespace = "^goldengate:(menubar|island|dock|controlcenter|notifications|spotlight|widgets|osd|keys|launchpad|missioncontrol)$" },
     blur = true, ignore_alpha = 0.35, no_anim = true,
 })
 hl.layer_rule({ name = "goldengate-still", match = { namespace = "^goldengate:(wallpaper|desktop|hotcorner)$" }, no_anim = true })

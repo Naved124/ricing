@@ -3,7 +3,6 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
-import Quickshell.Widgets
 import qs.common
 import qs.services
 
@@ -112,11 +111,11 @@ Panel {
                         height: body.implicitHeight + 22
                         radius: 16
                         color: Theme.fill
-                        IconImage {
+                        AppIcon {
                             id: ic
                             x: 10; y: 11
                             implicitSize: 28
-                            source: card.modelData.image || (Quickshell.iconPath(card.modelData.appIcon || "", true))
+                            app: card.modelData.desktopEntry || card.modelData.appIcon || card.modelData.appName || ""
                         }
                         Column {
                             id: body

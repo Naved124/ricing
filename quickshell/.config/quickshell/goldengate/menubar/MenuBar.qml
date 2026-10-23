@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import Quickshell
+import Quickshell.Hyprland
 import Quickshell.Wayland
 import Quickshell.Services.SystemTray
 import Quickshell.Widgets
@@ -11,11 +12,14 @@ import qs.services
 // The menu bar: the Apple menu and the app in front on the left, the
 // Dynamic Island in the middle, the status items, Control Center and the
 // clock on the right. Clear over the wallpaper unless Settings gives it a
-// background; it steps aside for a full-screen window.
+// background. A full-screen window covers it (it's on the top layer) and
+// takes its space.
 PanelWindow {
     id: root
 
-    readonly property bool fullscreen: Hypr.fullscreenOn(Hypr.monitorFor(screen))
+    // the screen's name, given once (reading `screen` here loops as the window maps)
+    property string at: ""
+    readonly property bool fullscreen: Hypr.fullscreenOn(Hyprland.monitors.values.find(m => m.name === at) ?? null)
     readonly property bool background: Settings.appearance.menuBarBackground
     readonly property color ink: background ? Theme.label : Theme.onWallpaper
 
@@ -25,7 +29,6 @@ PanelWindow {
     WlrLayershell.layer: WlrLayer.Top
     WlrLayershell.namespace: "goldengate:menubar"
     color: "transparent"
-    visible: !fullscreen
 
     Rectangle {
         anchors.fill: parent
@@ -109,7 +112,31 @@ PanelWindow {
                  : "battery-level-" + Math.min(100, Math.round(Battery.level * 10) * 10) + "-symbolic"
             onClicked: Shell.toggle("controlcenter")
         }
-        Item_ { sym: "emblem-system-symbolic"; onClicked: Shell.toggle("controlcenter") }
+        // Control Center's mark: two little switches, one on, one off
+        Item_ {
+            implicitWidth: 34
+            onClicked: Shell.toggle("controlcenter")
+            Column {
+                anchors.centerIn: parent
+                spacing: 3
+                Repeater {
+                    model: [true, false]
+                    delegate: Rectangle {
+                        required property bool modelData
+                        width: 16; height: 6; radius: 3
+                        color: "transparent"
+                        border.width: 1.2
+                        border.color: root.ink
+                        Rectangle {
+                            x: parent.modelData ? parent.width - width - 1 : 1
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: 4; height: 4; radius: 2
+                            color: root.ink
+                        }
+                    }
+                }
+            }
+        }
         Item_ {
             id: clock
             property date now: new Date()

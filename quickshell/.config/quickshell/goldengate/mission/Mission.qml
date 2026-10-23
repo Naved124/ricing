@@ -21,7 +21,8 @@ Panel {
         const here = Windows.onWorkspace(Windows.activeWorkspace);
         return expose ? Windows.regular.filter(w => w.class === Windows.activeClass) : here;
     }
-    readonly property int cols: Math.max(1, Math.ceil(Math.sqrt(wins.length * 1.6)))
+    // a grid a little wider than tall, never more columns than windows
+    readonly property int cols: Math.max(1, Math.min(wins.length, Math.round(Math.sqrt(wins.length * 1.6))))
     readonly property int rows: Math.max(1, Math.ceil(wins.length / cols))
 
     name: expose ? "expose" : "mission"
@@ -67,8 +68,9 @@ Panel {
         anchors { horizontalCenter: parent.horizontalCenter; top: parent.top; topMargin: root.expose ? 80 : 140 }
         columns: root.cols
         spacing: 28
-        readonly property real cellW: Math.min(560, (root.paneWidth - 120) / root.cols - 28)
-        readonly property real cellH: Math.min(380, (root.paneHeight - anchors.topMargin - 60) / root.rows - 28)
+        // as large as the screen allows: one window takes most of it
+        readonly property real cellW: (root.paneWidth - 160) / root.cols - 28
+        readonly property real cellH: (root.paneHeight - anchors.topMargin - 80) / root.rows - 28
 
         Repeater {
             model: root.shown ? root.wins : []
@@ -76,7 +78,7 @@ Panel {
                 id: cell
                 required property var modelData
                 readonly property string address: modelData.address
-                readonly property real s: Math.min(grid.cellW / modelData.size[0], grid.cellH / modelData.size[1])
+                readonly property real s: Math.min(0.85, grid.cellW / modelData.size[0], grid.cellH / modelData.size[1])
                 width: grid.cellW; height: grid.cellH
                 Drag.active: drag.active
                 Drag.source: cell
