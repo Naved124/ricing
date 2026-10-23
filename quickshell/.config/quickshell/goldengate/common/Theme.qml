@@ -49,6 +49,9 @@ Singleton {
     readonly property color onAccent:  c("paper")
     readonly property color linkColor: c("link")
     readonly property color selection: c("selection")
+    // behind Launchpad and Mission Control; the filled part of a slider
+    readonly property color scrim:      Qt.alpha(c("shadow"), mode.blend(0.22, 0.42))
+    readonly property color sliderFill: c("paper")
 
     // ── the accent ──────────────────────────────────────────────────────────
     // Multicolor is blue for the system; "From wallpaper" is the picture's,

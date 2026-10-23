@@ -157,6 +157,25 @@ What the Hyprland base found (step 5):
   config. `["hyprbars:no_bar"] = true` on a window rule turns its bar off. The bar sits above
   the window's `at`, outside its `size`.
 
+Steps 6–23, done as one (the user asked to condense them, code first, tests last):
+
+- The shell: menu bar with the Apple menu, the app in front, status items and the clock,
+  the Dynamic Island in its middle; banners top right; Notification Center (the month and
+  the history by app); Control Center (every shared control, the glass, the appearance,
+  sliders to 150%); the Dock (pinned, running, minimized, Trash, magnification, bounce,
+  Keep in Dock); Spotlight (apps, sums, plocate files, the web; ⌘V is its clipboard mode);
+  Apps (Launchpad); Mission Control and App Exposé (window stills captured once and
+  dropped); hot corners; the key sheet; the OSD; the lock screen (PAM); the system card;
+  System Settings as a real window. `services/Shell.qml` holds which one surface is open.
+- Quickshell 0.3.2: `iconPath(name, true)` checks the icon (a `?fallback` name is not
+  understood); a panel reading its own `screen` in `shown` loops as it maps, so panels get
+  the screen's name once (`at`); a singleton function can't be called `focus`.
+- Still to do from the brief: Genie (minimize is the special workspace with no effect),
+  the app switcher strip (⌘Tab cycles windows), the screenshot toolbar and thumbnail
+  (rice-shot stands in), widgets beyond the system card, drag-reordering the Dock.
+- Step 22: ReGreet is the repo's greeter (no SDDM here); the keyd remap is
+  `docs/goldengate/keyd-goldengate.conf`, written and not installed, waiting for a yes.
+
 Install command (needs sudo, so the user runs it):
 
     yay -S --needed hyprpm hyprliquid mactahoe-gtk-theme mactahoe-icon-theme-git kvantum \

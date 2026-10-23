@@ -532,6 +532,12 @@ doesn't change with the accent.
   (a load reloads the config, so `GG.bars()` runs once per Lua state), except on the apps
   in `own_bar` that draw their own; tiles leave room for its 30 px bar. No Golden Gate bind
   is in `base.lua` (a test checks).
+- **Its shell** departs from the shared one as macOS does: the menu bar has the clock, the
+  Dynamic Island sits in it (activities only), notifications are banners at the top right
+  and live in Notification Center, and there is a Dock. Every panel is `common/Panel.qml`
+  (one open at a time, `Shell.open`), given its screen's name as `at`; app icons are
+  `common/AppIcon.qml`, symbols `common/Sym.qml` (MacTahoe's symbolic icons, recoloured).
+  The shared entry points are all there (`launcher` is Spotlight, `center` Control Center).
 - **Wallpaper:** the shell draws it from `~/Pictures/Wallpapers` (shared with Satsuei);
   a `name-light.*` / `name-dark.*` pair is one wallpaper that crossfades with the mode
   (`gg wall set`).

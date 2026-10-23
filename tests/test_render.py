@@ -541,8 +541,9 @@ class Island(unittest.TestCase):
                   "power profile": "PowerProfiles.profile =", "caffeine": "Shell.caffeine = !Shell.caffeine",
                   "screenshot": '"rice-shot", "region"', "recording": 'Shell.toggleRecording("region")',
                   "system card": "Shell.setStatsShown(", "volume to 150%": "1.5|150"}
-        for shell in ("nacre", "paper", "abyss", "satsuei"):
-            center = "".join(f.read_text() for f in (self.SHELLS / shell / "center").glob("*.qml"))
+        for shell in ("nacre", "paper", "abyss", "satsuei", "goldengate"):
+            folder = "controlcenter" if shell == "goldengate" else "center"
+            center = "".join(f.read_text() for f in (self.SHELLS / shell / folder).glob("*.qml"))
             for what, code in shared.items():
                 with self.subTest(shell=shell, control=what):
                     self.assertTrue(any(c in center for c in code.split("|")) or
