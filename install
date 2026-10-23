@@ -18,9 +18,10 @@
 #   --fresh         for a new minimal Arch install: also add what a desktop
 #                   needs (NetworkManager, PipeWire with LDAC/aptX/AAC/LC3 and the
 #                   sound firmware, Bluetooth, portals, polkit agent, Firefox,
-#                   Nautilus, Noto fonts), build paru for the AUR packages, offer
-#                   the LHDC codec from the AUR, enable the services, and imply
-#                   --system
+#                   Nautilus with USB drives, phones and cameras, Noto fonts), build
+#                   paru for the AUR packages, offer the LHDC codec from the AUR and
+#                   Golden Gate's Mac keys (keyd, system-wide), enable the services,
+#                   and imply --system
 #   -y, --yes       don't ask before installing packages
 #   -n, --dry-run   print the steps instead of running them
 #
@@ -121,6 +122,8 @@ optional=(
     # (Golden Gate's Qt style only), sassc builds MacTahoe's GTK variants
     hyprpm:hyprpm plocate:plocate qalc:libqalculate gpu-screen-recorder:gpu-screen-recorder
     sushi:sushi kvantummanager:kvantum sassc:sassc
+    # Golden Gate: its notification sounds (PipeWire's player)
+    pw-play:pipewire
 )
 # Python modules, checked by import: Pillow regenerates Paper's paper textures
 # and wallpaper (rices/paper/assets/gen.py)
@@ -135,10 +138,13 @@ themes=(
     "Bibata-Modern-Classic|bibata-cursor-theme-bin"
     "Papirus-Light|papirus-icon-theme"
     # Golden Gate: MacTahoe (GTK; gg-theme install adds every accent,
-    # translucent), its icons and the Apple cursor
+    # translucent) and its icons, light and dark (the Dock swaps between them);
+    # Colloid's and Papirus's one-colour icons stand in for colour tray badges
     "MacTahoe-Light-solid|mactahoe-gtk-theme"
-    "MacTahoe|mactahoe-icon-theme-git"
-    "macOS|apple_cursor"
+    "MacTahoe-dark|mactahoe-icon-theme-git"
+    "MacTahoe-light|mactahoe-icon-theme-git"
+    "Colloid|colloid-icon-theme-git"
+    "Papirus|papirus-icon-theme"
 )
 
 # zsh plugins and the Nerd Font glyphs, checked by file since they aren't
@@ -161,6 +167,10 @@ files=(
     "-|otf-apple-ny"
     "-|inter-font"
     "/usr/lib/libhyprliquid.so|hyprliquid"
+    # Golden Gate: drives, phones (MTP), cameras and iPhones in Files, the
+    # Trash; the "system" notification sound
+    "-|gvfs" "-|gvfs-mtp" "-|gvfs-gphoto2" "-|gvfs-afc" "-|udisks2"
+    "/usr/share/sounds/freedesktop/stereo/message-new-instant.oga|sound-theme-freedesktop"
 )
 
 missing_pkgs() {
@@ -206,6 +216,7 @@ fresh_pkgs=(
     pipewire-audio sof-firmware alsa-firmware alsa-ucm-conf alsa-utils rtkit
     xdg-desktop-portal-hyprland xdg-desktop-portal-gtk hyprpolkitagent
     firefox nautilus noto-fonts noto-fonts-cjk noto-fonts-emoji wpa_supplicant
+    gvfs gvfs-mtp gvfs-gphoto2 gvfs-afc udisks2
     gnome-keyring libsecret seahorse
     wf-recorder
     zsh starship eza zsh-autosuggestions zsh-syntax-highlighting
@@ -301,6 +312,17 @@ if [ "$fresh" = 1 ]; then
     fi
     run sudo systemctl enable --now bluetooth.service power-profiles-daemon.service
     ok "NetworkManager, Bluetooth and power profiles enabled"
+
+    # Golden Gate's Mac keys: ⌘C/V/X/A/Z/F/T/S send Ctrl in apps and a tap of
+    # Super opens Spotlight. keyd is system-wide (every rice, every session),
+    # so it's asked for; undo: sudo rm /etc/keyd/goldengate.conf && sudo systemctl disable --now keyd
+    if ask "Add Golden Gate's Mac keys (keyd: ⌘C/⌘V act as Ctrl in apps, every rice)?"; then
+        run sudo pacman -S --needed --noconfirm keyd
+        run sudo install -Dm644 "$repo/docs/goldengate/keyd-goldengate.conf" /etc/keyd/goldengate.conf
+        run sudo systemctl enable --now keyd.service
+        run sudo keyd reload || true
+        ok "keyd: the Mac keys are on"
+    fi
     echo "  for Wi-Fi through iwd: sudo system/install --network"
 fi
 
@@ -326,7 +348,7 @@ else
         if [ ${#aur_pkgs[@]} -gt 0 ]; then
             helper=$(aur_helper) || { build_paru; helper=$(aur_helper) || helper=""; }
             if [ -n "$helper" ]; then
-                run "$helper" -S --needed --noconfirm "${aur_pkgs[@]}"
+                run "$helper" -S --needed --noconfirm --removemake "${aur_pkgs[@]}"
             else
                 warn "not in the repos and no AUR helper (paru/yay): ${aur_pkgs[*]}"
             fi
@@ -559,6 +581,19 @@ ok "every rice rendered"
 # copies and put the user's own themes back when it's left
 if have gg-theme && have git; then
     run gg-theme install || warn "couldn't fetch MacTahoe's GTK variants and Kvantum theme (gg-theme install)"
+fi
+# Golden Gate's Liquid Glass and traffic lights are Hyprland plugins that
+# hyprpm builds against the installed Hyprland (gg loads and unloads them with
+# hyprctl plugin load; nothing here enables them for every rice)
+if have hyprpm && [ "$deps" = 1 ]; then
+    cache="/var/cache/hyprpm/${USER:-$(id -un)}"
+    if [ ! -f "$cache/hyprland-plugins/hyprbars.so" ] || [ ! -d "$cache/HyprGlass" ]; then
+        if ask "Build Golden Gate's Hyprland plugins with hyprpm (hyprglass, hyprbars; a few minutes)?"; then
+            run hyprpm update || warn "hyprpm update failed (it needs the Hyprland headers: run it again inside Hyprland)"
+            [ -d "$cache/HyprGlass" ] || run hyprpm add https://github.com/hyprnux/hyprglass || warn "hyprglass didn't build; Golden Gate falls back to Frosted glass"
+            [ -f "$cache/hyprland-plugins/hyprbars.so" ] || run hyprpm add https://github.com/hyprwm/hyprland-plugins || warn "hyprbars didn't build; Golden Gate's windows have no traffic lights"
+        fi
+    fi
 fi
 # links every app theme, turns on Firefox's userChrome in each profile it
 # finds, points qt6ct/mpv at the rice and applies Spicetify

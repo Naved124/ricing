@@ -26,7 +26,7 @@ PanelWindow {
     property var panelIcons: []
     Process {
         running: true
-        command: ["sh", "-c", "{ ls /usr/share/icons/Colloid-Grey-Dark/apps/symbolic | sed 's/^/c:/'; ls /usr/share/icons/Papirus/22x22/panel | sed 's/^/p:/'; } 2>/dev/null | sed 's/\\.svg$//'"]
+        command: ["sh", "-c", "{ ls /usr/share/icons/Colloid/apps/symbolic | sed 's/^/c:/'; ls /usr/share/icons/Papirus/22x22/panel | sed 's/^/p:/'; } 2>/dev/null | sed 's/\\.svg$//'"]
         stdout: StdioCollector { onStreamFinished: root.panelIcons = this.text.split("\n").filter(n => n) }
     }
 

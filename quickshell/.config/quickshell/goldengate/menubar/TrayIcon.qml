@@ -28,7 +28,7 @@ Item {
         if (m) names.push(m[1]);
         if (i) names.push(appId, i);
         for (const n of names)
-            if (panel.includes("c:" + n + "-symbolic")) return "file:///usr/share/icons/Colloid-Grey-Dark/apps/symbolic/" + n + "-symbolic.svg";
+            if (panel.includes("c:" + n + "-symbolic")) return "file:///usr/share/icons/Colloid/apps/symbolic/" + n + "-symbolic.svg";
         for (const n of names.concat(i ? [i + "-tray", i + "-indicator", i + "-panel"] : []))
             if (panel.includes("p:" + n)) return "file:///usr/share/icons/Papirus/22x22/panel/" + n + ".svg";
         return "";
