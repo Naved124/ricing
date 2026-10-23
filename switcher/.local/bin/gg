@@ -9,7 +9,9 @@
 #   gg accent [NAME]       blue purple pink red orange yellow green graphite
 #                          multicolor, or wallpaper (the picture's vivid colour,
 #                          snapped to the nearest Apple hue)
-#   gg glass [liquid|frosted|solid|next] | gg glass clarity 0..1 | gg glass status
+#   gg glass [liquid|frosted|solid|next] | gg glass clarity 0..1
+#                          the glass, live; clarity 0 is Ultraclear, 1 Tinted
+#   gg glass backend auto|hyprglass|hyprliquid|shader | apply | status
 #   gg wall set FILE [DARK] | next | prev | seed | status
 #   gg dock | spotlight | mission | expose | cc | nc | apps | desktop | switcher
 #                          open (or close) the shell's surfaces
@@ -222,6 +224,132 @@ accent() {
     recolour
 }
 
+# ── glass ────────────────────────────────────────────────────────────────
+# Liquid is a compositor plugin (hyprglass, or hyprliquid), loaded with
+# `hyprctl plugin load` only while Golden Gate is on screen and never enabled
+# in hyprpm; Frosted is Hyprland's blur; Solid is none. A Liquid that can't
+# run (the plugin paused after a Hyprland update, missing, failing) falls
+# back to Frosted, and glass.json says why (the shell shows it).
+HYPRGLASS="${GG_HYPRGLASS:-/var/cache/hyprpm/${USER:-$(id -un)}/HyprGlass/hyprglass.so}"
+HYPRLIQUID="${GG_HYPRLIQUID:-/usr/lib/libhyprliquid.so}"
+GLASS_STATE="$STATE/glass-state.lua"   # read by the rice's glass.lua
+GLASS_JSON="$STATE/glass.json"         # what's on screen, for the shell
+GLASS_LUA="${XDG_DATA_HOME:-$HOME/.local/share}/rice/active/glass.lua"
+
+plugin_path() { case "$1" in hyprglass) echo "$HYPRGLASS" ;; hyprliquid) echo "$HYPRLIQUID" ;; esac; }
+loaded() {   # loaded NAME: hyprctl lists it
+    hyprctl -j plugin list 2>/dev/null | jq -e --arg n "$1" 'type == "array" and any(.[]; (.name | ascii_downcase) == $n)' >/dev/null 2>&1
+}
+plugin_unload() {
+    loaded "$1" || return 0
+    hyprctl plugin unload "$(plugin_path "$1")" >/dev/null 2>&1 || log "couldn't unload $1"
+}
+# plugin_try NAME: load it and check it draws; prints why not, and unloads it
+plugin_try() {
+    local name="$1" path out desc
+    path="$(plugin_path "$name")"
+    [[ -f "$path" ]] || { echo "$name isn't installed"; return 1; }
+    if ! loaded "$name"; then
+        out="$(hyprctl plugin load "$path" 2>&1)" || true
+        loaded "$name" || { echo "$name didn't load (${out:-no answer})"; return 1; }
+    fi
+    # a plugin built for another Hyprland stays loaded but paused
+    desc="$(hyprctl -j plugin list | jq -r --arg n "$name" '.[] | select((.name | ascii_downcase) == $n) | .description')"
+    if [[ "$desc" == Paused* ]]; then plugin_unload "$name"; echo "$name is paused: ${desc#*: }"; return 1; fi
+    if [[ "$name" == hyprglass ]]; then
+        out="$(hyprctl -j hyprglass status 2>/dev/null || true)"
+        if ! jq -e '.shaders != "failed"' >/dev/null 2>&1 <<<"$out"; then
+            plugin_unload "$name"; echo "hyprglass can't draw ($(jq -r '.shaders // "no status"' <<<"$out" 2>/dev/null || echo "no status"))"; return 1
+        fi
+    fi
+}
+
+# glass_apply [live]: put the settings' glass on screen. "live" (a clarity
+# change) sends the numbers without re-adding the plugin's rules.
+glass_apply() {
+    local live="${1:-}" want pref mode backend reason="" clarity menubar cands c other why before
+    want="$(get_str glass.mode)"; want="${want:-liquid}"
+    [[ "$(get_str accessibility.reduceTransparency)" == true ]] && want=solid
+    pref="$(get_str glass.backend)"; pref="${pref:-auto}"
+    clarity="$(get_str glass.clarity)"; clarity="${clarity:-0.35}"
+    menubar="$(get_str appearance.menuBarBackground)"; [[ "$menubar" == true ]] || menubar=false
+    before="$(jq -r '"\(.mode)/\(.backend)"' "$GLASS_JSON" 2>/dev/null || true)"
+    mode="$want"; backend=hyprland
+
+    if ! active || ! have hyprctl; then
+        :   # nothing on screen to change: only remember the choice
+    elif [[ "$want" == liquid ]]; then
+        case "$pref" in
+            plugin|hyprglass) cands=(hyprglass) ;;
+            hyprliquid) cands=(hyprliquid) ;;
+            shader) cands=() ;;   # the shell's own (liquid.frag): Hyprland blurs nothing extra
+            *) cands=(hyprglass hyprliquid) ;;
+        esac
+        backend=""
+        for c in "${cands[@]}"; do
+            # never two glass plugins at once
+            for other in hyprglass hyprliquid; do [[ "$other" == "$c" ]] || plugin_unload "$other"; done
+            if why="$(plugin_try "$c")"; then backend="$c"; break; fi
+            reason="${reason:+$reason; }$why"
+        done
+        if [[ -z "$backend" ]]; then
+            if [[ "$pref" == shader ]]; then backend=shader
+            else mode=frosted; backend=hyprland; log "Liquid Glass is off: $reason; using Frosted"; fi
+        fi
+    fi
+    if active && have hyprctl; then
+        [[ "$backend" == hyprglass ]] || plugin_unload hyprglass
+        [[ "$backend" == hyprliquid ]] || plugin_unload hyprliquid
+    fi
+
+    {
+        echo "-- Written by gg glass; the rice's glass.lua reads it."
+        printf 'return { mode = "%s", backend = "%s", clarity = %s, menubar = %s }\n' \
+            "$mode" "$backend" "$clarity" "$menubar"
+    } > "$GLASS_STATE.tmp" && mv -f "$GLASS_STATE.tmp" "$GLASS_STATE"
+    jq -n --arg want "$want" --arg mode "$mode" --arg backend "$backend" --arg reason "$reason" \
+        --argjson clarity "$clarity" '{want: $want, mode: $mode, backend: $backend, clarity: $clarity, reason: $reason}' \
+        > "$GLASS_JSON.tmp" && mv -f "$GLASS_JSON.tmp" "$GLASS_JSON"
+
+    active && have hyprctl || return 0
+    [[ -f "$GLASS_LUA" ]] || { log "no $GLASS_LUA (rice-render goldengate)"; return 0; }
+    # hyprliquid's rules outlive it: a reload clears them when it goes.
+    # Otherwise an eval: the first time a plugin is in, with its rules.
+    if [[ "$before" == */hyprliquid && "$backend" != hyprliquid ]]; then
+        hyprctl reload >/dev/null || log "hyprctl reload failed"
+    elif [[ -n "$live" && "$before" == "$mode/$backend" ]]; then
+        hyprctl eval "GG_GLASS_LIVE = true; dofile([[$GLASS_LUA]])" >/dev/null || log "hyprctl eval failed"
+    else
+        hyprctl eval "dofile([[$GLASS_LUA]])" >/dev/null || log "hyprctl eval failed"
+    fi
+}
+
+glass() {
+    local modes=(liquid frosted solid) cur i v
+    case "${1:-status}" in
+        liquid|frosted|solid) set_str glass.mode "$1"; glass_apply; recolour ;;
+        next)
+            cur="$(get_str glass.mode)"
+            for i in 0 1 2; do [[ "${modes[$i]}" == "$cur" ]] && break; done
+            [[ "${modes[$i]}" == "$cur" ]] || i=-1
+            glass "${modes[$(( (i + 1) % 3 ))]}" ;;
+        clarity)
+            v="${2:-}"
+            [[ "$v" =~ ^(0(\.[0-9]+)?|1(\.0+)?|\.[0-9]+)$ ]] || die "usage: gg glass clarity 0..1 (0 Ultraclear, 1 Tinted)"
+            set_json glass.clarity "$(awk -v v="$v" 'BEGIN { printf "%.2f", v }')"
+            glass_apply live; recolour ;;
+        backend)
+            case "${2:-}" in auto|hyprglass|plugin|hyprliquid|shader) ;; *) die "usage: gg glass backend auto|hyprglass|hyprliquid|shader" ;; esac
+            set_str glass.backend "$2"; glass_apply ;;
+        apply) glass_apply ;;
+        off) plugin_unload hyprglass; plugin_unload hyprliquid ;;
+        status)
+            if [[ -s "$GLASS_JSON" ]]; then jq -r '"\(.mode) (\(.backend)), clarity \(.clarity)" + (if .reason != "" then "\nwanted \(.want): \(.reason)" else "" end)' "$GLASS_JSON"
+            else echo "not applied yet (gg glass apply)"; fi ;;
+        *) die "usage: gg glass liquid|frosted|solid|next|clarity 0..1|backend NAME|apply|status" ;;
+    esac
+}
+
 # ── wallpaper ────────────────────────────────────────────────────────────
 wall_dir() { local d; d="$(get_str wallpaper.dir)"; d="${d:-~/Pictures/Wallpapers}"; echo "${d/#\~/$HOME}"; }
 pictures() {
@@ -316,16 +444,19 @@ hook() {
                 rice-render -q goldengate || log "rice-render failed"
                 pkill -USR1 -x kitty 2>/dev/null || true
             fi
-            gg-theme apply || log "gg-theme apply failed" ;;
+            gg-theme apply || log "gg-theme apply failed"
+            glass_apply ;;
         post-mode)
             gg-theme apply "${2:-$(mode)}" || log "gg-theme apply failed" ;;
         leave)
+            # the plugins are Golden Gate's only
+            plugin_unload hyprglass; plugin_unload hyprliquid
             gg-theme restore || log "couldn't restore the theme settings" ;;
         *) die "usage: gg hook enter|post-switch|post-mode|leave" ;;
     esac
 }
 
-usage() { sed -n '2,31p' "$0" | sed 's/^# \{0,1\}//'; }
+usage() { sed -n '2,30p' "$0" | sed 's/^# \{0,1\}//'; }
 
 case "${1:-}" in
     ""|-h|--help|help) usage ;;
@@ -333,8 +464,10 @@ case "${1:-}" in
     location) shift; location "$@" ;;
     accent) shift; accent "$@" ;;
     wall|wallpaper) shift; wall "$@" ;;
+    glass) shift; glass "$@" ;;
     get) [[ -n "${2:-}" ]] || die "usage: gg get KEY"; get "$2" ;;
     set) [[ -n "${2:-}" && -n "${3:-}" ]] || die "usage: gg set KEY JSON"; set_json "$2" "$3"
+         case "$2" in glass.*|accessibility.reduceTransparency|appearance.menuBarBackground) glass_apply ;; esac
          case "$2" in appearance.*|glass.*|accessibility.reduceTransparency) recolour ;; esac ;;
     hook) shift; hook "$@" ;;
     dock) surface dock toggle ;;

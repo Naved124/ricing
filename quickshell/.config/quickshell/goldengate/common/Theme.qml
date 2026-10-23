@@ -93,8 +93,11 @@ Singleton {
     // Hyprland's blur does the bending and blurring); its strength is the
     // clarity: 0 Ultraclear, 1 Tinted. Solid (or Reduce transparency) is the
     // window colour, opaque.
-    readonly property string glassMode: Settings.glassMode
+    // what's on screen (Glass), which is Frosted when a Liquid can't run
+    readonly property string glassMode: Glass.mode
     readonly property bool solid: glassMode === "solid"
+    // a plugin draws the bend and the light: the shell adds only its tint
+    readonly property bool liquidPlugin: Glass.plugin
     readonly property real clarity: Math.max(0, Math.min(1, Settings.glass.clarity))
     // how much of the tint covers a panel at this clarity
     readonly property real glassAlpha: solid ? 1 : mode.blend(0.12 + 0.68 * clarity, 0.2 + 0.65 * clarity)
@@ -104,7 +107,8 @@ Singleton {
     // the rim the light catches, and the inner edge
     readonly property color glassRim:   Qt.alpha(c("frost_rim"), solid ? 0 : mode.blend(0.55, 0.16))
     readonly property color glassEdge:  Qt.alpha(c("ink"), contrast ? 0.35 : mode.blend(0.08, 0.14))
-    readonly property color glassShadow: Qt.alpha(c("shadow"), mode.blend(0.18, 0.45))
+    // under a plugin, faint enough to stay out of its mask (below 0.06)
+    readonly property color glassShadow: Qt.alpha(c("shadow"), liquidPlugin ? 0.04 : mode.blend(0.18, 0.45))
     // text sitting straight on the wallpaper (the menu bar without its
     // background): white with a soft shadow in both modes, as in Tahoe
     readonly property color onWallpaper:       c("paper")

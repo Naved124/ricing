@@ -118,6 +118,19 @@ What the install found (step 1):
   fonts `SF Pro Text`, `SF Pro Display`, `SF Pro Rounded`, `SF Mono`, `New York`.
 - **`shellcheck`** isn't installed (scripts are checked with `bash -n` until it is).
 
+What the glass found (step 3):
+
+- hyprpm built **hyprglass v0.11.0** (commit `7fc3280`, pinned in its `hyprpm.toml` for Hyprland
+  0.56.2). Every option name above still holds; new ones used here: `edge_height` (the lens
+  rim), `frost`/`frost_blur` (windows frost only over other windows), `mask_feather`, and
+  `hyprctl -j hyprglass status` (`shaders`, per-feature `active`/`reason`). A paused build
+  has no `hyprglass` command and says `Paused (<reason>): …` in `hyprctl -j plugin list`.
+- **hyprliquid 0.2.1** (`/usr/lib/libhyprliquid.so`, built against 0.56.2) loads and draws;
+  it is configured by `["hyprliquid:*"]` keys on window and layer rules, which only a reload
+  removes.
+- `qs ipc call` to a missing target prints `Target not found.` and exits 0: `rice lock` now
+  reads the answer, so an idle lock in a shell without one falls back instead of doing nothing.
+
 Install command (needs sudo, so the user runs it):
 
     yay -S --needed hyprpm hyprliquid mactahoe-gtk-theme mactahoe-icon-theme-git kvantum \

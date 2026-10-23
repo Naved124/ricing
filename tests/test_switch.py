@@ -24,6 +24,8 @@ FAKE = r"""#!/bin/sh
 echo "$(basename "$0") $*" >> "$RICE_TEST_LOG"
 case "$(basename "$0") $*" in
     "qs -c rice ipc call rice ping") echo pong ;;
+    # a shell with no lock (yet): qs says so, and exits 0
+    "qs -c "*" ipc call lock lock") [ -n "$RICE_TEST_NO_LOCK" ] && echo "Target not found." ;;
     "hyprctl monitors -j") echo '[{"name":"DP-1"},{"name":"HDMI-A-1"}]' ;;
     # a running shell: a real process whose pid is in $RICE_TEST_RUNNING; like
     # qs, the "none" note goes to stdout
@@ -632,6 +634,12 @@ class Switch(unittest.TestCase):
 
     def test_lock_falls_back_to_hyprlock(self):
         self.rice("lock")
+        self.assertIn("hyprlock", " ".join(self.calls()))
+
+    def test_a_shell_without_a_lock_still_locks(self):
+        self.rice("nacre")
+        self.log.unlink(missing_ok=True)
+        self.rice("lock", RICE_TEST_NO_LOCK="1")
         self.assertIn("hyprlock", " ".join(self.calls()))
 
     def logout(self, **env):

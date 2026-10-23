@@ -501,6 +501,17 @@ doesn't change with the accent.
   dropped" still holds for every other rice.
 - **Light and dark** are `rice mode`'s; the shared freeze reveals them with
   `crossfade.frag` over 450 ms. `post-mode` re-applies Kvantum and the glass's theme.
+- **Glass:** `gg glass liquid|frosted|solid`, `gg glass clarity 0..1` (Ultraclear … Tinted),
+  `gg glass backend auto|hyprglass|hyprliquid|shader`. Liquid is a plugin that `gg` loads with
+  `hyprctl plugin load` while Golden Gate is on screen (never `hyprpm enable`) and the `leave`
+  hook unloads: hyprglass (hyprpm's build), else hyprliquid (AUR); never both. A plugin that
+  is missing, paused or can't draw falls back to Frosted (Hyprland's blur), and
+  `~/.local/state/goldengate/glass.json` says why: the shell's `Glass` service reads it and
+  puts up a banner. What Hyprland draws is the rice's `glass.lua` (rendered, loaded by
+  `hypr.lua` on every reload), reading gg's `glass-state.lua`; a clarity change is an eval
+  with `GG_GLASS_LIVE` (no rules, which would stack), a plugin change an eval, and leaving
+  hyprliquid a reload (its rules outlive it). Panels are `common/GlassPane.qml`; under a
+  plugin their shadows stay below its mask threshold (0.06) so only the panel is glass.
 - **Wallpaper:** the shell draws it from `~/Pictures/Wallpapers` (shared with Satsuei);
   a `name-light.*` / `name-dark.*` pair is one wallpaper that crossfades with the mode
   (`gg wall set`).

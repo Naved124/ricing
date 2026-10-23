@@ -526,11 +526,13 @@ session() {
 }
 
 lock() {
-    local cur shell
+    local cur shell out
     cur="$(current || true)"
     if [[ -n "$cur" && "$(palette "$cur" meta lock)" == shell ]]; then
         shell="$(palette "$cur" meta shell)"
-        if [[ -n "$shell" ]] && have qs && qs -c "$shell" ipc call lock lock >/dev/null 2>&1; then
+        # (a shell without a lock answers "Target not found." and exits 0)
+        if [[ -n "$shell" ]] && have qs && out="$(qs -c "$shell" ipc call lock lock 2>&1)" \
+            && [[ "$out" != *"not found"* ]]; then
             return 0
         fi
     fi

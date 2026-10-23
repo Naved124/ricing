@@ -37,3 +37,6 @@ hl.config({
 
     misc = { background_color = "{{ roles.bg | hypr(ff) }}" },
 })
+
+-- the glass's light: hyprglass's theme (hyprliquid follows the portal's colour scheme)
+if hl.plugin.hyprglass then hl.plugin.hyprglass.config({ default_theme = "{{ mode }}" }) end

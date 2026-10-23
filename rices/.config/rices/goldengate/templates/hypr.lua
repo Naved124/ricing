@@ -105,7 +105,7 @@ dofile(here .. "hypr-mode.lua")
 
 -- Golden Gate's behaviour while it's the active rice: its binds, floating
 -- windows, gestures and plugins (session.lua, beside this file), then the
--- glass `gg glass` chose (written by gg, under XDG_STATE_HOME). `rice`
+-- glass `gg glass` chose (glass.lua, from gg's state). `rice`
 -- reloads Hyprland on a switch, which drops all of it for every other rice.
 local function load(path)
     local f = io.open(path, "r")
@@ -115,4 +115,4 @@ local function load(path)
     if not ok then print("goldengate: " .. path .. ": " .. tostring(err)) end
 end
 load(here .. "session.lua")
-load((os.getenv("XDG_STATE_HOME") or (os.getenv("HOME") .. "/.local/state")) .. "/goldengate/glass.lua")
+load(here .. "glass.lua")

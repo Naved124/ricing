@@ -8,6 +8,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import qs.common
+import qs.notifications
 import qs.services
 import qs.wallpaper
 
@@ -18,6 +19,18 @@ ShellRoot {
         Wallpaper {}
     }
 
+    // the system's banners (Liquid Glass falling back), on the first screen
+    Banner {
+        id: banner
+        screen: Quickshell.screens[0]
+    }
+    Connections {
+        target: Glass
+        function onFell(reason) {
+            banner.show(qsTr("Liquid Glass is unavailable"), qsTr("Using Frosted glass instead: %1.").arg(reason));
+        }
+    }
+
     // qs -c goldengate ipc call shell <function> [args]
     IpcHandler {
         target: "shell"
@@ -26,7 +39,9 @@ ShellRoot {
         function look(): string {
             return JSON.stringify({ mode: Theme.dark ? "dark" : "light", k: Theme.k, accent: Theme.accentName,
                                     accentColor: String(Theme.accent), glass: Theme.glassMode, clarity: Theme.clarity,
-                                    font: Theme.fontUi });
+                                    backend: Glass.backend, font: Theme.fontUi });
         }
+        // a banner, as the system shows one (gg uses it; so do the tests)
+        function banner(title: string, body: string): void { banner.show(title, body); }
     }
 }

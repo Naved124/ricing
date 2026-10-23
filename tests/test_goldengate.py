@@ -312,5 +312,248 @@ class Accent(unittest.TestCase):
         self.assertEqual(self.settings()["wallpaper"]["current"], str(walls / "bay-light.png"))
 
 
+# a hyprctl that keeps the loaded plugins in a file and logs every call;
+# GG_FAKE_PAUSED names a plugin that loads paused (built for another Hyprland)
+HYPRCTL = r"""#!/bin/bash
+d="$GG_FAKE_HYPR"; touch "$d/loaded"
+echo "$*" >> "$d/calls"
+name() { case "$(basename "$1")" in hyprglass.so) echo hyprglass ;; libhyprliquid.so) echo hyprliquid ;; esac; }
+[[ "$1" == -j ]] && shift
+case "$1 $2" in
+    "plugin list")
+        jq -R -s --arg p "${GG_FAKE_PAUSED:-}" 'split("\n") | map(select(. != "")) | map({name: ., version: "1",
+            description: (if . == $p then "Paused (hyprland_version): built for Hyprland 0.56, running 0.57" else "glass" end)})' "$d/loaded" ;;
+    "plugin load") n="$(name "$3")"; grep -qx "$n" "$d/loaded" || echo "$n" >> "$d/loaded"; echo ok ;;
+    "plugin unload") n="$(name "$3")"; grep -vx "$n" "$d/loaded" > "$d/l2"; mv "$d/l2" "$d/loaded"; echo ok ;;
+    "hyprglass status") echo '{"schema":1,"active":true,"shaders":"ready"}' ;;
+    *) echo ok ;;
+esac
+"""
+
+
+@unittest.skipUnless(shutil.which("jq"), "jq not installed")
+class Glass(unittest.TestCase):
+    """gg glass: Liquid through a plugin it loads itself, Frosted when it can't."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        root = Path(self.tmp.name)
+        self.root = root
+        self.hypr = root / "hypr"
+        self.hypr.mkdir()
+        rices = root / "rices"
+        (rices / "goldengate").mkdir(parents=True)
+        (rices / "current").symlink_to("goldengate")              # on screen
+        bin_ = root / "bin"
+        bin_.mkdir()
+        (bin_ / "hyprctl").write_text(HYPRCTL)
+        (bin_ / "hyprctl").chmod(0o755)
+        for name in ("rice", "rice-render", "gg-theme", "gsettings"):      # recolour's, not under test
+            (bin_ / name).write_text("#!/bin/sh\nexit 0\n")
+            (bin_ / name).chmod(0o755)
+        for so in ("hyprglass.so", "libhyprliquid.so"):
+            (root / so).write_text("")
+        active = root / "data/rice/active"
+        active.mkdir(parents=True)
+        (active / "glass.lua").write_text("-- rendered\n")
+        self.env = {
+            "PATH": f"{bin_}:/usr/bin:/bin", "HOME": str(root), "RICE_DIR": str(rices),
+            "XDG_CONFIG_HOME": str(root / "config"), "XDG_STATE_HOME": str(root / "state"),
+            "XDG_DATA_HOME": str(root / "data"), "GG_FAKE_HYPR": str(self.hypr),
+            "GG_HYPRGLASS": str(root / "hyprglass.so"), "GG_HYPRLIQUID": str(root / "libhyprliquid.so"),
+        }
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def gg(self, *args, **env):
+        r = subprocess.run([str(GG), *args], env={**self.env, **env}, capture_output=True, text=True, timeout=60)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        # never two glass plugins at once
+        self.assertLessEqual(len(self.loaded()), 1, self.loaded())
+        return r
+
+    def loaded(self):
+        return (self.hypr / "loaded").read_text().split() if (self.hypr / "loaded").exists() else []
+
+    def calls(self):
+        return (self.hypr / "calls").read_text() if (self.hypr / "calls").exists() else ""
+
+    def state(self):
+        return json.loads((self.root / "state/goldengate/glass.json").read_text())
+
+    def test_liquid_loads_hyprglass_and_sends_the_glass(self):
+        self.gg("glass", "liquid")
+        self.assertEqual(self.loaded(), ["hyprglass"])
+        self.assertEqual((self.state()["mode"], self.state()["backend"], self.state()["reason"]), ("liquid", "hyprglass", ""))
+        self.assertIn(f"eval dofile([[{self.root}/data/rice/active/glass.lua]])", self.calls())
+        lua = (self.root / "state/goldengate/glass-state.lua").read_text()
+        self.assertIn('mode = "liquid", backend = "hyprglass", clarity = 0.35', lua)
+
+    def test_frosted_and_solid_load_nothing(self):
+        self.gg("glass", "liquid")
+        for mode in ("frosted", "solid"):
+            self.gg("glass", mode)
+            self.assertEqual(self.loaded(), [])
+            self.assertEqual(self.state()["mode"], mode)
+        # Reduce transparency is Solid, whatever the glass says
+        self.gg("glass", "liquid")
+        self.gg("set", "accessibility.reduceTransparency", "true")
+        self.assertEqual((self.state()["mode"], self.loaded()), ("solid", []))
+
+    def test_a_paused_hyprglass_falls_back(self):
+        # auto: hyprliquid stands in
+        self.gg("glass", "liquid", GG_FAKE_PAUSED="hyprglass")
+        self.assertEqual((self.state()["backend"], self.loaded()), ("hyprliquid", ["hyprliquid"]))
+        # hyprglass only: Frosted, with the reason for the shell's banner
+        self.gg("glass", "backend", "hyprglass", GG_FAKE_PAUSED="hyprglass")
+        s = self.state()
+        self.assertEqual((s["want"], s["mode"], s["backend"], self.loaded()), ("liquid", "frosted", "hyprland", []))
+        self.assertIn("paused", s["reason"])
+        # hyprliquid's rules outlived it: Hyprland was reloaded to clear them
+        self.assertIn("reload", self.calls())
+
+    def test_a_missing_plugin_falls_back(self):
+        os.remove(self.root / "hyprglass.so")
+        os.remove(self.root / "libhyprliquid.so")
+        self.gg("glass", "liquid")
+        self.assertEqual((self.state()["mode"], self.state()["reason"]),
+                         ("frosted", "hyprglass isn't installed; hyprliquid isn't installed"))
+
+    def test_clarity_is_live(self):
+        self.gg("glass", "liquid")
+        (self.hypr / "calls").write_text("")
+        self.gg("glass", "clarity", "0.8")
+        self.assertIn("GG_GLASS_LIVE = true", self.calls())
+        self.assertNotIn("reload", self.calls())
+        self.assertNotIn("plugin load", self.calls())
+        self.assertEqual(self.state()["clarity"], 0.8)
+        r = subprocess.run([str(GG), "glass", "clarity", "2"], env=self.env, capture_output=True, text=True)
+        self.assertNotEqual(r.returncode, 0)
+
+    def test_leaving_unloads_the_plugins(self):
+        self.gg("glass", "liquid")
+        self.gg("hook", "leave", "paper")
+        self.assertEqual(self.loaded(), [])
+
+    def test_off_screen_it_only_remembers(self):
+        (Path(self.env["RICE_DIR"]) / "current").unlink()
+        (Path(self.env["RICE_DIR"]) / "current").symlink_to("paper")
+        self.gg("glass", "frosted")
+        self.assertEqual(self.calls(), "")
+
+
+def has_pyside():
+    return importlib.util.find_spec("PySide6") is not None
+
+
+@unittest.skipUnless(has_pyside(), "needs PySide6")
+class Shell(unittest.TestCase):
+    """The shell starts clean against the Quickshell stand-ins, and wears the glass gg reports."""
+
+    def test_it_starts_clean_and_follows_the_glass(self):
+        import sys
+        sys.path.insert(0, str(REPO / "tests"))
+        import qs_smoke
+        found, pokes = qs_smoke.smoke(SHELL, 3, REPO / "tests/pokes/goldengate-glass.qml")
+        self.assertEqual(found, [])
+        by = {p["state"]: p for p in pokes}
+        self.assertEqual(set(by), {"liquid", "fell back", "solid"}, pokes)
+        self.assertEqual((by["liquid"]["glass"], by["liquid"]["plugin"]), ("liquid", True))
+        # under a plugin the shadow stays out of its mask (0.06)
+        self.assertLess(by["liquid"]["shadow"], 0.06)
+        self.assertEqual((by["fell back"]["glass"], by["fell back"]["plugin"], by["fell back"]["fellBack"]),
+                         ("frosted", False, True))
+        self.assertGreater(by["fell back"]["shadow"], 0.1)
+        self.assertEqual((by["solid"]["glass"], by["solid"]["tint"]), ("solid", 1))
+
+
+@unittest.skipUnless(shutil.which("lua"), "lua not installed")
+class GlassLua(unittest.TestCase):
+    """The rendered glass.lua against a stub of Hyprland's `hl`."""
+
+    STUB = r"""
+calls = {}
+local function rec(name) return function(...) table.insert(calls, { name, ... }) end end
+hl = { config = rec("config"), layer_rule = rec("layer_rule"), plugin = {} }
+if PLUGIN == "hyprglass" then
+    hl.plugin.hyprglass = { config = rec("hg.config"), layer = rec("hg.layer"), preset = rec("hg.preset") }
+elseif PLUGIN == "hyprliquid" then
+    hl.plugin.hyprliquid = {}
+end
+dofile(GLASS)
+local function dump(v)
+    if type(v) ~= "table" then return tostring(v) end
+    local keys, out = {}, {}
+    for k in pairs(v) do table.insert(keys, tostring(k)) end
+    table.sort(keys)
+    for _, k in ipairs(keys) do
+        local val = v[k] if val == nil then val = v[tonumber(k)] end
+        table.insert(out, k .. "=" .. dump(val))
+    end
+    return "{" .. table.concat(out, ",") .. "}"
+end
+for _, c in ipairs(calls) do print(c[1], dump(c[2]), dump(c[3])) end
+"""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.root = Path(self.tmp.name)
+        ctx = rr.load_modes(RICE)
+        src = (RICE / "templates/glass.lua").read_text()
+        self.lua = {m: rr.render_text(src, ctx[m], "glass.lua") for m in ("light", "dark")}
+        (self.root / "glass.lua").write_text(self.lua["light"])
+        (self.root / "goldengate").mkdir()
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def run_lua(self, state, plugin="", live=False):
+        (self.root / "goldengate/glass-state.lua").write_text(f"return {state}\n")
+        pre = f'GLASS = [[{self.root}/glass.lua]]; PLUGIN = "{plugin}"; ' + ("GG_GLASS_LIVE = true; " if live else "")
+        r = subprocess.run(["lua", "-e", pre + self.STUB], capture_output=True, text=True,
+                           env={**os.environ, "XDG_STATE_HOME": str(self.root)})
+        self.assertEqual(r.returncode, 0, r.stderr)
+        return r.stdout
+
+    def test_it_renders_the_same_in_both_modes(self):
+        self.assertEqual(self.lua["light"], self.lua["dark"])
+
+    def test_liquid_glasses_the_shells_panels(self):
+        out = self.run_lua('{ mode = "liquid", backend = "hyprglass", clarity = 0.35, menubar = false }', "hyprglass")
+        self.assertIn("hg.config", out)
+        self.assertIn("enabled=true", out.split("hg.config")[1])
+        layers = [l for l in out.splitlines() if l.startswith("hg.layer")]
+        names = {l.split()[1] for l in layers}
+        self.assertEqual(names, {f"goldengate:{n}" for n in
+                                 ("dock", "controlcenter", "notifications", "widgets", "spotlight", "osd")})
+        self.assertTrue(all("mask_mode=contour" in l for l in layers))
+        # the menu bar only with its background: else the glass would sit on its letters
+        out = self.run_lua('{ mode = "liquid", backend = "hyprglass", clarity = 0.35, menubar = true }', "hyprglass")
+        self.assertIn("hg.layer\tgoldengate:menubar\t{mask_mode=alpha", out)
+
+    def test_a_clarity_change_adds_no_rules(self):
+        out = self.run_lua('{ mode = "liquid", backend = "hyprglass", clarity = 0.9 }', "hyprglass", live=True)
+        self.assertIn("hg.preset", out)
+        self.assertNotIn("hg.layer", out)
+        out = self.run_lua('{ mode = "liquid", backend = "hyprliquid", clarity = 0.9 }', "hyprliquid", live=True)
+        self.assertNotIn("layer_rule", out)
+
+    def test_frosted_and_solid(self):
+        frosted = self.run_lua('{ mode = "frosted", backend = "hyprland", clarity = 0 }')
+        self.assertIn("enabled=true", frosted)
+        self.assertIn("size=5", frosted)
+        self.assertIn("size=12", self.run_lua('{ mode = "frosted", backend = "hyprland", clarity = 1 }'))
+        self.assertIn("enabled=false", self.run_lua('{ mode = "solid", backend = "hyprland", clarity = 0.5 }'))
+        # a plugin that isn't there is never configured
+        self.assertNotIn("hg.", self.run_lua('{ mode = "liquid", backend = "hyprglass", clarity = 0.5 }'))
+
+    def test_hyprliquid_rules_every_panel(self):
+        out = self.run_lua('{ mode = "liquid", backend = "hyprliquid", clarity = 0.35 }', "hyprliquid")
+        rules = [l for l in out.splitlines() if l.startswith("layer_rule")]
+        self.assertEqual(len(rules), 6)
+        self.assertTrue(all("hyprliquid:effect=liquid_glass" in r for r in rules))
+
+
 if __name__ == "__main__":
     unittest.main()
