@@ -400,6 +400,9 @@ class Glass(unittest.TestCase):
         self.gg("glass", "liquid")
         self.gg("set", "accessibility.reduceTransparency", "true")
         self.assertEqual((self.state()["mode"], self.loaded()), ("solid", []))
+        # and off again (false is JSON too)
+        self.gg("set", "accessibility.reduceTransparency", "false")
+        self.assertEqual((self.state()["mode"], self.loaded()), ("liquid", ["hyprglass"]))
 
     def test_a_paused_hyprglass_falls_back(self):
         # auto: hyprliquid stands in
@@ -458,13 +461,16 @@ class Shell(unittest.TestCase):
         found, pokes = qs_smoke.smoke(SHELL, 3, REPO / "tests/pokes/goldengate-glass.qml")
         self.assertEqual(found, [])
         by = {p["state"]: p for p in pokes}
-        self.assertEqual(set(by), {"liquid", "fell back", "solid"}, pokes)
+        self.assertEqual(set(by), {"liquid", "fell back", "shader", "solid"}, pokes)
         self.assertEqual((by["liquid"]["glass"], by["liquid"]["plugin"]), ("liquid", True))
         # under a plugin the shadow stays out of its mask (0.06)
         self.assertLess(by["liquid"]["shadow"], 0.06)
         self.assertEqual((by["fell back"]["glass"], by["fell back"]["plugin"], by["fell back"]["fellBack"]),
                          ("frosted", False, True))
         self.assertGreater(by["fell back"]["shadow"], 0.1)
+        # no plugin: the shell's own Liquid, with a frosted pane's shadow
+        self.assertEqual((by["shader"]["glass"], by["shader"]["shader"], by["shader"]["plugin"]), ("liquid", True, False))
+        self.assertFalse(by["liquid"]["shader"])
         self.assertEqual((by["solid"]["glass"], by["solid"]["tint"]), ("solid", 1))
 
 

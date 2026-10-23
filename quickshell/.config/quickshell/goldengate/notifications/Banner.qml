@@ -48,6 +48,9 @@ PanelWindow {
         width: 340
         height: Math.max(64, text.implicitHeight + 28)
         radius: Theme.radiusPanel - 6
+        screen: root.screen
+        opened: root.shown
+        windowOrigin: Qt.point((root.screen ? root.screen.width : 1920) - root.margins.right - root.implicitWidth, root.margins.top)
         opacity: root.shown ? 1 : 0
         transform: Translate { x: root.shown ? 0 : 40; Behavior on x { SpringAnimation { spring: Theme.spring; damping: Theme.damping } } }
         Behavior on opacity { NumberAnimation { duration: Theme.panelIn } }

@@ -512,6 +512,10 @@ doesn't change with the accent.
   with `GG_GLASS_LIVE` (no rules, which would stack), a plugin change an eval, and leaving
   hyprliquid a reload (its rules outlive it). Panels are `common/GlassPane.qml`; under a
   plugin their shadows stay below its mask threshold (0.06) so only the panel is glass.
+  Backend `shader` is the shell's own (`common/LiquidLayer.qml`, `shaders/liquid.frag`): it
+  bends a copy of the wallpaper, or with `glass.accurate` a still of the screen taken as the
+  pane opens. **Never keep a `ScreencopyView` alive**: it holds the screencopy, and grim and
+  hyprlock (the idle lock) then hang; capture, `grabToImage`, destroy.
 - **Wallpaper:** the shell draws it from `~/Pictures/Wallpapers` (shared with Satsuei);
   a `name-light.*` / `name-dark.*` pair is one wallpaper that crossfades with the mode
   (`gg wall set`).

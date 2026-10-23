@@ -70,7 +70,7 @@ get_str() { get "$1" | jq -r '. // empty' 2>/dev/null || true; }
 set_json() {   # set_json KEY JSON: atomically, so the shell never reads half a file
     have jq || die "jq is needed"
     local tmp
-    jq -e . >/dev/null 2>&1 <<<"$2" || die "not JSON: $2 (strings need quotes: '\"blue\"')"
+    jq . >/dev/null 2>&1 <<<"$2" || die "not JSON: $2 (strings need quotes: '\"blue\"')"
     tmp="$(mktemp "$SETTINGS.XXXXXX")"
     if [[ -s "$SETTINGS" ]]; then
         jq --arg k "$1" --argjson v "$2" 'setpath($k | split("."); $v)' "$SETTINGS" > "$tmp"

@@ -98,6 +98,8 @@ Singleton {
     readonly property bool solid: glassMode === "solid"
     // a plugin draws the bend and the light: the shell adds only its tint
     readonly property bool liquidPlugin: Glass.plugin
+    // no plugin: the shell bends and blurs a copy of the wallpaper itself
+    readonly property bool shaderGlass: glassMode === "liquid" && Glass.backend === "shader"
     readonly property real clarity: Math.max(0, Math.min(1, Settings.glass.clarity))
     // how much of the tint covers a panel at this clarity
     readonly property real glassAlpha: solid ? 1 : mode.blend(0.12 + 0.68 * clarity, 0.2 + 0.65 * clarity)

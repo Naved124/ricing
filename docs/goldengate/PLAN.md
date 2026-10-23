@@ -131,6 +131,18 @@ What the glass found (step 3):
 - `qs ipc call` to a missing target prints `Target not found.` and exits 0: `rice lock` now
   reads the answer, so an idle lock in a shell without one falls back instead of doing nothing.
 
+What the shader glass found (step 4):
+
+- **A `ScreencopyView` that stays alive holds the output's screencopy**, `live: false` or not:
+  grim waited forever, and so did hyprlock (its background is a screenshot), so the idle lock
+  showed Hyprland's "lockscreen app died". Accurate's capture is now made only as a pane
+  opens, copied into an `Image` with `grabToImage` and destroyed (two seconds at most); the
+  pane hides for that moment so the still doesn't see it. Check any new capture with
+  `timeout 5 grim` while it is on screen.
+- `captureFrame()` in `Component.onCompleted` is too early ("no recording context"); a
+  non-live view captures once by itself when it's ready.
+- `gg set KEY false` was refused: `jq -e` fails on `false` and `null`.
+
 Install command (needs sudo, so the user runs it):
 
     yay -S --needed hyprpm hyprliquid mactahoe-gtk-theme mactahoe-icon-theme-git kvantum \

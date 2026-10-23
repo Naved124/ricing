@@ -8,6 +8,7 @@ Item {
     readonly property var steps: [
         ["liquid", () => Glass.state = { want: "liquid", mode: "liquid", backend: "hyprglass", reason: "" }],
         ["fell back", () => Glass.state = { want: "liquid", mode: "frosted", backend: "hyprland", reason: "hyprglass is paused" }],
+        ["shader", () => Glass.state = { want: "liquid", mode: "liquid", backend: "shader", reason: "" }],
         ["solid", () => Glass.state = { want: "solid", mode: "solid", backend: "hyprland", reason: "" }],
     ]
     Timer {
@@ -17,7 +18,7 @@ Item {
         onTriggered: {
             if (parent.step > 0)
                 console.warn("POKE:" + JSON.stringify({ state: parent.steps[parent.step - 1][0], glass: Theme.glassMode,
-                    plugin: Theme.liquidPlugin, fellBack: Glass.fellBack, shadow: Theme.glassShadow.a,
+                    plugin: Theme.liquidPlugin, shader: Theme.shaderGlass, fellBack: Glass.fellBack, shadow: Theme.glassShadow.a,
                     tint: Theme.glass.a }));
             if (parent.step >= parent.steps.length) { running = false; return; }
             parent.steps[parent.step][1]();
