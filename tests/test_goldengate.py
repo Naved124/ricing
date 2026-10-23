@@ -274,10 +274,12 @@ class Accent(unittest.TestCase):
 
     def test_clarity_reaches_the_terminal(self):
         self.gg("set", "glass.clarity", "0")
-        self.assertIn("terminal = 0.70", (self.root / "state/goldengate/palette.toml").read_text())
+        overlay = (self.root / "state/goldengate/palette.toml").read_text()
+        self.assertIn("terminal = 0.86", overlay)   # light, Ultraclear
+        self.assertIn("terminal = 0.80", overlay)   # dark, Ultraclear
         self.gg("set", "glass.clarity", "1")
         self.assertIn("terminal = 0.97", (self.root / "state/goldengate/palette.toml").read_text())
-        self.assertIn("background_opacity    0.97",
+        self.assertIn("background_opacity    0.98",
                       (self.rices / "goldengate/build/light/kitty.conf").read_text())
 
     @unittest.skipUnless(shutil.which("magick"), "ImageMagick not installed")
@@ -739,7 +741,7 @@ for _, c in ipairs(calls) do print(c[1], dump(c[2]), dump(c[3])) end
         frosted = self.run_lua('{ mode = "frosted", backend = "hyprland", clarity = 0 }')
         self.assertIn("enabled=true", frosted)
         self.assertIn("size=10", frosted)
-        self.assertIn("vibrancy=0.32", frosted)
+        self.assertIn("contrast=0.86", frosted)
         self.assertIn("size=14", self.run_lua('{ mode = "frosted", backend = "hyprland", clarity = 1 }'))
         # the blur stays on under Solid: the menu bar is always frosted (Solid's panels are opaque)
         self.assertIn("enabled=true", self.run_lua('{ mode = "solid", backend = "hyprland", clarity = 0.5 }'))

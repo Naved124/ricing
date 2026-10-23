@@ -114,9 +114,14 @@ write_overlay() {
     [[ "$light" == \"* ]] || light="\"$light\""
     [[ "$dark" == \"* ]] || dark="\"$dark\""
     clarity="$(get_str glass.clarity)"; clarity="${clarity:-0.35}"
-    # Ultraclear 0.7 … Tinted 0.97, about 0.85 at the default clarity
-    term="$(awk -v c="$clarity" 'BEGIN { printf "%.2f", 0.7 + 0.27 * c }')"
-    [[ "$(get_str glass.mode)" == solid || "$(get_str accessibility.reduceTransparency)" == true ]] && term=1.0
+    # the terminal's opacity by the clarity, high enough that its text holds up
+    # over a bright frost: light 0.86 (Ultraclear) … 0.98 (Tinted), dark 0.80 … 0.97
+    local term_light term_dark
+    term_light="$(awk -v c="$clarity" 'BEGIN { printf "%.2f", 0.86 + 0.12 * c }')"
+    term_dark="$(awk -v c="$clarity" 'BEGIN { printf "%.2f", 0.80 + 0.17 * c }')"
+    if [[ "$(get_str glass.mode)" == solid || "$(get_str accessibility.reduceTransparency)" == true ]]; then
+        term_light=1.0; term_dark=1.0
+    fi
     {
         echo "# Written by gg from ~/.config/goldengate/settings.json; rice-render merges it"
         echo "# over Golden Gate's palette.toml. Change it with gg accent / gg glass."
@@ -132,6 +137,7 @@ write_overlay() {
             else echo "accent = $dark"; echo "cursor = $dark"; fi
             echo
             echo "[modes.$m.opacity]"
+            if [[ "$m" == light ]]; then term="$term_light"; else term="$term_dark"; fi
             echo "terminal = $term"
         done
     } > "$OVERLAY.tmp"

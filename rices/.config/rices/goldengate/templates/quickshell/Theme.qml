@@ -104,8 +104,9 @@ Singleton {
     // no plugin: the shell bends and blurs a copy of the wallpaper itself
     readonly property bool shaderGlass: glassMode === "liquid" && Glass.backend === "shader"
     readonly property real clarity: Math.max(0, Math.min(1, Settings.glass.clarity))
-    // how much of the tint covers a panel at this clarity
-    readonly property real glassAlpha: solid ? 1 : mode.blend(0.12 + 0.68 * clarity, 0.2 + 0.65 * clarity)
+    // how much of the tint covers a panel at this clarity: never under about a
+    // third, so labels hold their contrast over a bright frost
+    readonly property real glassAlpha: solid ? 1 : mode.blend(0.34 + 0.56 * clarity, 0.36 + 0.52 * clarity)
     readonly property color glass:      solid ? c("window") : Qt.alpha(c("frost"), glassAlpha)
     // a stronger pane: menus, the Spotlight field, popovers
     readonly property color glassThick: solid ? c("window") : Qt.alpha(c("frost"), Math.min(1, glassAlpha + 0.18))

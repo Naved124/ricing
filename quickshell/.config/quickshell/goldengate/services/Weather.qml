@@ -6,8 +6,9 @@ import Quickshell.Io
 import qs.services
 
 // The weather for the desktop widget, from Open-Meteo (free, no key), every
-// half hour while the widget is shown. Where: Settings' location, or, the
-// first time, a guess from the IP address (ipinfo.io), kept in Settings.
+// half hour while the widget is shown. Where: Settings' location (Bagdona,
+// Betul, by default); only a location cleared to 0, 0 is guessed from the IP
+// address (ipinfo.io) and kept.
 Singleton {
     id: root
 

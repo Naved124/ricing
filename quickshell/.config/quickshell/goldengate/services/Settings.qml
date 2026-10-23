@@ -105,9 +105,9 @@ Singleton {
 
             // auto light/dark: where the sun is (rice-sun reads ~/.config/rice/mode.toml)
             property JsonObject location: JsonObject {
-                property string city: ""
-                property real lat: 0
-                property real lon: 0
+                property string city: "Bagdona"
+                property real lat: 22.12
+                property real lon: 78.10
             }
 
             property JsonObject menubar: JsonObject {

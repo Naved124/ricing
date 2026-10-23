@@ -41,9 +41,10 @@ local glassed = {
 -- the menu bar's pills are always Frosted (Hyprland's blur), whatever the glass
 
 -- Frosted is Hyprland's blur, the deep milky frost of a premium glass: wide,
--- many passes, a fine grain, lifted and saturated so the colour behind glows
--- through. It stays on under Liquid (the menu bar's pills, Launchpad, Mission
--- Control) and Solid (whose panels are opaque anyway): the menu bar is always frosted.
+-- many passes, a fine grain, saturated so the colour behind glows through,
+-- its contrast and brightness eased so text over it holds up. It stays on
+-- under Liquid (the menu bar's pills, Launchpad, Mission Control) and Solid
+-- (whose panels are opaque anyway): the menu bar is always frosted.
 hl.config({
     decoration = {
         blur = {
@@ -51,9 +52,9 @@ hl.config({
             size              = math.floor(lerp(10, 14) + 0.5),
             passes            = 4,
             noise             = lerp(0.014, 0.024),
-            contrast          = 0.92,
-            brightness        = 1.0,
-            vibrancy          = 0.32,
+            contrast          = 0.86,
+            brightness        = 0.96,
+            vibrancy          = 0.28,
             vibrancy_darkness = 0.25,
         },
     },
