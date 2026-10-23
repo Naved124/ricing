@@ -1,0 +1,357 @@
+#!/usr/bin/env bash
+# gg — Golden Gate's one way in: the keybinds, the Control Center, System
+# Settings and the terminal all go through it.
+#
+#   gg appearance [light|dark|toggle|auto [off]]
+#                          light and dark for the whole desktop (rice mode);
+#                          auto follows the sun at the location below
+#   gg location LAT LON    where the sun is, for auto (shared with every rice)
+#   gg accent [NAME]       blue purple pink red orange yellow green graphite
+#                          multicolor, or wallpaper (the picture's vivid colour,
+#                          snapped to the nearest Apple hue)
+#   gg glass [liquid|frosted|solid|next] | gg glass clarity 0..1 | gg glass status
+#   gg wall set FILE [DARK] | next | prev | seed | status
+#   gg dock | spotlight | mission | expose | cc | nc | apps | desktop | switcher
+#                          open (or close) the shell's surfaces
+#   gg settings [PANE]     System Settings, at a pane
+#   gg lock                the lock screen
+#   gg screenshot screen|selection|window|toolbar
+#   gg record screen|selection|stop
+#   gg island test ACTIVITY
+#   gg widgets edit
+#   gg notify-done CMD SECS   a long command finished (for the shell's hook)
+#   gg get KEY | gg set KEY JSON
+#                          read or write one setting (e.g. gg set dock.size 64)
+#   gg hook enter|post-switch|post-mode|leave
+#                          what the rice's hooks run
+#
+# Settings live in ~/.config/goldengate/settings.json; the shell watches it.
+
+set -euo pipefail
+
+CONF="${XDG_CONFIG_HOME:-$HOME/.config}"
+STATE="${XDG_STATE_HOME:-$HOME/.local/state}/goldengate"
+SETTINGS="${GG_SETTINGS:-$CONF/goldengate/settings.json}"
+OVERLAY="$STATE/palette.toml"
+RICE_DIR="${RICE_DIR:-$CONF/rices}"
+SHELL_NAME=goldengate
+
+log() { printf '\033[2mgg:\033[0m %s\n' "$*" >&2; }
+die() { printf '\033[31mgg:\033[0m %s\n' "$*" >&2; exit 1; }
+have() { command -v "$1" >/dev/null 2>&1; }
+
+mkdir -p "$STATE" "$(dirname "$SETTINGS")"
+
+active() { [[ "$(basename "$(readlink "$RICE_DIR/current" 2>/dev/null || true)")" == goldengate ]]; }
+mode() {
+    local m
+    m="$(cat "${XDG_STATE_HOME:-$HOME/.local/state}/rice/mode" 2>/dev/null || true)"
+    [[ "$m" == dark ]] && echo dark || echo light
+}
+
+# ── the shell ────────────────────────────────────────────────────────────
+ipc() {   # ipc TARGET FUNCTION [ARGS…]
+    have qs || die "quickshell isn't installed"
+    qs -c "$SHELL_NAME" ipc call "$@"
+}
+# a surface: the shell answers, or says why not
+surface() {
+    ipc "$@" >/dev/null 2>&1 || die "the Golden Gate shell isn't running (rice goldengate), or has no '$1 $2'"
+}
+
+# ── settings.json ────────────────────────────────────────────────────────
+get() {   # get KEY (dotted): the JSON value, or nothing
+    [[ -s "$SETTINGS" ]] || return 0
+    jq -c --arg k "$1" 'getpath($k | split(".")) // empty' "$SETTINGS"
+}
+get_str() { get "$1" | jq -r '. // empty' 2>/dev/null || true; }
+set_json() {   # set_json KEY JSON: atomically, so the shell never reads half a file
+    have jq || die "jq is needed"
+    local tmp
+    jq -e . >/dev/null 2>&1 <<<"$2" || die "not JSON: $2 (strings need quotes: '\"blue\"')"
+    tmp="$(mktemp "$SETTINGS.XXXXXX")"
+    if [[ -s "$SETTINGS" ]]; then
+        jq --arg k "$1" --argjson v "$2" 'setpath($k | split("."); $v)' "$SETTINGS" > "$tmp"
+    else
+        jq -n --arg k "$1" --argjson v "$2" 'setpath($k | split("."); $v)' > "$tmp"
+    fi
+    mv -f "$tmp" "$SETTINGS"
+}
+set_str() { set_json "$1" "$(jq -n --arg v "$2" '$v')"; }
+
+# ── the palette overlay (what apps see) ──────────────────────────────────
+ACCENTS=(blue purple pink red orange yellow green graphite)
+
+# the overlay rice-render merges over palette.toml: the accent (a colour name,
+# or the wallpaper's hex), the GTK and icon names in that accent, and the
+# terminal's opacity from the glass's clarity
+write_overlay() {
+    local a base light dark clarity term m gtk icons
+    a="$(get_str appearance.accent)"; a="${a:-blue}"
+    base="$a"
+    case "$a" in
+        multicolor) light=blue; dark=blue ;;
+        wallpaper)
+            base="$(get_str appearance.accentBase)"; base="${base:-blue}"
+            light="\"$(get_str appearance.accentWall.light)\""
+            dark="\"$(get_str appearance.accentWall.dark)\""
+            [[ "$light" != '""' ]] || light="$base"
+            [[ "$dark" != '""' ]] || dark="$base" ;;
+        *) light="$a"; dark="$a" ;;
+    esac
+    [[ "$light" == \"* ]] || light="\"$light\""
+    [[ "$dark" == \"* ]] || dark="\"$dark\""
+    clarity="$(get_str glass.clarity)"; clarity="${clarity:-0.35}"
+    # Ultraclear 0.7 … Tinted 0.97, about 0.85 at the default clarity
+    term="$(awk -v c="$clarity" 'BEGIN { printf "%.2f", 0.7 + 0.27 * c }')"
+    [[ "$(get_str glass.mode)" == solid || "$(get_str accessibility.reduceTransparency)" == true ]] && term=1.0
+    {
+        echo "# Written by gg from ~/.config/goldengate/settings.json; rice-render merges it"
+        echo "# over Golden Gate's palette.toml. Change it with gg accent / gg glass."
+        for m in light dark; do
+            read -r gtk icons < <(gg-theme names "$m" "$base" | jq -r '"\(.gtk) \(.icons)"')
+            echo
+            echo "[modes.$m.meta]"
+            echo "gtk_theme  = \"$gtk\""
+            echo "icon_theme = \"$icons\""
+            echo
+            echo "[modes.$m.roles]"
+            if [[ "$m" == light ]]; then echo "accent = $light"; echo "cursor = $light"
+            else echo "accent = $dark"; echo "cursor = $dark"; fi
+            echo
+            echo "[modes.$m.opacity]"
+            echo "terminal = $term"
+        done
+    } > "$OVERLAY.tmp"
+    # say whether anything changed (the caller re-renders only then)
+    if cmp -s "$OVERLAY.tmp" "$OVERLAY"; then rm -f "$OVERLAY.tmp"; return 1; fi
+    mv -f "$OVERLAY.tmp" "$OVERLAY"
+}
+
+# render and push the colours out live, when Golden Gate is the rice on screen
+recolour() {
+    write_overlay || true
+    if active; then
+        rice recolour >/dev/null 2>&1 || log "rice recolour failed"
+        gg-theme apply >/dev/null 2>&1 || log "gg-theme apply failed"
+    else
+        rice-render -q goldengate || true
+    fi
+}
+
+# ── appearance ───────────────────────────────────────────────────────────
+appearance() {
+    case "${1:-status}" in
+        light|dark|toggle) rice mode "$1" ;;
+        auto) shift; rice mode auto "$@" ;;
+        status) rice mode status ;;
+        *) die "usage: gg appearance light|dark|toggle|auto [off]|status" ;;
+    esac
+}
+
+# where the sun is: ~/.config/rice/mode.toml (every rice's), and Settings
+location() {
+    local lat="${1:-}" lon="${2:-}" f="$CONF/rice/mode.toml"
+    [[ "$lat" =~ ^-?[0-9]+(\.[0-9]+)?$ && "$lon" =~ ^-?[0-9]+(\.[0-9]+)?$ ]] \
+        || die "usage: gg location LAT LON (degrees, north and east positive)"
+    mkdir -p "$(dirname "$f")"
+    [[ -f "$f" ]] || printf 'lat = ""\nlon = ""\n' > "$f"
+    sed -i -E "s/^lat[[:space:]]*=.*/lat = $lat/; s/^lon[[:space:]]*=.*/lon = $lon/" "$f"
+    set_json location.lat "$lat"
+    set_json location.lon "$lon"
+    log "location $lat, $lon"
+}
+
+# ── accent ───────────────────────────────────────────────────────────────
+# the wallpaper's most vivid common colour (ImageMagick), snapped to the
+# nearest Apple hue and clamped to Apple-like saturation and lightness;
+# prints "base light-hex dark-hex"
+wallpaper_accent() {
+    local file="$1"
+    have magick || die "ImageMagick is needed for the wallpaper accent"
+    [[ -r "$file" ]] || die "no wallpaper to take a colour from ($file)"
+    magick "${file}[0]" -resize 96x96 -colors 12 -format '%c' histogram:info:- 2>/dev/null \
+        | python3 -c '
+import colorsys, re, sys
+apple = {"red": 3, "orange": 35, "yellow": 48, "green": 129, "blue": 211, "purple": 282, "pink": 348}
+best = None
+for line in sys.stdin:
+    m = re.search(r"^\s*(\d+):.*#([0-9A-Fa-f]{6})", line)
+    if not m:
+        continue
+    n, hx = int(m[1]), m[2]
+    r, g, b = (int(hx[i:i + 2], 16) / 255 for i in (0, 2, 4))
+    h, l, s = colorsys.rgb_to_hls(r, g, b)
+    if s < 0.25 or not 0.18 < l < 0.85:
+        continue                          # greys, near-black and near-white say nothing
+    score = n * (s ** 2)                  # common and vivid
+    if best is None or score > best[0]:
+        best = (score, h * 360)
+if best is None:
+    print("blue #007aff #0a84ff"); sys.exit()
+hue = best[1]
+name = min(apple, key=lambda k: min(abs(apple[k] - hue), 360 - abs(apple[k] - hue)))
+# keep the picture'"'"'s hue, but only so far from Apple'"'"'s, at Apple'"'"'s saturation and lightness
+target = apple[name]
+delta = ((hue - target + 180) % 360) - 180
+hue = (target + max(-12, min(12, delta))) % 360
+def hexof(h, l, s):
+    r, g, b = colorsys.hls_to_rgb(h / 360, l, s)
+    return "#%02x%02x%02x" % tuple(round(v * 255) for v in (r, g, b))
+print(name, hexof(hue, 0.48, 0.95), hexof(hue, 0.56, 0.92))
+'
+}
+
+accent() {
+    local a="${1:-}" file base l d
+    if [[ -z "$a" ]]; then get_str appearance.accent; return; fi
+    case "$a" in
+        blue|purple|pink|red|orange|yellow|green|graphite|multicolor)
+            set_str appearance.accent "$a"
+            set_str appearance.accentBase "$([[ "$a" == multicolor ]] && echo blue || echo "$a")" ;;
+        wallpaper|from-wallpaper)
+            file="$(get_str wallpaper.current)"; file="${file/#\~/$HOME}"
+            [[ "$(mode)" == dark && -n "$(get_str wallpaper.currentDark)" ]] && { file="$(get_str wallpaper.currentDark)"; file="${file/#\~/$HOME}"; }
+            read -r base l d < <(wallpaper_accent "$file")
+            set_str appearance.accent wallpaper
+            set_str appearance.accentBase "$base"
+            set_json appearance.accentWall "$(jq -n --arg l "$l" --arg d "$d" '{light: $l, dark: $d}')"
+            log "from the wallpaper: $l / $d (nearest Apple accent: $base)" ;;
+        *) die "accents: ${ACCENTS[*]} multicolor wallpaper" ;;
+    esac
+    recolour
+}
+
+# ── wallpaper ────────────────────────────────────────────────────────────
+wall_dir() { local d; d="$(get_str wallpaper.dir)"; d="${d:-~/Pictures/Wallpapers}"; echo "${d/#\~/$HOME}"; }
+pictures() {
+    find "$(wall_dir)" -maxdepth 1 -type f \( -iname '*.png' -o -iname '*.jpg' -o -iname '*.jpeg' \
+        -o -iname '*.webp' -o -iname '*.gif' \) 2>/dev/null | sort
+}
+# a picture's night twin: name-dark.* beside name-light.* (or "" when none)
+twin() {
+    local f="$1" stem dir g
+    dir="$(dirname "$f")"; stem="$(basename "${f%.*}")"
+    [[ "$stem" == *-light ]] || { echo ""; return; }
+    for g in "$dir/${stem%-light}-dark".*; do [[ -f "$g" ]] && { echo "$g"; return; }; done
+    echo ""
+}
+wall_set() {
+    local f="$1" dark="${2:-}"
+    [[ -f "$f" ]] || die "no such picture: $f"
+    f="$(readlink -f "$f")"
+    # a night twin chosen on its own: the pair is its day half
+    if [[ -z "$dark" && "$(basename "${f%.*}")" == *-dark ]]; then
+        local day; for day in "$(dirname "$f")/$(basename "${f%.*}" | sed 's/-dark$/-light/')".*; do
+            [[ -f "$day" ]] && { dark="$f"; f="$day"; break; }; done
+    fi
+    [[ -n "$dark" ]] || dark="$(twin "$f")"
+    set_str wallpaper.current "$f"
+    set_str wallpaper.currentDark "$dark"
+    log "wallpaper ${f/#$HOME/~}${dark:+ (night: ${dark/#$HOME/~})}"
+    [[ "$(get_str appearance.accent)" == wallpaper ]] && accent wallpaper
+    return 0
+}
+wall_step() {
+    local cur list i n
+    cur="$(get_str wallpaper.current)"; cur="${cur/#\~/$HOME}"
+    # a pair counts once: its night half isn't a stop of its own
+    mapfile -t list < <(pictures | grep -v -- '-dark\.[^.]*$')
+    n=${#list[@]}; (( n )) || die "no pictures in $(wall_dir) (gg wall seed adds the repo's)"
+    for i in "${!list[@]}"; do [[ "${list[$i]}" == "$cur" ]] && break; done
+    [[ "${list[$i]:-}" == "$cur" ]] || i=-1
+    wall_set "${list[$(( (i + $1 + n) % n ))]}"
+}
+# the repo's stills into the library, once each: Paper's desk is a real
+# light/dark pair (paper-light / paper-dark)
+wall_seed() {
+    local dir src dst
+    dir="$(wall_dir)"; mkdir -p "$dir"
+    while IFS='|' read -r src dst; do
+        src="$RICE_DIR/$src"
+        [[ -f "$src" && ! -e "$dir/$dst" ]] || continue
+        cp "$src" "$dir/$dst" && log "seeded $dst"
+    done <<'EOF'
+paper/assets/wall.png|paper-light.png
+paper/assets/wall-dark.png|paper-dark.png
+nacre/assets/wall-static-dark.png|nacre.png
+abyss/assets/wall-static.png|abyss.png
+satsuei/seed/wall.webp|satsuei.webp
+EOF
+    return 0
+}
+wall() {
+    case "${1:-status}" in
+        set) [[ -n "${2:-}" ]] || die "usage: gg wall set FILE [DARK]"; wall_set "$2" "${3:-}" ;;
+        next) wall_step 1 ;;
+        prev) wall_step -1 ;;
+        seed) wall_seed ;;
+        init)
+            # a first wallpaper: the library's first picture, seeded if empty
+            [[ -n "$(get_str wallpaper.current)" ]] && return 0
+            [[ -n "$(pictures | head -n1)" ]] || wall_seed
+            local first
+            first="$(pictures | grep -m1 -- '-light\.' || pictures | head -n1)"
+            [[ -n "$first" ]] && wall_set "$first" ;;
+        status)
+            printf 'day   %s\nnight %s\nfolder %s\n' "$(get_str wallpaper.current)" \
+                "$(get_str wallpaper.currentDark)" "$(wall_dir)" ;;
+        *) die "usage: gg wall set FILE [DARK]|next|prev|seed|status" ;;
+    esac
+}
+
+# ── hooks (the rice's hooks/ call these) ─────────────────────────────────
+hook() {
+    case "${1:-}" in
+        enter)
+            # before `rice` sets Golden Gate's GTK theme and cursor: the
+            # user's own, to give back on leaving
+            gg-theme save || log "couldn't save the theme settings" ;;
+        post-switch)
+            wall init || true
+            # the first time (or after settings.json changed while away), the
+            # overlay differs from what `rice` rendered: render once more.
+            # (Not `rice recolour`: the switch running this hook holds rice's lock.)
+            if write_overlay; then
+                rice-render -q goldengate || log "rice-render failed"
+                pkill -USR1 -x kitty 2>/dev/null || true
+            fi
+            gg-theme apply || log "gg-theme apply failed" ;;
+        post-mode)
+            gg-theme apply "${2:-$(mode)}" || log "gg-theme apply failed" ;;
+        leave)
+            gg-theme restore || log "couldn't restore the theme settings" ;;
+        *) die "usage: gg hook enter|post-switch|post-mode|leave" ;;
+    esac
+}
+
+usage() { sed -n '2,31p' "$0" | sed 's/^# \{0,1\}//'; }
+
+case "${1:-}" in
+    ""|-h|--help|help) usage ;;
+    appearance|mode) shift; appearance "$@" ;;
+    location) shift; location "$@" ;;
+    accent) shift; accent "$@" ;;
+    wall|wallpaper) shift; wall "$@" ;;
+    get) [[ -n "${2:-}" ]] || die "usage: gg get KEY"; get "$2" ;;
+    set) [[ -n "${2:-}" && -n "${3:-}" ]] || die "usage: gg set KEY JSON"; set_json "$2" "$3"
+         case "$2" in appearance.*|glass.*|accessibility.reduceTransparency) recolour ;; esac ;;
+    hook) shift; hook "$@" ;;
+    dock) surface dock toggle ;;
+    spotlight) surface spotlight toggle ;;
+    mission) surface mission toggle ;;
+    expose) surface mission expose ;;
+    cc) surface controlcenter toggle ;;
+    nc) surface notifications toggle ;;
+    apps|launchpad) surface apps toggle ;;
+    desktop) surface windows showDesktop ;;
+    switcher) shift; surface switcher "${1:-next}" ;;
+    settings) shift; surface settings open "${1:-}" ;;
+    lock) rice lock ;;
+    screenshot) shift; surface capture shot "${1:-selection}" ;;
+    record) shift; surface capture record "${1:-screen}" ;;
+    island) shift; [[ "${1:-}" == test ]] || die "usage: gg island test ACTIVITY"; surface island test "${2:-}" ;;
+    widgets) shift; surface widgets "${1:-edit}" ;;
+    notify-done) shift; surface island commandDone "${1:-command}" "${2:-0}" ;;
+    *) die "unknown command: $1 (gg --help)" ;;
+esac

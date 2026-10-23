@@ -47,6 +47,10 @@ def light_hashes() -> dict[str, str]:
         old = rr.HOME, rr.INSTALL_ROOT, rr.SHARED
         rr.HOME = rr.INSTALL_ROOT = home
         rr.SHARED = TEMPLATES
+        # an overlay the user has written (Satsuei's plate, Golden Gate's
+        # accent) mustn't reach the pins: the palettes render as committed
+        old_state = os.environ.get("XDG_STATE_HOME")
+        os.environ["XDG_STATE_HOME"] = str(root / "state")
         try:
             hashes = {}
             for name in rice_names():
@@ -65,6 +69,10 @@ def light_hashes() -> dict[str, str]:
             return dict(sorted(hashes.items()))
         finally:
             rr.HOME, rr.INSTALL_ROOT, rr.SHARED = old
+            if old_state is None:
+                os.environ.pop("XDG_STATE_HOME", None)
+            else:
+                os.environ["XDG_STATE_HOME"] = old_state
 
 
 class LightSnapshot(unittest.TestCase):

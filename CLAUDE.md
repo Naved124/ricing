@@ -31,7 +31,7 @@ user-facing guide; this file is the contract every rice has to keep.
 | `hypr/.config/hypr/hyprland.lua` | entry: `base` → `~/.local/share/rice/active/hypr.lua` → `local` |
 | `hypr/.config/hypr/base.lua` | **shared by every rice**: keybinds, input, layout, autostart, monitor default, window tags |
 | `~/.config/hypr/local.lua` | per machine, not in the repo: monitors, keyboard layout (see `local.example.lua`) |
-| `rices/.config/rices/<name>/` | one rice: `palette.toml`, `templates/`, `card.qml`, `transition.frag(.qsb)`, optional mode shader (`lamp.frag`, `orient.frag`), optional `wallpaper/`, `hooks/post-switch`, `preview.png` |
+| `rices/.config/rices/<name>/` | one rice: `palette.toml`, `templates/`, `card.qml`, `transition.frag(.qsb)`, optional mode shader (`lamp.frag`, `orient.frag`, `crossfade.frag`), optional `wallpaper/`, optional `hooks/` (`enter`, `post-switch`, `post-mode`, `leave`), `preview.png` |
 | `rices/.config/rices/current` | symlink to the active rice |
 | `~/.local/share/rice/active` | symlink to `current/build/<mode>`; every app config links through it |
 | `render/.local/bin/rice-render` | template engine: palette → `build/light/`, `build/dark/` + app configs |
@@ -42,6 +42,8 @@ user-facing guide; this file is the contract every rice has to keep.
 | `quickshell/.config/quickshell/paper/` | Paper's own shell (same entry points); `common/Theme.qml` is generated, `common/Sheet.qml` is the paper every panel is cut from |
 | `quickshell/.config/quickshell/abyss/` | Abyss's own shell (same entry points); `reef/` is the live wallpaper (below), `common/Glass.qml` the glass every panel is |
 | `quickshell/.config/quickshell/satsuei/` | Satsuei's own shell (same entry points; the exceptions are under "Satsuei" below); `common/Theme.qml` reads `theme.json`, `common/Style.qml` is generated |
+| `quickshell/.config/quickshell/goldengate/` | Golden Gate's shell (macOS 27; the exceptions are under "Golden Gate" below); `common/Theme.qml` is generated, `services/Settings.qml` reads `~/.config/goldengate/settings.json` |
+| `switcher/.local/bin/gg`, `gg-theme` | Golden Gate's one entry point (`gg appearance`, `gg accent`, `gg glass`, …) and its app themes (MacTahoe GTK and Kvantum, saved and restored) |
 | `switcher/.local/bin/satsuei-wall` | Satsuei's look from a wallpaper: matugen → `~/.local/state/satsuei/theme.json` + the palette overlay, the light source, the blur maps |
 | `fonts/.local/share/fonts/paper/` | Paper's vendored OFL fonts with their licences |
 | `audio/.config/pipewire/`, `audio/.config/wireplumber/` | **shared** audio: drop-ins for bit-perfect wired output and the best Bluetooth codecs (see Audio) |
@@ -200,8 +202,10 @@ Shared:
 - `[motion]` bezier `bloom settle sink` and durations `open close move workspace
   scratchpad focus border_loop panel_in panel_out stagger`.
 - `[gtk]` `cursor_size`. The cursor isn't the rice's: it's one for every rice, by the
-  light. `rice-render` sets `gtk.cursor` to Bibata Modern Classic in light builds and
-  Ice in dark ones (a palette that sets its own is an error), and `rice` applies Classic
+  light (the one exception is `[meta] cursor`, a rice's own cursor for both modes:
+  Golden Gate's Apple one; leaving it brings the shared one back). `rice-render` sets
+  `gtk.cursor` to Bibata Modern Classic in light builds and Ice in dark ones (a palette
+  that sets `[gtk] cursor` is an error), and `rice` applies Classic
   by day and Ice at night, in a dark-only rice and before any mode is chosen. It does
   this through `hyprctl setcursor`, gsettings and `~/.icons/default`, only when the
   cursor changes (`$STATE_DIR/cursor`), so a switch within one mode leaves it alone.
@@ -290,7 +294,14 @@ scheme), kitty, nvim, notifications daemon, wallpaper, the rice's Quickshell
 (old one killed, new one started), `spicetify refresh`, `hooks/post-switch` →
 dissolve with the rice's `transition` shader. A failing step is logged and skipped.
 
-Rendered for every rice from shared templates: kitty, GTK css, qt6ct (Fusion style +
+Hooks a rice can ship (`hooks/`, executable): `enter` runs before the incoming rice applies
+anything (Golden Gate saves the user's GTK, Qt and cursor settings there), `post-switch`
+after it has, `post-mode MODE` after `rice mode`, and `leave TO` in the outgoing rice
+before the next one applies its own (Golden Gate unloads its plugins and restores what
+`enter` saved). They run while `rice` holds its lock, so a hook must not call `rice`.
+
+Rendered for every rice from shared templates: kitty, GTK css (`gtk/gtk.css` for GTK 3,
+`gtk/gtk4.css` for GTK 4, which imports the former unless a rice ships its own), qt6ct (Fusion style +
 palette + fonts), btop, fastfetch, Firefox userChrome, imv, mpv, nvim + lualine,
 Spicetify, starship, Telegram, Vesktop, yazi, zathura, cava, Limine, Plymouth, ReGreet.
 Text on a coloured fill (accent buttons, active tabs, mode pills) uses
@@ -470,6 +481,29 @@ The chooser card (`card.qml`) shows the plate on screen now (from `theme.json`),
 `Theme.qml` is not generated: it reads `theme.json` and crossfades every token over
 600 ms (Behaviors inside a singleton crash the engine, so it mixes from a snapshot);
 `Style.qml` is, from the palette, and holds no plate colour.
+
+## Golden Gate (macOS 27)
+
+Golden Gate is macOS 27 "Golden Gate", behaviour as well as looks; the plan and what was
+verified are in `docs/goldengate/PLAN.md`. Apple's fixed system colours (palette.toml),
+labels as black or white at 85/50/25/10% (exempt from the night rules' "no pure extremes"
+for that), and one user accent: `gg accent` writes `appearance.accent` in
+`~/.config/goldengate/settings.json` (the shell reads it) and the overlay
+`~/.local/state/goldengate/palette.toml` (roles, opacity and the MacTahoe names: the apps),
+then `rice recolour`s. The overlay never writes `[colors]`, so the committed `Theme.qml`
+doesn't change with the accent.
+
+- **Themes:** MacTahoe GTK (every accent, translucent, built by `gg-theme install` into
+  `~/.local/share/themes`), MacTahoe Kvantum (accent copies `GoldenGate[Dark]` in
+  `~/.config/Kvantum`), MacTahoe icons, the `macOS` cursor. Kvantum and qt6ct's `kvantum`
+  style are Golden Gate's only: `gg-theme save` (the `enter` hook) keeps the user's
+  values, `gg-theme restore` (the `leave` hook) puts them back exactly; "Kvantum was
+  dropped" still holds for every other rice.
+- **Light and dark** are `rice mode`'s; the shared freeze reveals them with
+  `crossfade.frag` over 450 ms. `post-mode` re-applies Kvantum and the glass's theme.
+- **Wallpaper:** the shell draws it from `~/Pictures/Wallpapers` (shared with Satsuei);
+  a `name-light.*` / `name-dark.*` pair is one wallpaper that crossfades with the mode
+  (`gg wall set`).
 
 ## Audio
 

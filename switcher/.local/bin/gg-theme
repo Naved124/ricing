@@ -98,7 +98,7 @@ ini_get() {
         in_s && index($0, k "=") == 1 { print substr($0, length(k) + 2); exit }' "$1"
 }
 ini_set() {
-    local f="$1" s="$2" k="$3" v="$4" tmp
+    local f="$1" tmp
     mkdir -p "$(dirname "$f")"; touch "$f"
     tmp="$(mktemp "$f.XXXXXX")"
     awk -v s="[$2]" -v k="$3" -v v="$4" '
@@ -236,7 +236,7 @@ apply() {
     if have gsettings; then
         gsettings set "$IFACE" gtk-theme "$gtk" || true
         gsettings set "$IFACE" icon-theme "$icons" || true
-        gsettings set "$IFACE" color-scheme "$([[ "$m" == dark ]] && echo prefer-dark || echo default)" || true
+        gsettings set "$IFACE" color-scheme "$([[ "$m" == dark ]] && echo prefer-dark || echo prefer-light)" || true
         gsettings set "$IFACE" accent-color "$gnome" 2>/dev/null || true   # GNOME 47+
         gsettings set "$IFACE" cursor-theme "$CURSOR" || true
     fi
@@ -247,7 +247,16 @@ apply() {
         ini_set "$QT6CT" Appearance custom_palette false
     fi
     ini_set "$QT6CT" Appearance icon_theme "$icons"
+    gtk4_link
     log "$m, $a: $gtk, $icons${kv:+, Kvantum $kv}"
+}
+
+# libadwaita reads only ~/.config/gtk-4.0/gtk.css: a link made before the
+# rices rendered gtk4.css still points at gtk.css, which has no MacTahoe
+gtk4_link() {
+    local link="$CONF/gtk-4.0/gtk.css" active="$DATA/rice/active/gtk"
+    [[ -L "$link" && "$(readlink "$link")" == "$active/gtk.css" && -f "$active/gtk4.css" ]] || return 0
+    ln -sfn "$active/gtk4.css" "$link"
 }
 
 status() {

@@ -180,8 +180,10 @@ def flatten_mode(data: dict, mode: str, path: Path) -> dict:
     data["meta"] = {**data.get("meta", {}), **look}
     if "cursor" in data.get("gtk", {}):
         raise RenderError(f"{path}: [gtk] cursor: the cursor is the mode's, not the rice's (rice-render's CURSORS)")
+    # a rice may name one cursor of its own for both modes ([meta] cursor:
+    # Golden Gate's Apple cursor); the rest wear the shared one by the light
     data["gtk"] = {**data.get("gtk", {}), **{GTK_KEYS[k]: v for k, v in look.items() if k in GTK_KEYS},
-                   "cursor": CURSORS[mode]}
+                   "cursor": data["meta"].get("cursor") or CURSORS[mode]}
     data["mode"] = mode
     data["has_mode"] = mode in modes
     data["modes"] = list(own)
@@ -851,7 +853,7 @@ def ensure_active() -> None:
 LINKS = [
     # (link, target inside active/)
     (".config/gtk-3.0/gtk.css", "gtk/gtk.css"),
-    (".config/gtk-4.0/gtk.css", "gtk/gtk.css"),
+    (".config/gtk-4.0/gtk.css", "gtk/gtk4.css"),
     (".config/qt6ct/colors/rice.conf", "qt/qt6ct.conf"),
     (".config/starship.toml", "starship.toml"),
     (".config/fastfetch/config.jsonc", "fastfetch/config.jsonc"),

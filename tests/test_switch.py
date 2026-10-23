@@ -367,6 +367,65 @@ class Switch(unittest.TestCase):
         self.assertNotEqual(r.returncode, 0)
         self.assertIn("the cursor is the mode's", r.stderr)
 
+    def test_a_rice_can_wear_its_own_cursor(self):
+        # Golden Gate: the Apple cursor by day and by night ([meta] cursor)
+        text = (self.rices / "paper/palette.toml").read_text()
+        (self.rices / "paper/palette.toml").write_text(text.replace("[meta]\n", '[meta]\ncursor = "macOS"\n', 1))
+        self.assertEqual(self.rice("paper").returncode, 0)
+        self.assertIn("hyprctl setcursor macOS 24", self.calls())
+        self.log.unlink()
+        self.rice("mode", "dark", "--instant")
+        self.assertFalse(any(c.startswith("hyprctl setcursor") for c in self.calls()), "the same cursor at night")
+        for mode in ("light", "dark"):
+            regreet = (self.rices / f"paper/build/{mode}/regreet/regreet.toml").read_text()
+            self.assertIn('cursor_theme_name = "macOS"', regreet)
+        # leaving it brings the shared one back
+        self.log.unlink()
+        self.assertEqual(self.rice("nacre").returncode, 0)
+        self.assertIn("hyprctl setcursor Bibata-Modern-Ice 24", self.calls())
+
+    def hooked(self, name="hooked"):
+        """A rice whose hooks log when they run (Golden Gate's are gg hook …)."""
+        rice = self.rices / name
+        shutil.copytree(self.rices / "nacre", rice)
+        text = (rice / "palette.toml").read_text().replace('name          = "nacre"', f'name          = "{name}"', 1)
+        (rice / "palette.toml").write_text(text)
+        (rice / "hooks").mkdir()
+        for hook in ("enter", "post-switch", "post-mode", "leave"):
+            h = rice / "hooks" / hook
+            h.write_text(f'#!/bin/sh\necho "hook {hook} $*" >> "$RICE_TEST_LOG"\n')
+            h.chmod(0o755)
+        return rice
+
+    def test_hooks_run_around_a_switch(self):
+        self.hooked()
+        self.assertEqual(self.rice("hooked").returncode, 0)
+        calls = self.calls()
+        enter = self.index(calls, "hook enter plain")
+        # before the rice applies anything of its own (GTK theme, cursor, Hyprland)
+        self.assertLess(enter, self.index(calls, "hyprctl reload"))
+        self.assertLess(enter, self.index(calls, "gsettings set org.gnome.desktop.interface gtk-theme"))
+        self.assertLess(self.index(calls, "qs -n -c nacre -d"), self.index(calls, "hook post-switch"))
+        self.assertNotIn("hook leave", "\n".join(calls))
+        # a mode change: post-mode with the mode
+        self.log.unlink()
+        self.rice("mode", "dark", "--instant")
+        self.assertIn("hook post-mode dark", self.calls())
+        # leaving: before the next rice applies its own, and only then
+        self.log.unlink()
+        self.assertEqual(self.rice("paper").returncode, 0)
+        calls = self.calls()
+        self.assertLess(self.index(calls, "hook leave paper"), self.index(calls, "hyprctl reload"))
+        self.assertEqual([c for c in calls if c.startswith("hook")], ["hook leave paper"])
+
+    def test_reapply_doesnt_leave_or_enter(self):
+        self.hooked()
+        self.assertEqual(self.rice("hooked").returncode, 0)
+        self.log.unlink()
+        self.assertEqual(self.rice("reapply").returncode, 0)
+        hooks = [c for c in self.calls() if c.startswith("hook")]
+        self.assertEqual(hooks, ["hook post-switch hooked"])
+
     def test_a_dark_only_rice_opens_dark_by_day(self):
         self.to_deep()
         active = Path(self.env["HOME"]) / ".local/share/rice/active"
@@ -558,7 +617,7 @@ class Switch(unittest.TestCase):
         self.assertEqual(r.returncode, 0, r.stderr)
         d = json.loads(r.stdout)
         self.assertEqual(d["current"], "plain")
-        self.assertEqual([x["name"] for x in d["rices"]], ["abyss", "nacre", "paper", "plain", "satsuei"])
+        self.assertEqual([x["name"] for x in d["rices"]], ["abyss", "goldengate", "nacre", "paper", "plain", "satsuei"])
         rices = {x["name"]: x for x in d["rices"]}
         self.assertTrue(rices["nacre"]["card"] and rices["paper"]["card"])
         nacre = rices["nacre"]["meta"]

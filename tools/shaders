@@ -7,10 +7,10 @@ repo="$(cd "$(dirname "$0")/.." && pwd)"
 qsb="${QSB:-$(command -v qsb || echo /usr/lib/qt6/bin/qsb)}"
 [ -x "$qsb" ] || { echo "shaders: qsb not found (install qt6-shadertools or set QSB)" >&2; exit 1; }
 # In a rice folder only transition.frag, a way out (drain.frag) and its `rice
-# mode` reveal (lamp.frag, orient.frag) are Qt's: a screen_shader (Paper's grain.frag) is Hyprland's GLSL ES
+# mode` reveal (lamp.frag, orient.frag, crossfade.frag) are Qt's: a screen_shader (Paper's grain.frag) is Hyprland's GLSL ES
 # and is loaded as is.
 { find "$repo/quickshell" \( -name '*.frag' -o -name '*.vert' \) -print0
-  find "$repo/rices" \( -name 'transition.frag' -o -name 'drain.frag' -o -name 'lamp.frag' -o -name 'orient.frag' \) -print0; } | while IFS= read -r -d '' f; do
+  find "$repo/rices" \( -name 'transition.frag' -o -name 'drain.frag' -o -name 'lamp.frag' -o -name 'orient.frag' -o -name 'crossfade.frag' \) -print0; } | while IFS= read -r -d '' f; do
     "$qsb" --qt6 -o "$f.qsb" "$f"
     echo "  ${f#$repo/}.qsb"
 done

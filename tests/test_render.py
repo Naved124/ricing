@@ -400,7 +400,8 @@ class CommittedOutputs(unittest.TestCase):
 class ShellModes(unittest.TestCase):
     """Every shell follows the mode the same way."""
     SHELLS = REPO / "quickshell/.config/quickshell"
-    MODE = ["nacre/Mode.qml", "paper/common/Mode.qml", "rice/Mode.qml", "abyss/Mode.qml", "satsuei/common/Mode.qml"]
+    MODE = ["nacre/Mode.qml", "paper/common/Mode.qml", "rice/Mode.qml", "abyss/Mode.qml", "satsuei/common/Mode.qml",
+            "goldengate/common/Mode.qml"]
 
     def test_the_mode_copies_are_identical(self):
         first = (self.SHELLS / self.MODE[0]).read_text()
@@ -413,7 +414,8 @@ class ShellModes(unittest.TestCase):
             self.assertIn(needle, first)
 
     def test_every_theme_mixes_both_modes(self):
-        for rel in ("nacre/Theme.qml", "paper/common/Theme.qml", "rice/Theme.qml", "abyss/Theme.qml"):
+        for rel in ("nacre/Theme.qml", "paper/common/Theme.qml", "rice/Theme.qml", "abyss/Theme.qml",
+                    "goldengate/common/Theme.qml"):
             with self.subTest(rel):
                 text = (self.SHELLS / rel).read_text()
                 self.assertIn("readonly property Mode mode: Mode", text)

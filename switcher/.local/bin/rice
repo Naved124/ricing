@@ -162,11 +162,15 @@ apply_hypr() {
 
 # the cursor: one for every rice, by the light (rice-render's CURSORS):
 # Bibata Modern Classic by day, Ice at night, in a dark-only rice and before
-# any mode is chosen. It's set only when it changes (the last one is in
-# $STATE_DIR/cursor), so switching between rices in the same mode leaves it be;
+# any mode is chosen; a rice with [meta] cursor wears its own in both.
+# It's set only when it changes (the last one is in $STATE_DIR/cursor), so
+# switching between rices in the same mode leaves it be;
 # login (RICE_FORCE) always sets it.
 cursor_name() {
     local m
+    # a rice's own cursor for both modes ([meta] cursor: Golden Gate's Apple one)
+    m="$(palette "$1" meta cursor)"
+    if [[ -n "$m" ]]; then echo "$m"; return; fi
     m="$(fixed_mode "$1")"
     if [[ -z "$m" ]]; then
         if [[ -s "$STATE_DIR/mode" ]]; then m="$(mode)"; else m=dark; fi
@@ -383,6 +387,30 @@ apply_hook() {
     [[ -x "$hook" ]] && "$hook" "$1" || true
 }
 
+# leave_hook FROM TO: the rice being left undoes what only it does (Golden
+# Gate unloads its Hyprland plugins and puts the user's Qt and GTK settings
+# back), before the new rice applies its own
+leave_hook() {
+    [[ -n "$1" ]] || return 0
+    local hook="$RICE_DIR/$1/hooks/leave"
+    [[ -x "$hook" ]] && "$hook" "$2" || true
+}
+
+# enter_hook TO FROM: before the incoming rice applies anything, what it has
+# to do first (Golden Gate saves the user's own GTK, Qt and cursor settings,
+# to give them back when it's left)
+enter_hook() {
+    local hook="$RICE_DIR/$1/hooks/enter"
+    [[ -x "$hook" ]] && "$hook" "${2:-}" || true
+}
+
+# mode_hook RICE MODE: after `rice mode`, what the rice changes itself
+# (Golden Gate: Kvantum's light or dark theme, the glass's theme)
+mode_hook() {
+    local hook="$RICE_DIR/$1/hooks/post-mode"
+    [[ -x "$hook" ]] && "$hook" "$2" || true
+}
+
 # A broken step must never leave the screen frozen, so failures are logged
 # and the switch carries on to the dissolve.
 step() { "$@" || log "$1 failed (exit $?), continuing"; }
@@ -443,6 +471,10 @@ switch_to() {
     ensure_rice_shell || true
     freeze || true
 
+    if [[ "$from" != "$target" ]]; then
+        step leave_hook "$from" "$target"
+        step enter_hook "$target" "$from"
+    fi
     swap_link "$target"
     apply_all "$target" "$from"
     rice_ipc reload || true           # the chooser picks up the new current rice
@@ -484,6 +516,7 @@ session() {
     point_active
     step mode_cmd tick --instant          # before the shells start, so they start in it
     step render "$cur"
+    step enter_hook "$cur"
     step apply_gtk "$cur"
     RICE_FORCE=1 step apply_cursor "$cur"
     step apply_notifications "$cur"
@@ -690,6 +723,7 @@ mode_set() {
     step apply_mode_gtk "$cur"
     step apply_cursor "$cur"
     step apply_mode_apps "$cur" "$target"
+    step mode_hook "$cur" "$target"
     step mode_ipc "${how[@]}"
     printf '%s\n' "$(( $(now_ms) - t0 ))" > "$RUN_DIR/mode-timing"
 

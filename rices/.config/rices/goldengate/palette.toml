@@ -1,0 +1,281 @@
+# Golden Gate — macOS 27 on Hyprland, in behaviour as well as looks.
+#   · Apple's fixed system colours: no colour is taken from the wallpaper
+#     (except the one accent choice "From wallpaper", which snaps to Apple's)
+#   · the labels are black or white at 85/50/25/10%, as on the Mac
+#   · glass everywhere it is on the Mac: Liquid (hyprglass), Frosted
+#     (Hyprland's blur) or Solid ("Reduce transparency"), by `gg glass`
+#
+# The accent and the terminal's clarity are the user's: `gg accent` and
+# `gg glass clarity` write them to ~/.local/state/goldengate/palette.toml,
+# which rice-render merges over this file ([meta] overlay). The overlay sets
+# roles, opacity and the GTK and icon names only; every named colour below
+# stays fixed, so the shell's Theme.qml (generated, committed) never changes.
+# The shell itself reads the chosen accent from ~/.config/goldengate/settings.json.
+
+[meta]
+name          = "goldengate"
+title         = "Golden Gate"
+tagline       = "macOS 27, behaviour and all"
+transition    = "aperture"      # switching in: glass opens out from the centre
+shell         = "goldengate"    # qs -c goldengate
+notifications = "shell"         # banners top right, Notification Center
+wallpaper     = "shell"         # the shell draws it (the shader glass samples it)
+lock          = "shell"         # WlSessionLock
+overlay       = "goldengate/palette.toml"   # under XDG_STATE_HOME, from gg
+# the Apple cursor by day and by night (Golden Gate's exception to the shared one)
+cursor        = "macOS"
+# `rice mode`: the frozen frame crossfades away over 450 ms
+mode_transition = "crossfade"
+mode_ms         = 450
+mode_origin     = [0.5, 0.5]
+mode_tint       = "window"
+mode_tint_alpha = 0.0
+
+[fonts]
+display   = "SF Pro Display"
+ui        = "SF Pro Text"
+mono      = "SF Mono"
+rounded   = "SF Pro Rounded"    # the clock and the lock screen
+serif     = "New York"          # widget accents
+# when Apple's fonts are missing (fontconfig maps them too:
+# fonts/.config/fontconfig/conf.d/60-goldengate-fallback.conf)
+fallback_ui      = "Inter"
+fallback_display = "Inter Display"
+fallback_mono    = "JetBrains Mono"
+ui_size   = 14
+mono_size = 15
+weight         = 400
+weight_strong  = 600
+display_weight = 600
+
+[shape]
+# one corner radius for every window, as in Golden Gate; squircle corners
+window         = 16
+rounding_power = 2.75
+panel          = 24      # Control Center, Notification Center, Spotlight
+popup          = 12      # menus
+chip           = 8
+border         = 1       # the hairline every Mac window has
+gaps_in        = 6       # only when tiled
+gaps_out       = 10
+
+[motion]
+# springs as cubic beziers for Hyprland; the shell uses SpringAnimation
+bloom  = [0.34, 1.36, 0.64, 1.0]   # arrivals overshoot, then settle
+settle = [0.32, 1.25, 0.5, 1.0]    # the Dock's bounce, the island
+sink   = [0.3, 0.0, 0.2, 1.0]      # Spaces slide, departures
+# milliseconds
+open        = 350
+close       = 220
+move        = 380
+workspace   = 450
+scratchpad  = 400
+focus       = 200
+border_loop = 0
+panel_in    = 380
+panel_out   = 220
+stagger     = 20
+
+[gtk]
+cursor_size = 24
+
+[nvim]
+colorscheme = "rice"
+
+[install]
+"quickshell/Theme.qml" = ".config/quickshell/goldengate/common/Theme.qml"
+
+# ── light ──────────────────────────────────────────────────────────────────
+
+[modes.light.meta]
+gtk_theme    = "MacTahoe-Light-blue"
+icon_theme   = "MacTahoe-blue"
+color_scheme = "prefer-light"
+# Hyprland (hypr-mode.lua): the frost white and bright, shadows soft
+blur_brightness = 1.08
+blur_contrast   = 0.92
+shadow_active   = 0.32
+shadow_inactive = 0.16
+dim_inactive    = 0.04
+
+[modes.light.colors]
+# NSColor's light values
+window     = "#ececec"   # windowBackgroundColor
+control    = "#ffffff"   # controlBackgroundColor, textBackgroundColor
+under_page = "#e3e3e3"   # underPageBackgroundColor
+grouped    = "#f5f5f7"   # the inset lists' ground (System Settings)
+ink        = "#000000"   # labels and separators are this at 85/50/25/10%
+paper      = "#ffffff"   # their opposite: white text on accent fills
+label      = "#232323"   # labelColor (black 85%) over the window
+label2     = "#767676"   # secondaryLabelColor (50%)
+separator  = "#d4d4d4"   # separatorColor (10%) over the window
+selection  = "#b3d7ff"   # selectedTextBackgroundColor
+link       = "#0068da"   # linkColor
+shadow     = "#000000"
+# the accents (Apple's system colours)
+blue       = "#007aff"
+purple     = "#af52de"
+pink       = "#ff2d55"
+red        = "#ff3b30"
+orange     = "#ff9500"
+yellow     = "#ffcc00"
+green      = "#28cd41"
+graphite   = "#8e8e93"
+teal       = "#30b0c7"
+indigo     = "#5856d6"
+mint       = "#00c7be"
+brown      = "#a2845e"
+# the traffic lights
+close      = "#ff5f57"
+minimize   = "#febc2e"
+zoom       = "#28c840"
+# the Dynamic Island is black in both modes
+island     = "#000000"
+# the glass's tints: white frost by day, smoked by night
+frost      = "#fbfbfd"
+frost_rim  = "#ffffff"
+# privacy dots (camera, microphone)
+mic_dot    = "#ff9500"
+cam_dot    = "#28cd41"
+
+[modes.light.roles]
+bg        = "window"
+surface   = "control"
+overlay   = "grouped"
+border    = "separator"
+fg        = "label"
+muted     = "label2"
+accent    = "blue"
+urgent    = "red"
+selection = "selection"
+success   = "green"
+warning   = "orange"
+cursor    = "blue"
+link      = "link"
+shadow    = "shadow"
+term_bg   = "control"
+term_fg   = "label"
+
+[modes.light.gradient]
+stops = ["blue", "indigo", "purple", "pink", "blue"]
+angle = 45
+
+# macOS Terminal-like, with Apple's accessible (high-contrast) colours so the
+# normal ones read at 4.5:1 on white
+[modes.light.ansi]
+color0  = "#1d1d1f"
+color1  = "#d70015"
+color2  = "#1e7f38"
+color3  = "#b25000"
+color4  = "#0040dd"
+color5  = "#8944ab"
+color6  = "#0071a4"
+color7  = "#6c6c70"
+color8  = "#8e8e93"
+color9  = "#ff3b30"
+color10 = "#28cd41"
+color11 = "#ff9500"
+color12 = "#007aff"
+color13 = "#af52de"
+color14 = "#32ade6"
+color15 = "#c7c7cc"
+
+[modes.light.opacity]
+terminal = 0.85     # follows the glass's clarity (gg glass clarity)
+active   = 1.0
+inactive = 1.0
+glass    = 0.55     # the frost's tint over the blur, at the default clarity
+gtk      = 0.85
+
+# ── dark ───────────────────────────────────────────────────────────────────
+
+[modes.dark.meta]
+gtk_theme    = "MacTahoe-Dark-blue"
+icon_theme   = "MacTahoe-blue-dark"
+color_scheme = "prefer-dark"
+blur_brightness = 0.78
+blur_contrast   = 1.0
+shadow_active   = 0.6
+shadow_inactive = 0.38
+dim_inactive    = 0.12
+
+[modes.dark.colors]
+window     = "#323232"
+control    = "#1e1e1e"
+under_page = "#282828"
+grouped    = "#262626"
+ink        = "#ffffff"
+paper      = "#ffffff"
+label      = "#dddddd"   # white 85% over controlBackground
+label2     = "#8e8e8e"   # 50%
+separator  = "#3a3a3a"   # 10%
+selection  = "#3f638b"
+link       = "#419cff"
+shadow     = "#000000"
+blue       = "#0a84ff"
+purple     = "#bf5af2"
+pink       = "#ff375f"
+red        = "#ff453a"
+orange     = "#ff9f0a"
+yellow     = "#ffd60a"
+green      = "#32d74b"
+graphite   = "#98989d"
+teal       = "#40c8e0"
+indigo     = "#5e5ce6"
+mint       = "#63e6e2"
+brown      = "#ac8e68"
+close      = "#ff5f57"
+minimize   = "#febc2e"
+zoom       = "#28c840"
+island     = "#000000"
+frost      = "#1c1c1e"
+frost_rim  = "#ffffff"
+mic_dot    = "#ff9f0a"
+cam_dot    = "#32d74b"
+
+[modes.dark.roles]
+bg        = "control"
+surface   = "grouped"
+overlay   = "window"
+border    = "separator"
+fg        = "label"
+muted     = "label2"
+accent    = "blue"
+urgent    = "red"
+selection = "selection"
+success   = "green"
+warning   = "orange"
+cursor    = "blue"
+link      = "link"
+shadow    = "shadow"
+term_bg   = "control"
+term_fg   = "label"
+
+[modes.dark.gradient]
+stops = ["blue", "indigo", "purple", "pink", "blue"]
+angle = 45
+
+[modes.dark.ansi]
+color0  = "#3a3a3c"
+color1  = "#ff6961"
+color2  = "#30db5b"
+color3  = "#ffd426"
+color4  = "#409cff"
+color5  = "#da8fff"
+color6  = "#70d7ff"
+color7  = "#d1d1d6"
+color8  = "#8e8e93"
+color9  = "#ff453a"
+color10 = "#32d74b"
+color11 = "#ffd60a"
+color12 = "#0a84ff"
+color13 = "#bf5af2"
+color14 = "#64d2ff"
+color15 = "#f2f2f7"
+
+[modes.dark.opacity]
+terminal = 0.85
+active   = 1.0
+inactive = 1.0
+glass    = 0.50
+gtk      = 0.85

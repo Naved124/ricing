@@ -4,7 +4,8 @@ Checked on each rice's [modes.dark.*] tables (a rice without them renders its
 light tables in dark/ and is skipped here until it gets some). Light mode keeps
 its own checks in test_render.py.
 
-  · no pure extremes: no #000000 or #ffffff in the dark palette
+  · no pure extremes: no #000000 or #ffffff in the dark palette (a base
+    only ever used at partial alpha can be exempt: Golden Gate's labels)
   · bg (and the terminal's) at L* 7–12, surface at L* 10–16, and no large
     surface (panels, bars, launcher, notifications) above L* 25
   · primary text 7:1 to 14:1 on its background (above that it shimmers),
@@ -38,6 +39,7 @@ PANELS = {
     "paper": ["desk", "wall", "paper", "card", "kraft", "envelope"],
     "nacre": ["pearl", "shell", "mist", "frost", "glaze"],
     "abyss": ["deep", "shoal", "term", "glass", "glass_strong"],
+    "goldengate": ["window", "grouped", "under_page", "frost"],
 }
 # the dark wallpaper the luminance check renders, relative to the rice
 WALLPAPERS = {
@@ -55,6 +57,12 @@ EXEMPT = {
         "saturation": "one mode; nothing to compare against",
         # the reef's glow is meant to be bright points on near black
         "wallpaper": "glowing creatures; the still's specks pass 45",
+    },
+    "goldengate": {
+        # Apple's labels and separators are white (or black) at 85/50/25/10%,
+        # never solid: the solid text is label #dddddd. The shadow and the
+        # Dynamic Island are black on the Mac too.
+        "extremes": "Apple's label, separator and shadow bases, always used at partial alpha",
     },
 }
 
@@ -91,7 +99,7 @@ def night_violations(light: dict, dark: dict, panels: list[str], exempt=()) -> l
     every = {**{f"colors.{k}": v for k, v in c.items()},
              **{f"roles.{k}": v for k, v in r.items()},
              **{f"ansi.{k}": v for k, v in dark["ansi"].items()}}
-    for where, v in every.items():
+    for where, v in every.items() if "extremes" not in exempt else ():
         if v[:7] in ("#000000", "#ffffff"):
             bad.append(f"{where} is {v[:7]}: no pure black or white at night")
 
@@ -220,8 +228,9 @@ class TheRulesThemselves(unittest.TestCase):
                 self.assertTrue(any(want in line for line in found), found)
 
     def test_exemptions_reach_only_their_rules(self):
-        everything = {"bands", "halation", "saturation"}
-        abyss_like = fixture(bg="#01060b", term_bg="#040f17", surface="#061521", fg="#cdeef0")
+        everything = {"bands", "halation", "saturation", "extremes"}
+        abyss_like = fixture(bg="#01060b", term_bg="#040f17", surface="#061521", fg="#cdeef0",
+                             shadow="#000000")
         self.assertEqual(night_violations(LIGHT, abyss_like, ["sheet"], everything), [])
         # unreadable terminal colours and dim accents are never let off
         bad = fixture(bg="#01060b", term_bg="#040f17", muted="#2a4450")

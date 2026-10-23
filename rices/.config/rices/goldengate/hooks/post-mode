@@ -1,0 +1,3 @@
+#!/bin/sh
+# Golden Gate: `rice` runs this (see gg hook)
+exec gg hook post-mode "$@"
