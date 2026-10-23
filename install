@@ -7,7 +7,7 @@
 #   ./install --uninstall     remove the links (your backed-up files stay put)
 #
 # Options:
-#   --rice NAME     the rice to make active (default: keep the current one, else nacre)
+#   --rice NAME     the rice to make active (default: satsuei with --fresh, else keep the current one, else satsuei)
 #   --no-deps       don't install packages (just report what's missing)
 #   --no-fonts      don't download Italiana, Manrope, IBM Plex Mono, Jura,
 #                   JetBrains Mono, Dela Gothic One and M PLUS Rounded 1c (Paper's fonts ship in the repo's fonts/
@@ -568,7 +568,7 @@ esac
 rices="$HOME/.config/rices"
 step "Choosing the rice"
 if [ -z "$rice" ]; then
-    if [ -L "$rices/current" ]; then rice=$(basename "$(readlink "$rices/current")"); else rice=nacre; fi
+    if [ "$fresh" = 0 ] && [ -L "$rices/current" ]; then rice=$(basename "$(readlink "$rices/current")"); else rice=satsuei; fi
 fi
 [ -f "$repo/rices/.config/rices/$rice/palette.toml" ] || die "no rice called $rice (try: $(cd "$repo/rices/.config/rices" && ls -d */ | tr -d / | tr '\n' ' '))"
 run ln -sfn "$rice" "$rices/current"

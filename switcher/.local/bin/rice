@@ -25,8 +25,8 @@
 #                        remembered, and leaves fullscreen games direct scanout
 #   rice logout          end the session: uwsm stop, else hyprshutdown, else
 #                        Hyprland's exit, else loginctl terminate-session
-#   rice system          re-theme the boot menu, splash and login screen to the
-#                        active rice (sudo system/install --refresh)
+#   rice system          re-theme the boot menu, splash and login screen (Satsuei;
+#                        --rice NAME for another; sudo system/install --refresh)
 #   rice json            everything the chooser needs, as JSON
 #   rice on-battery      exit 0 when running on battery (for hypridle)
 #

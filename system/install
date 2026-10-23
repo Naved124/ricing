@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Theme the way into the desktop: the Limine boot menu, a Plymouth splash and
-# the greetd/ReGreet login screen, all in the active rice's colours.
+# the greetd/ReGreet login screen, all in Satsuei's colours (--rice NAME for another).
 #
 #   sudo system/install --all          everything below
 #   sudo system/install --greetd       the login screen under greetd (the rice shell's
@@ -14,6 +14,7 @@
 #                                      (what `rice system` runs after a switch)
 #   sudo system/install --undo         put back everything the last run changed
 #
+#   --rice NAME     the rice they wear (default: satsuei, whatever rice is active)
 #   -n, --dry-run   show what would change, change nothing
 #   -y, --yes       install missing packages without asking
 #   -q, --quiet     only report problems
@@ -31,7 +32,7 @@ stamp=$(date +%Y%m%d-%H%M%S)
 backups="$R/var/backups/rice"
 backup="$backups/$stamp"
 
-greetd=0 limine=0 plymouth=0 network=0 refresh=0 undo=0 dry=0 yes=0 quiet=0
+greetd=0 limine=0 plymouth=0 network=0 refresh=0 undo=0 dry=0 yes=0 quiet=0 sysrice=satsuei
 
 say()  { [ "$quiet" = 1 ] || printf '%s\n' "$*"; }
 warn() { printf 'warning: %s\n' "$*" >&2; }
@@ -52,6 +53,8 @@ while [ $# -gt 0 ]; do
         --plymouth) plymouth=1 ;;
         --network) network=1 ;;
         --refresh) refresh=1 ;;
+        --rice) sysrice=${2:?--rice needs a name}; shift ;;
+        --rice=*) sysrice=${1#*=} ;;
         --undo) undo=1 ;;
         -n|--dry-run) dry=1 ;;
         -y|--yes) yes=1 ;;
@@ -161,7 +164,7 @@ else
     [ -n "$user" ] && [ "$user" != root ] || die "can't tell whose rice to use; run it through sudo from your account"
     home=$(getent passwd "$user" | cut -d: -f6)
 fi
-rice=$(readlink -f "$home/.config/rices/current") || die "no active rice in $home/.config/rices"
+rice=$(readlink -f "$home/.config/rices/$sysrice") && [ -d "$rice" ] || die "no rice called $sysrice in $home/.config/rices"
 name=$(basename "$rice")
 # the boot screens and the greeter run before anyone logs in, so they can't
 # know the mode: they always wear the rice's light build

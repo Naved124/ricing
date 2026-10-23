@@ -288,7 +288,7 @@ rice session         bring the active rice up at login (Hyprland runs this)
 rice lock            lock with the rice's own lock screen, or hyprlock
 rice grain off|on    the rice's screen shader (Paper's paper grain); remembered
 rice logout          end the session and go back to the login screen
-rice system          re-theme the boot menu, splash and login screen (sudo)
+rice system          re-theme the boot menu, splash and login screen: Satsuei, or --rice NAME (sudo)
 rice-shot region     screenshot (also: screen, window, edit)
 rice-rec toggle      record the screen to ~/Videos, again to stop (also: region)
 ```

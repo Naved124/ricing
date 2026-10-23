@@ -49,7 +49,7 @@ user-facing guide; this file is the contract every rice has to keep.
 | `audio/.config/pipewire/`, `audio/.config/wireplumber/` | **shared** audio: drop-ins for bit-perfect wired output and the best Bluetooth codecs (see Audio) |
 | `zsh/.config/zsh/rice.zsh` | **shared** zsh setup (one line in `~/.zshrc` sources it); colours from `active/zsh.zsh`, reloaded on the next prompt after a switch |
 | `install` | user installer (`--fresh` for a bare Arch install) |
-| `system/install` | sudo part: Limine theme, Plymouth, greetd/ReGreet, keyring PAM, with backup/`--undo` |
+| `system/install` | sudo part: Limine theme, Plymouth, greetd/ReGreet, keyring PAM, with backup/`--undo`; they wear Satsuei unless `--rice NAME` |
 
 ## Design philosophy
 
