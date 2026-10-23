@@ -1,0 +1,280 @@
+#!/usr/bin/env bash
+# gg-theme — Golden Gate's app themes: MacTahoe for GTK and Kvantum, the Apple
+# cursor, and what was there before, put back when Golden Gate is left.
+#
+#   gg-theme install          fetch what the AUR doesn't ship: MacTahoe GTK in
+#                             every accent, translucent (~/.local/share/themes),
+#                             and MacTahoe's Kvantum theme
+#   gg-theme save             remember the GTK, Qt, Kvantum, icon and cursor
+#                             settings (once: a second save keeps the first)
+#   gg-theme apply [MODE] [ACCENT]
+#                             wear Golden Gate's: MODE light|dark (default: the
+#                             rice mode), ACCENT an Apple accent (default: the
+#                             one in ~/.config/goldengate/settings.json)
+#   gg-theme restore          put the saved settings back and forget them
+#   gg-theme names [MODE] [ACCENT]
+#                             print the theme names apply would use, as JSON
+#   gg-theme status           what is saved and what is worn
+#
+# The rice's hooks run it: post-switch saves and applies, post-mode applies,
+# leave restores. `rice` itself sets the GTK theme, icons, colour scheme, fonts
+# and cursor from the palette; this covers what it doesn't (Qt's style,
+# Kvantum, GNOME's accent colour) and keeps the user's own values to return to.
+
+set -euo pipefail
+
+STATE="${XDG_STATE_HOME:-$HOME/.local/state}/goldengate"
+CONF="${XDG_CONFIG_HOME:-$HOME/.config}"
+DATA="${XDG_DATA_HOME:-$HOME/.local/share}"
+SETTINGS="${GG_SETTINGS:-$CONF/goldengate/settings.json}"
+RESTORE="$STATE/restore.json"
+SRC="${XDG_CACHE_HOME:-$HOME/.cache}/goldengate/src"
+QT6CT="$CONF/qt6ct/qt6ct.conf"
+KVANTUM="$CONF/Kvantum"
+IFACE=org.gnome.desktop.interface
+# what `save` keeps of org.gnome.desktop.interface
+KEYS=(gtk-theme icon-theme cursor-theme cursor-size color-scheme accent-color
+      font-name document-font-name monospace-font-name)
+CURSOR=macOS               # apple_cursor; the same by day and by night
+
+log() { printf '\033[2mgg-theme:\033[0m %s\n' "$*" >&2; }
+die() { printf '\033[31mgg-theme:\033[0m %s\n' "$*" >&2; exit 1; }
+have() { command -v "$1" >/dev/null 2>&1; }
+
+mkdir -p "$STATE"
+
+mode() {
+    local m
+    m="$(cat "${XDG_STATE_HOME:-$HOME/.local/state}/rice/mode" 2>/dev/null || true)"
+    [[ "$m" == dark ]] && echo dark || echo light
+}
+
+# the accent's name: blue … graphite, multicolor, or wallpaper (whose nearest
+# Apple hue the settings keep beside it as accentBase)
+accent() {
+    local a=""
+    if [[ -r "$SETTINGS" ]] && have jq; then
+        a="$(jq -r '.appearance.accent // empty' "$SETTINGS" 2>/dev/null || true)"
+        if [[ "$a" == wallpaper ]]; then
+            a="$(jq -r '.appearance.accentBase // "blue"' "$SETTINGS" 2>/dev/null || echo blue)"
+        fi
+    fi
+    echo "${a:-blue}"
+}
+
+# names MODE ACCENT → "gtk icons gnome-accent kvantum-hex"
+names() {
+    local m="$1" a="$2" Mode gtk icons gnome
+    Mode="$([[ "$m" == dark ]] && echo Dark || echo Light)"
+    case "$a" in
+        multicolor) gtk="MacTahoe-$Mode"; icons=MacTahoe; gnome=blue ;;
+        graphite)   gtk="MacTahoe-$Mode-grey"; icons=MacTahoe-grey; gnome=slate ;;
+        blue|purple|pink|red|orange|yellow|green)
+                    gtk="MacTahoe-$Mode-$a"; icons="MacTahoe-$a"; gnome="$a" ;;
+        *) die "unknown accent $a (blue purple pink red orange yellow green graphite multicolor)" ;;
+    esac
+    # MacTahoe's icons have no pink; its plain set is the nearest
+    [[ -d "/usr/share/icons/$icons" || -d "$DATA/icons/$icons" ]] || icons=MacTahoe
+    [[ "$m" == dark ]] && icons="$icons-dark"
+    printf '%s %s %s %s\n' "$gtk" "$icons" "$gnome" "$(accent_hex "$m" "$a")"
+}
+
+# Apple's system accents, light and dark (the same numbers as palette.toml)
+accent_hex() {
+    local i=0
+    [[ "$1" == dark ]] && i=1
+    local -A L=([blue]=007aff [purple]=af52de [pink]=ff2d55 [red]=ff3b30 [orange]=ff9500
+                [yellow]=ffcc00 [green]=28cd41 [graphite]=8e8e93 [multicolor]=007aff)
+    local -A D=([blue]=0a84ff [purple]=bf5af2 [pink]=ff375f [red]=ff453a [orange]=ff9f0a
+                [yellow]=ffd60a [green]=32d74b [graphite]=98989d [multicolor]=0a84ff)
+    if (( i )); then echo "#${D[$2]}"; else echo "#${L[$2]}"; fi
+}
+
+# ini_get FILE SECTION KEY / ini_set FILE SECTION KEY VALUE (flat INI files)
+ini_get() {
+    [[ -r "$1" ]] || return 0
+    awk -v s="[$2]" -v k="$3" '
+        /^\[/ { in_s = ($0 == s); next }
+        in_s && index($0, k "=") == 1 { print substr($0, length(k) + 2); exit }' "$1"
+}
+ini_set() {
+    local f="$1" s="$2" k="$3" v="$4" tmp
+    mkdir -p "$(dirname "$f")"; touch "$f"
+    tmp="$(mktemp "$f.XXXXXX")"
+    awk -v s="[$2]" -v k="$3" -v v="$4" '
+        BEGIN { done = 0 }
+        /^\[/ {
+            if (in_s && !done) { print k "=" v; done = 1 }
+            in_s = ($0 == s); seen = seen || in_s; print; next
+        }
+        in_s && index($0, k "=") == 1 { if (!done) print k "=" v; done = 1; next }
+        { print }
+        END {
+            if (!done) { if (!seen) print "\n" s; print k "=" v }
+        }' "$f" > "$tmp"
+    mv -f "$tmp" "$f"
+}
+
+ini_del() {   # ini_del FILE SECTION KEY: a key that wasn't there before goes again
+    [[ -f "$1" ]] || return 0
+    local tmp
+    tmp="$(mktemp "$1.XXXXXX")"
+    awk -v s="[$2]" -v k="$3" '
+        /^\[/ { in_s = ($0 == s) }
+        !(in_s && index($0, k "=") == 1) { print }' "$1" > "$tmp"
+    mv -f "$tmp" "$1"
+}
+
+# ── install ──────────────────────────────────────────────────────────────
+fetch() {   # fetch REPO: a shallow clone of vinceliuice/REPO, or a pull
+    local d="$SRC/$1"
+    mkdir -p "$SRC"
+    if [[ -d "$d/.git" ]]; then
+        git -C "$d" pull -q --ff-only || log "couldn't update $1; using what's there"
+    else
+        git clone -q --depth 1 "https://github.com/vinceliuice/$1" "$d"
+    fi
+}
+
+install_themes() {
+    have git || die "git is needed to fetch the MacTahoe themes"
+    if [[ -d "$DATA/themes/MacTahoe-Light-blue" && -d "$DATA/themes/MacTahoe-Dark-grey" \
+          && "${1:-}" != --force ]]; then
+        log "MacTahoe GTK: installed (--force to reinstall)"
+    else
+        have sassc || die "sassc is needed to build MacTahoe (pacman -S sassc)"
+        fetch MacTahoe-gtk-theme
+        # translucent (normal opacity), light and dark, every accent; the
+        # libadwaita copy is ours to place (gtk/gtk4.css), not the installer's
+        ( cd "$SRC/MacTahoe-gtk-theme" && ./install.sh -d "$DATA/themes" -o normal -c light -c dark -t all ) \
+            >/dev/null
+        log "MacTahoe GTK: every accent, translucent, in $DATA/themes"
+    fi
+    fetch MacTahoe-kde
+    mkdir -p "$KVANTUM"
+    rm -rf "$KVANTUM/MacTahoe"
+    cp -r "$SRC/MacTahoe-kde/Kvantum/MacTahoe" "$KVANTUM/MacTahoe"
+    log "MacTahoe Kvantum: $KVANTUM/MacTahoe"
+}
+
+# ── save and restore ─────────────────────────────────────────────────────
+save() {
+    if [[ -s "$RESTORE" ]]; then
+        log "already saved ($RESTORE); keeping the first"
+        return 0
+    fi
+    have jq || die "jq is needed"
+    local args=() k v
+    if have gsettings; then
+        for k in "${KEYS[@]}"; do
+            v="$(gsettings get "$IFACE" "$k" 2>/dev/null || true)"
+            args+=(--arg "gs_$k" "$v")
+        done
+    fi
+    local default_cursor=""
+    [[ -r "$HOME/.icons/default/index.theme" ]] && default_cursor="$(cat "$HOME/.icons/default/index.theme")"
+    jq -n "${args[@]}" \
+        --arg qt_style "$(ini_get "$QT6CT" Appearance style)" \
+        --arg qt_palette "$(ini_get "$QT6CT" Appearance custom_palette)" \
+        --arg qt_icons "$(ini_get "$QT6CT" Appearance icon_theme)" \
+        --arg kvantum "$(ini_get "$KVANTUM/kvantum.kvconfig" General theme)" \
+        --arg default_cursor "$default_cursor" \
+        '{gsettings: ($ARGS.named | with_entries(select(.key | startswith("gs_")) | .key |= ltrimstr("gs_"))),
+          qt6ct: {style: $qt_style, custom_palette: $qt_palette, icon_theme: $qt_icons},
+          kvantum: $kvantum, default_cursor: $default_cursor}' > "$RESTORE.tmp"
+    mv -f "$RESTORE.tmp" "$RESTORE"
+    log "saved the theme settings to $RESTORE"
+}
+
+restore() {
+    [[ -s "$RESTORE" ]] || { log "nothing saved; nothing to restore"; return 0; }
+    have jq || die "jq is needed"
+    local k v
+    if have gsettings; then
+        while IFS=$'\t' read -r k v; do
+            [[ -n "$v" ]] || continue
+            # gsettings get prints GVariant text ('Adwaita', uint32 24); set takes it back
+            gsettings set "$IFACE" "$k" "$v" 2>/dev/null || log "couldn't restore $k"
+        done < <(jq -r '.gsettings | to_entries[] | [.key, .value] | @tsv' "$RESTORE")
+    fi
+    for k in style custom_palette icon_theme; do
+        v="$(jq -r ".qt6ct.$k // empty" "$RESTORE")"
+        if [[ -n "$v" ]]; then ini_set "$QT6CT" Appearance "$k" "$v"; else ini_del "$QT6CT" Appearance "$k"; fi
+    done
+    v="$(jq -r '.kvantum // empty' "$RESTORE")"
+    [[ -n "$v" ]] && ini_set "$KVANTUM/kvantum.kvconfig" General theme "$v"
+    v="$(jq -r '.default_cursor // empty' "$RESTORE")"
+    if [[ -n "$v" ]]; then
+        mkdir -p "$HOME/.icons/default"
+        printf '%s\n' "$v" > "$HOME/.icons/default/index.theme"
+    fi
+    rm -f "$RESTORE"
+    log "restored the theme settings"
+}
+
+# ── apply ────────────────────────────────────────────────────────────────
+# GoldenGate / GoldenGateDark: MacTahoe's Kvantum theme with its blue swapped
+# for the accent, rewritten on every apply (Qt apps read it as they start)
+kvantum_theme() {
+    local m="$1" hex="$2" from from_name name dir
+    from="$KVANTUM/MacTahoe"
+    [[ -d "$from" ]] || { log "no MacTahoe Kvantum theme (gg-theme install)"; return 1; }
+    if [[ "$m" == dark ]]; then from_name=MacTahoeDark; name=GoldenGateDark; else from_name=MacTahoe; name=GoldenGate; fi
+    dir="$KVANTUM/$name"
+    mkdir -p "$dir"
+    local blues='s/#(3484e2|0860f2|195edc|315bef|5294e2)/'"$hex"'/Ig'
+    sed -E "$blues" "$from/$from_name.kvconfig" > "$dir/$name.kvconfig.tmp"
+    sed -E "$blues" "$from/$from_name.svg" > "$dir/$name.svg.tmp"
+    mv -f "$dir/$name.kvconfig.tmp" "$dir/$name.kvconfig"
+    mv -f "$dir/$name.svg.tmp" "$dir/$name.svg"
+    printf '%s\n' "$name"
+}
+
+apply() {
+    local m="${1:-$(mode)}" a="${2:-$(accent)}" gtk icons gnome hex kv
+    read -r gtk icons gnome hex < <(names "$m" "$a")
+    if have gsettings; then
+        gsettings set "$IFACE" gtk-theme "$gtk" || true
+        gsettings set "$IFACE" icon-theme "$icons" || true
+        gsettings set "$IFACE" color-scheme "$([[ "$m" == dark ]] && echo prefer-dark || echo default)" || true
+        gsettings set "$IFACE" accent-color "$gnome" 2>/dev/null || true   # GNOME 47+
+        gsettings set "$IFACE" cursor-theme "$CURSOR" || true
+    fi
+    if kv="$(kvantum_theme "$m" "$hex")"; then
+        ini_set "$KVANTUM/kvantum.kvconfig" General theme "$kv"
+        ini_set "$QT6CT" Appearance style kvantum
+        # Kvantum's own colours, not the rice palette's (Fusion's)
+        ini_set "$QT6CT" Appearance custom_palette false
+    fi
+    ini_set "$QT6CT" Appearance icon_theme "$icons"
+    log "$m, $a: $gtk, $icons${kv:+, Kvantum $kv}"
+}
+
+status() {
+    local m a
+    m="$(mode)"; a="$(accent)"
+    printf 'mode %s, accent %s → %s\n' "$m" "$a" "$(names "$m" "$a")"
+    if [[ -s "$RESTORE" ]]; then
+        printf 'saved: gtk %s, Qt style %s, Kvantum %s\n' \
+            "$(jq -r '.gsettings["gtk-theme"]' "$RESTORE")" \
+            "$(jq -r '.qt6ct.style' "$RESTORE")" "$(jq -r '.kvantum' "$RESTORE")"
+    else
+        echo "saved: nothing"
+    fi
+}
+
+case "${1:-status}" in
+    install) shift; install_themes "$@" ;;
+    save) save ;;
+    apply) shift; apply "$@" ;;
+    restore) restore ;;
+    names)
+        shift
+        m="${1:-$(mode)}"; a="${2:-$(accent)}"
+        read -r gtk icons gnome hex < <(names "$m" "$a")
+        jq -n --arg gtk "$gtk" --arg icons "$icons" --arg gnome "$gnome" --arg hex "$hex" \
+            --arg cursor "$CURSOR" '$ARGS.named' ;;
+    status) status ;;
+    -h|--help|help) sed -n '2,24p' "$0" | sed 's/^# \{0,1\}//' ;;
+    *) die "usage: gg-theme install|save|apply [MODE] [ACCENT]|restore|names|status" ;;
+esac

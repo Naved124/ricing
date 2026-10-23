@@ -128,6 +128,17 @@ pass adds the light, the way the compositing stage of anime production does. Put
 pictures in `~/Pictures/Wallpapers` and your own characters (GIFs) in
 `~/.config/satsuei/characters/`. Everything is in [docs/satsuei/README.md](docs/satsuei/README.md).
 
+### Golden Gate
+
+macOS 27 "Golden Gate" on Hyprland, in behaviour as well as looks: the menu bar with a
+Dynamic Island, the Dock, Control Center, Notification Center and widgets, Spotlight,
+Mission Control and System Settings, with Liquid, Frosted or Solid glass. Everything is in
+[docs/goldengate/](docs/goldengate/).
+
+Apple's fonts (SF Pro, SF Mono, New York, from the AUR) are licensed for Apple platforms
+only; Golden Gate uses them on a personal machine by the owner's choice, and falls back to
+Inter and JetBrains Mono when they aren't installed.
+
 Targets **Hyprland 0.56** (Lua config; 0.55 or newer is needed) and **Quickshell 0.3**.
 
 ## Packages
@@ -136,13 +147,13 @@ Install with [GNU Stow](https://www.gnu.org/software/stow/). Each folder is a pa
 
 | Package | Installs | What it is |
 | --- | --- | --- |
-| `switcher` | `~/.local/bin/rice`, `rice-sun`, `rice-shot`, `rice-rec` | the switch script, the sunrise/sunset calculator, the screenshot tool and the screen recorder |
+| `switcher` | `~/.local/bin/rice`, `rice-sun`, `rice-shot`, `rice-rec`, `gg-theme` | the switch script, the sunrise/sunset calculator, the screenshot tool, the screen recorder and Golden Gate's app themes |
 | `render` | `~/.local/bin/rice-render`, `~/.local/share/rice/templates/` | palette → theme files for every app |
 | `rices` | `~/.config/rices/` | the rices |
 | `hypr` | `~/.config/hypr/` | `hyprland.lua` (entry), `base.lua`, `hypridle.conf` |
 | `quickshell` | `~/.config/quickshell/{rice,nacre,paper,abyss}/` | the shared chooser and switch overlay, and Nacre's, Paper's and Abyss's shells |
 | `systemd` | `~/.config/systemd/user/rice-mode.*` | the timer for auto mode (light and dark by the sun) |
-| `fonts` | `~/.local/share/fonts/paper/` | Paper's OFL fonts: Courier Prime, Kalam, Newsreader (licences beside them) |
+| `fonts` | `~/.local/share/fonts/paper/`, `~/.config/fontconfig/conf.d/` | Paper's OFL fonts: Courier Prime, Kalam, Newsreader (licences beside them); Golden Gate's fallback from Apple's fonts to Inter |
 | `zsh` | `~/.config/zsh/rice.zsh` | the shell setup, sourced from `~/.zshrc` (see Shell) |
 | `system` | (not stowed) | the boot menu, splash and login screen, installed with sudo, see below |
 

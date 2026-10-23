@@ -99,8 +99,24 @@ Every name was checked with `yay -Si`; "have" means it's already installed.
 | wl-clipboard, cliphist, plocate, fd, libqalculate, imagemagick, jq, inotify-tools | all `extra`; `plocate` **to install**, the rest have |
 | nautilus, sushi; terminal = kitty (the repo's) | `nautilus` have, `sushi` `extra` **to install**, `kitty` have |
 | plugin build deps: cmake meson cpio pkgconf git gcc | all have |
-| hyprglass `.so` path (hyprpm) | branch `hyprland-0.56` (7fc3280) exists. Path filled in after `hyprpm update` |
-| hyprbars `.so` path (hyprpm) | filled in after `hyprpm update` |
+| hyprglass `.so` path (hyprpm) | `/var/cache/hyprpm/binary0x0/HyprGlass/hyprglass.so` (hyprpm picks the commit for 0.56 from the repo's `hyprpm.toml`; there's no branch prompt) |
+| hyprbars `.so` path (hyprpm) | `/var/cache/hyprpm/binary0x0/hyprland-plugins/hyprbars.so` |
+
+What the install found (step 1):
+
+- **`otf-apple-ny`:** the AUR package is stale. Apple re-released `NY.dmg` (10 July 2025),
+  so its checksum fails, and the new installer keeps its payload at `NYFonts.pkg/Payload`
+  (gzipped cpio) instead of `Payload~`. Built from a patched PKGBUILD in the yay cache
+  (`zcat NYFonts.pkg/Payload | cpio -idm`, new sha256 `1c2eedb4…`); a later rebuild needs
+  the same patch until the maintainer updates it.
+- **`mactahoe-icon-theme-git`** is ~400,000 files: build it with `OPTIONS+=(!strip !debug)`
+  (a makepkg config passed through `--mflags "--config …"`) or makepkg's strip pass takes ages.
+- **hyprpm** must run in a real terminal: it saves the plugins with sudo.
+- **Names on disk:** GTK `MacTahoe-{Light,Dark}[-<accent>]` (graphite is `grey`, Multicolor
+  the plain one) in `~/.local/share/themes`, built by `gg-theme install`; icons
+  `MacTahoe[-<accent>][-dark]` (no pink set: the plain one stands in); the cursor is `macOS`;
+  fonts `SF Pro Text`, `SF Pro Display`, `SF Pro Rounded`, `SF Mono`, `New York`.
+- **`shellcheck`** isn't installed (scripts are checked with `bash -n` until it is).
 
 Install command (needs sudo, so the user runs it):
 

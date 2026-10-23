@@ -116,6 +116,11 @@ optional=(
     matugen:matugen-bin inotifywait:inotify-tools zenity:zenity
     # Satsuei: custom characters' APNGs become animated WebP
     ffmpeg:ffmpeg
+    # Golden Gate: hyprpm builds its plugins (hyprglass, hyprbars), Spotlight
+    # searches files and does sums, recording, Quick Look in Nautilus, Kvantum
+    # (Golden Gate's Qt style only), sassc builds MacTahoe's GTK variants
+    hyprpm:hyprpm plocate:plocate qalc:libqalculate gpu-screen-recorder:gpu-screen-recorder
+    sushi:sushi kvantummanager:kvantum sassc:sassc
 )
 # Python modules, checked by import: Pillow regenerates Paper's paper textures
 # and wallpaper (rices/paper/assets/gen.py)
@@ -129,6 +134,11 @@ themes=(
     "Bibata-Modern-Ice|bibata-cursor-theme-bin"
     "Bibata-Modern-Classic|bibata-cursor-theme-bin"
     "Papirus-Light|papirus-icon-theme"
+    # Golden Gate: MacTahoe (GTK; gg-theme install adds every accent,
+    # translucent), its icons and the Apple cursor
+    "MacTahoe-Light-solid|mactahoe-gtk-theme"
+    "MacTahoe|mactahoe-icon-theme-git"
+    "macOS|apple_cursor"
 )
 
 # zsh plugins and the Nerd Font glyphs, checked by file since they aren't
@@ -143,6 +153,14 @@ files=(
     "-|ttf-jetbrains-mono"
     "-|mpv-mpris"                             # mpv shows in the shells' media (MPRIS) like Spotify
     "/usr/lib/qt6/plugins/imageformats/libqwebp.so|qt6-imageformats"   # Satsuei's characters as animated WebP
+    # Golden Gate: Apple's fonts (their licence covers Apple platforms only;
+    # see docs/goldengate/README.md) with Inter as the fallback, and
+    # hyprliquid, its second Liquid Glass backend
+    "-|otf-apple-sf-pro"
+    "-|otf-apple-sf-mono"
+    "-|otf-apple-ny"
+    "-|inter-font"
+    "/usr/lib/libhyprliquid.so|hyprliquid"
 )
 
 missing_pkgs() {
@@ -536,6 +554,12 @@ ok "$rice"
 step "Rendering themes"
 run rice-render --all --quiet
 ok "every rice rendered"
+# Golden Gate's GTK accents (translucent) and Kvantum theme come from
+# vinceliuice's repositories, not the AUR; its hooks build Kvantum's accent
+# copies and put the user's own themes back when it's left
+if have gg-theme && have git; then
+    run gg-theme install || warn "couldn't fetch MacTahoe's GTK variants and Kvantum theme (gg-theme install)"
+fi
 # links every app theme, turns on Firefox's userChrome in each profile it
 # finds, points qt6ct/mpv at the rice and applies Spicetify
 link_args=(--link --backup "$backup")
