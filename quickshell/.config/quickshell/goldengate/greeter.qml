@@ -30,7 +30,7 @@ ShellRoot {
         printErrors: false
         onLoaded: { try { root.who = Object.assign({}, root.who, JSON.parse(text())); } catch (e) {} }
     }
-    readonly property string shownName: who.name || Settings.user.name || who.user
+    readonly property string shownName: Settings.user.name || who.name || who.user
 
     function submit() {
         if (busy || password === "" || !who.user) return;
