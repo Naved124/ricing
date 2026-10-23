@@ -53,6 +53,21 @@ ShellRoot {
             AppleMenu { screen: perScreen.modelData; at: perScreen.modelData.name }
             Keys { screen: perScreen.modelData; at: perScreen.modelData.name }
             IslandCard { screen: perScreen.modelData; at: perScreen.modelData.name }
+            TileMenu { screen: perScreen.modelData; at: perScreen.modelData.name }
+            DesktopMenu { screen: perScreen.modelData; at: perScreen.modelData.name }
+            Picker { screen: perScreen.modelData; at: perScreen.modelData.name }
+            AppSwitcher {
+                id: appSwitcher
+                screen: perScreen.modelData
+                at: perScreen.modelData.name
+                Connections {
+                    target: shell
+                    function onAppSwitcherStep(by) {
+                        const m = Hyprland.focusedMonitor;
+                        if (!m || m.name === appSwitcher.at) appSwitcher.step(by);
+                    }
+                }
+            }
             Switcher {
                 id: switcher
                 screen: perScreen.modelData
@@ -110,10 +125,21 @@ ShellRoot {
     signal switcherStep(int by)
     GlobalShortcut { name: "switcher"; description: "Window switcher (this Space)"; onPressed: shell.switcherStep(1) }
     GlobalShortcut { name: "switcher-back"; description: "Window switcher, backwards"; onPressed: shell.switcherStep(-1) }
+    signal appSwitcherStep(int by)
+    GlobalShortcut { name: "appswitcher"; description: "App switcher"; onPressed: shell.appSwitcherStep(1) }
+    GlobalShortcut { name: "appswitcher-back"; description: "App switcher, backwards"; onPressed: shell.appSwitcherStep(-1) }
     GlobalShortcut { name: "keybinds"; description: "The key sheet"; onPressed: Shell.toggle("keys") }
     GlobalShortcut { name: "power"; description: "The power menu"; onPressed: Shell.toggle("power") }
 
     // gg's surfaces: qs -c goldengate ipc call <target> <function>
+    IpcHandler {
+        target: "tilemenu"
+        function open(address: string, x: real, y: real): void {
+            Shell.tileFor = { address: address, x: x, y: y };
+            if (Shell.open !== "tilemenu") Shell.toggle("tilemenu");
+        }
+    }
+    IpcHandler { target: "wallpaper"; function pick(): void { if (Shell.open !== "wallpaper") Shell.toggle("wallpaper"); } }
     IpcHandler { target: "spotlight"; function toggle(): void { Shell.toggle("spotlight"); } }
     IpcHandler { target: "controlcenter"; function toggle(): void { Shell.toggle("controlcenter"); } }
     IpcHandler { target: "notifications"; function toggle(): void { Shell.toggle("notifications"); } }

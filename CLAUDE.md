@@ -563,6 +563,11 @@ Where things are, for a change asked of one part:
 | Dynamic Island, media card, lyrics | `menubar/Island.qml`, `IslandCard.qml`, `services/Lyrics.qml` (LRCLIB: exact `get`, else `search` without "feat."), `services/Beat.qml` |
 | Dock | `dock/Dock.qml`: up only on an empty workspace, edge reveal, right-click menu (its mask must include the menu or clicks fall through) |
 | ⌥Tab | `switcher/Switcher.qml` + `session.lua`'s `ALT + TAB` → `quickshell:switcher`; the choice is raised after the strip closes (`GG.raise`) |
+| ⌘Tab | `switcher/AppSwitcher.qml` (every app, most recent first; Q quits; ⌘'s release picks) + `SUPER + TAB` → `quickshell:appswitcher` |
+| green light's menu | `menubar/TileMenu.qml`: hyprbars' green button runs `gg win tilemenu` (the active window, the pointer) → IPC `tilemenu open`; `GG.tile/fill/center/zoom` take an address |
+| wallpaper picker | `wallpaper/Picker.qml` (the folder's thumbnails, pairs as one), `wallpaper/DesktopMenu.qml` (right-click on the desktop), `gg wall pick` |
+| login screen | `greeter.qml` (the lock screen's look, `Quickshell.Services.Greetd`); `sudo system/install --greetd` copies the shell to `/etc/greetd/goldengate/` with its settings, wallpaper and `greeter.json`, and runs it in cage. Re-run it after changing the shell or the wallpaper |
+| Quick Look | sushi (Space in Files); `hypr.lua`'s `goldengate-quicklook` rule |
 | widgets | `desk/Stats.qml` (system + weather), `desk/Widget.qml`, `services/Weather.qml` (Open-Meteo; location from ipinfo.io once, kept in Settings) |
 | sounds | `services/Chime.qml`, `sounds/*.wav` from `tools/gg-sounds` |
 | glass, blur | `templates/glass.lua` (Frosted's numbers; the menu bar is always Hyprland's blur), `templates/hypr.lua` (layer rules), `gg glass` |
@@ -571,6 +576,8 @@ Where things are, for a change asked of one part:
 
 Traps met while building it:
 
+- A new shell file isn't in `~` until `tools/relink` (stow links file by file): until
+  then the shell says "X is not a type".
 - Quickshell's hot reload can stop picking up edits: restart the shell (stop every
   `goldengate` instance from `qs list --all`, then `qs -c goldengate -d`); two at once
   leave the second without the notification server.

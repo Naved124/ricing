@@ -170,6 +170,8 @@ files=(
     # Golden Gate: drives, phones (MTP), cameras and iPhones in Files, the
     # Trash; the "system" notification sound
     "-|gvfs" "-|gvfs-mtp" "-|gvfs-gphoto2" "-|gvfs-afc" "-|udisks2"
+    # Quick Look: Space on a file in Files
+    "-|sushi"
     "/usr/share/sounds/freedesktop/stereo/message-new-instant.oga|sound-theme-freedesktop"
 )
 
@@ -216,7 +218,7 @@ fresh_pkgs=(
     pipewire-audio sof-firmware alsa-firmware alsa-ucm-conf alsa-utils rtkit
     xdg-desktop-portal-hyprland xdg-desktop-portal-gtk hyprpolkitagent
     firefox nautilus noto-fonts noto-fonts-cjk noto-fonts-emoji wpa_supplicant
-    gvfs gvfs-mtp gvfs-gphoto2 gvfs-afc udisks2
+    gvfs gvfs-mtp gvfs-gphoto2 gvfs-afc udisks2 sushi
     gnome-keyring libsecret seahorse
     wf-recorder
     zsh starship eza zsh-autosuggestions zsh-syntax-highlighting

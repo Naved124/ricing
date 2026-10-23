@@ -23,6 +23,10 @@ Singleton {
         openScreen = m ? m.name : "";
     }
     function closeAll() { open = ""; }
+    // the green light's menu: { address, x, y } (the pointer, on the whole layout)
+    property var tileFor: null
+    // where the desktop was right-clicked (on that screen)
+    property point desktopMenuAt: Qt.point(0, 0)
     function isOpen(name, screen) { return open === name && (!screen || openScreen === "" || openScreen === screen.name); }
 
     // the island's activity from `gg island test`, or a long command finishing

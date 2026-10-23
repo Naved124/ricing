@@ -205,8 +205,14 @@ local shapes = {   -- x, y, w, h as fractions of the area
     fill = { 0, 0, 1, 1 },
 }
 
-function GG.tile(dir)
-    local w = hl.get_active_window()
+-- the window asked about: the one at `address` (the green light's menu), else the active one
+local function target(address)
+    if address then return hl.get_window("address:" .. address) end
+    return hl.get_active_window()
+end
+
+function GG.tile(dir, address)
+    local w = target(address)
     if not w or w.fullscreen ~= 0 then return end
     local was = GG.tiled[w.address]
     local to = (was and corner[was] and corner[was][dir]) or dir
@@ -225,16 +231,21 @@ function GG.tile(dir)
     place(w, x, y, width, height)
     GG.tiled[w.address] = to
 end
-function GG.fill() GG.tile("fill") end
-function GG.center()
-    local w = hl.get_active_window()
+function GG.fill(address) GG.tile("fill", address) end
+function GG.center(address)
+    local w = target(address)
     if not w then return end
     if not w.floating then run(hl.dsp.window.float({ action = "enable", window = sel(w) })) end
     run(hl.dsp.window.center({ window = sel(w) }))
     GG.tiled[w.address] = nil
 end
 -- the green light: full screen, and back
-function GG.zoom() run(hl.dsp.window.fullscreen({ action = "toggle" })) end
+function GG.zoom(address)
+    local w = target(address)
+    if not w then return end
+    run(hl.dsp.focus({ window = sel(w) }))
+    run(hl.dsp.window.fullscreen({ action = "toggle", window = sel(w) }))
+end
 
 ---------------------------------------------------------------------------
 -- Layout: floating first, centred, as on the Mac
@@ -285,9 +296,9 @@ for _, d in ipairs({ { "left", "left" }, { "right", "right" }, { "up", "up" }, {
 end
 bind(key("CTRL + Return"), GG.fill,   "Windows · Fill")
 bind(key("CTRL + C"),      GG.center, "Windows · Center")
--- until the app switcher (the shell's), ⌘Tab steps through windows
-bind(key("TAB"),         hl.dsp.window.cycle_next(),                    "Windows · Next app")
-bind(key("SHIFT + TAB"), hl.dsp.window.cycle_next({ next = false }),    "Windows · Previous app")
+-- ⌘Tab: the shell's app switcher, every running app, most recent first
+bind(key("TAB"),         hl.dsp.global("quickshell:appswitcher"),      "Windows · Switch apps")
+bind(key("SHIFT + TAB"), hl.dsp.global("quickshell:appswitcher-back"), "Windows · Switch apps, backwards")
 -- ⌥Tab: the shell's window switcher, this Space's windows, most recent first
 bind("ALT + TAB",         hl.dsp.global("quickshell:switcher"),      "Windows · Switch windows (this Space)")
 bind("ALT + SHIFT + TAB", hl.dsp.global("quickshell:switcher-back"), "Windows · Switch windows, backwards")
@@ -359,7 +370,8 @@ function GG.bars()
     for _, b in ipairs({
         { "{{ colors.close | hypr(ff) }}",    "×", "gg win close" },
         { "{{ colors.minimize | hypr(ff) }}", "−", "gg win minimize" },
-        { "{{ colors.zoom | hypr(ff) }}",     "+", "gg win zoom" },
+        -- the green light: its menu (halves, quarters, Fill, Full Screen)
+        { "{{ colors.zoom | hypr(ff) }}",     "+", "gg win tilemenu" },
     }) do
         hl.plugin.hyprbars.add_button({ bg_color = b[1], fg_color = "{{ colors.shadow | hypr(0.5) }}", size = 13, icon = b[2], action = b[3] })
     end

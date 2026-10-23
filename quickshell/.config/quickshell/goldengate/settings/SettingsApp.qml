@@ -253,6 +253,10 @@ FloatingWindow {
                 Layout.fillWidth: true
                 spacing: 14
                 Row_ {
+                    label: qsTr("Wallpaper")
+                    Choice { text: qsTr("Choose…"); onPicked: Shell.gg(["wall", "pick"]) }
+                }
+                Row_ {
                     label: qsTr("Desktop picture")
                     Choice { text: qsTr("Previous"); onPicked: Shell.gg(["wall", "prev"]) }
                     Choice { text: qsTr("Next"); onPicked: Shell.gg(["wall", "next"]) }

@@ -12,11 +12,11 @@
 #   gg glass [liquid|frosted|solid|next] | gg glass clarity 0..1
 #                          the glass, live; clarity 0 is Ultraclear, 1 Tinted
 #   gg glass backend auto|hyprglass|hyprliquid|shader | apply | status
-#   gg wall set FILE [DARK] | next | prev | seed | status
+#   gg wall set FILE [DARK] | pick | next | prev | seed | status
 #   gg dock | spotlight | mission | expose | cc | nc | apps | switcher
 #                          open (or close) the shell's surfaces
 #   gg desktop             Show Desktop (and back)
-#   gg win close|quit|minimize|zoom|fill|center|hide|hide-others|show-all|cycle|quit-app CLASS
+#   gg win close|quit|minimize|zoom|fill|center [ADDRESS]|tilemenu|hide|hide-others|show-all|cycle|quit-app CLASS
 #   gg win tile left|right|up|down | restore ADDRESS | unhide CLASS
 #                          the focused window (what the traffic lights and binds do)
 #   gg settings [PANE]     System Settings, at a pane
@@ -432,6 +432,7 @@ EOF
 wall() {
     case "${1:-status}" in
         set) [[ -n "${2:-}" ]] || die "usage: gg wall set FILE [DARK]"; wall_set "$2" "${3:-}" ;;
+        pick) qs -c goldengate ipc call wallpaper pick >/dev/null ;;
         next) wall_step 1 ;;
         prev) wall_step -1 ;;
         seed) wall_seed ;;
@@ -445,7 +446,7 @@ wall() {
         status)
             printf 'day   %s\nnight %s\nfolder %s\n' "$(get_str wallpaper.current)" \
                 "$(get_str wallpaper.currentDark)" "$(wall_dir)" ;;
-        *) die "usage: gg wall set FILE [DARK]|next|prev|seed|status" ;;
+        *) die "usage: gg wall set FILE [DARK]|pick|next|prev|seed|status" ;;
     esac
 }
 
@@ -486,13 +487,27 @@ lua_str() { printf '%s' "$1" | sed 's/[^A-Za-z0-9_.:-]//g'; }
 
 win() {
     case "${1:-}" in
-        close|quit|zoom|fill|center|cycle) lua "GG.$1()" ;;
+        close|quit|cycle) lua "GG.$1()" ;;
+        zoom|fill|center)
+            if [[ -n "${2:-}" ]]; then lua "GG.$1(\"0x$(lua_str "${2#0x}")\")"; else lua "GG.$1()"; fi ;;
+        tilemenu)
+            # under the pointer, for the window whose green light was clicked
+            local addr pos
+            addr="$(hyprctl activewindow -j | jq -r '.address // empty')"
+            pos="$(hyprctl cursorpos -j | jq -r '"\(.x) \(.y)"')"
+            [[ -n "$addr" ]] || return 0
+            # shellcheck disable=SC2086
+            qs -c goldengate ipc call tilemenu open "$addr" $pos >/dev/null ;;
         minimize) lua "GG.minimize()" ;;
         hide) lua "GG.hide()" ;;
         hide-others) lua "GG.hide_others()" ;;
         show-all) lua "GG.show_all()" ;;
         tile)
-            case "${2:-}" in left|right|up|down) lua "GG.tile(\"$2\")" ;; *) die "usage: gg win tile left|right|up|down" ;; esac ;;
+            case "${2:-}" in
+                left|right|up|down|topleft|topright|bottomleft|bottomright)
+                    if [[ -n "${3:-}" ]]; then lua "GG.tile(\"$2\", \"0x$(lua_str "${3#0x}")\")"; else lua "GG.tile(\"$2\")"; fi ;;
+                *) die "usage: gg win tile left|right|up|down|topleft|topright|bottomleft|bottomright [ADDRESS]" ;;
+            esac ;;
         restore) [[ -n "${2:-}" ]] || die "usage: gg win restore ADDRESS"; lua "GG.restore(\"0x$(lua_str "${2#0x}")\")" ;;
         unhide) [[ -n "${2:-}" ]] || die "usage: gg win unhide CLASS"; lua "GG.unhide(\"$(lua_str "$2")\")" ;;
         raise) [[ -n "${2:-}" ]] || die "usage: gg win raise ADDRESS"; lua "GG.raise(\"0x$(lua_str "${2#0x}")\")" ;;

@@ -3,7 +3,8 @@
 # the greetd/ReGreet login screen, all in the active rice's colours.
 #
 #   sudo system/install --all          everything below
-#   sudo system/install --greetd       ReGreet under greetd, replacing SDDM/GDM/…
+#   sudo system/install --greetd       the login screen under greetd (the rice shell's
+#                                      greeter.qml, else ReGreet), replacing SDDM/GDM/…
 #   sudo system/install --limine       colours, font and wallpaper in limine.conf
 #   sudo system/install --plymouth     the splash, its initramfs hook, `splash` on
 #                                      the kernel command line
@@ -154,6 +155,7 @@ fi
 # ── the user and their rice ─────────────────────────────────────────────
 if [ -n "${RICE_SYSTEM_HOME:-}" ]; then
     home=$RICE_SYSTEM_HOME
+    user=$(basename "$home")
 else
     user=${SUDO_USER:-$(logname 2>/dev/null || true)}
     [ -n "$user" ] && [ "$user" != root ] || die "can't tell whose rice to use; run it through sudo from your account"
@@ -177,6 +179,7 @@ done
 # what's already set up, for --refresh
 if [ "$refresh" = 1 ]; then
     grep -qs 'rice-render' "$R/etc/greetd/regreet.toml" && greetd=1
+    grep -qs 'qs -p' "$R/etc/greetd/config.toml" && greetd=1
     for f in "$R"/boot/limine.conf "$R"/boot/limine/limine.conf "$R"/boot/EFI/*/limine.conf "$R"/efi/EFI/*/limine.conf "$R"/boot/efi/EFI/*/limine.conf; do
         grep -qs '^# >>> rice' "$f" && limine=1
     done
@@ -200,15 +203,74 @@ need() {
     run pacman -S --needed --noconfirm "${missing[@]}"
 }
 
+# ── a rice's own login screen: its shell's greeter.qml ───────────────────
+# Golden Gate's login is its lock screen before anyone logs in, run by
+# Quickshell inside cage as the greeter user. That user can't read the home
+# folder, so the shell is copied (links followed) to /etc/greetd/<shell>/,
+# with what it reads there: the settings with the wallpaper copied beside
+# them, the light mode, the user's picture, and greeter.json (who logs in,
+# their name, the session ReGreet last started for them).
+setup_qs_greeter() {
+    local shell=$1 src=$2 dst=/etc/greetd/$1 f rel cfg wall dark ext avatar=false session realname
+    say "login screen: $shell's own (Quickshell under greetd)"
+    need greetd:greetd cage:cage qs:quickshell || warn "greetd won't start without greetd, cage and quickshell"
+    while IFS= read -r -d '' f; do
+        rel=${f#"$src"/}
+        put "$dst/$rel" < "$f"
+    done < <(find -L "$src" -type f \( -name '*.qml' -o -name 'qmldir' -o -name '*.qsb' -o -name '*.js' \) -print0)
+    cfg="$dst/config"
+    # the settings, the wallpaper (and its night twin) copied in
+    if [ -f "$home/.config/$shell/settings.json" ] && have jq; then
+        wall=$(jq -r '.wallpaper.current // empty' "$home/.config/$shell/settings.json")
+        dark=$(jq -r '.wallpaper.currentDark // empty' "$home/.config/$shell/settings.json")
+        wall=${wall/#\~/$home}; dark=${dark/#\~/$home}
+        if [ -f "$wall" ]; then ext=${wall##*.}; put "$cfg/wall.$ext" < "$wall"; wall="$cfg/wall.$ext"; else wall=""; fi
+        if [ -f "$dark" ]; then ext=${dark##*.}; put "$cfg/wall-dark.$ext" < "$dark"; dark="$cfg/wall-dark.$ext"; else dark=""; fi
+        jq --arg w "$wall" --arg d "$dark" '.wallpaper.current = $w | .wallpaper.currentDark = $d | .wallpaper.lock = ""' \
+            "$home/.config/$shell/settings.json" | put "$cfg/$shell/settings.json"
+    fi
+    # the boot screens and the greeter wear the light build
+    printf 'light\n' | put "$dst/state/rice/mode"
+    for f in "$home/.face" "$R/var/lib/AccountsService/icons/$user"; do
+        [ -f "$f" ] && { put "$cfg/avatar" < "$f"; avatar=true; break; }
+    done
+    # the session ReGreet last started for them, else Hyprland's own
+    session=$(sed -n "s/^$user = \"\(.*\)\"$/\1/p" "$R/var/lib/regreet/state.toml" 2>/dev/null | head -n1)
+    local exec=""
+    if [ -n "$session" ]; then
+        exec=$(grep -lx "Name=$session" "$R"/usr/share/wayland-sessions/*.desktop 2>/dev/null | head -n1 | xargs -r sed -n 's/^Exec=//p' | head -n1)
+    fi
+    exec=${exec:-start-hyprland}
+    realname=$(getent passwd "$user" | cut -d: -f5 | cut -d, -f1)
+    jq -n --arg u "$user" --arg n "${realname:-$user}" --argjson a "$avatar" --arg e "$exec" \
+        '{user: $u, name: $n, avatar: $a, session: ["sh", "-c", ("exec " + $e)]}' | put "$cfg/greeter.json"
+    put /etc/greetd/config.toml <<EOF
+# greetd: $shell's login screen (Quickshell) inside cage, a minimal kiosk
+# compositor. Written by system/install --greetd.
+[terminal]
+vt = 1
+
+[default_session]
+command = "env XDG_CONFIG_HOME=$cfg XDG_STATE_HOME=$dst/state XDG_CACHE_HOME=/tmp/$shell-greeter cage -s -mlast -- qs -p $dst/greeter.qml"
+user = "greeter"
+EOF
+}
+
 # ── greetd + ReGreet ────────────────────────────────────────────────────
 setup_greetd() {
-    say "login screen: ReGreet under greetd"
-    need greetd:greetd regreet:greetd-regreet cage:cage || warn "greetd won't start without greetd, greetd-regreet and cage"
-    [ -f "$build/regreet/regreet.css" ] || die "no $build/regreet/regreet.css; run rice-render first"
-    put /etc/greetd/config.toml < "$here/greetd/config.toml"
-    put /etc/greetd/regreet.toml < "$build/regreet/regreet.toml"
-    put /etc/greetd/regreet.css < "$build/regreet/regreet.css"
-    [ -n "$still" ] && put /etc/greetd/background.png < "$still"
+    local shell
+    shell=$(jq -r '.shell // empty' "$build/meta.json" 2>/dev/null || true)
+    if [ -n "$shell" ] && [ -f "$home/.config/quickshell/$shell/greeter.qml" ]; then
+        setup_qs_greeter "$shell" "$home/.config/quickshell/$shell"
+    else
+        say "login screen: ReGreet under greetd"
+        need greetd:greetd regreet:greetd-regreet cage:cage || warn "greetd won't start without greetd, greetd-regreet and cage"
+        [ -f "$build/regreet/regreet.css" ] || die "no $build/regreet/regreet.css; run rice-render first"
+        put /etc/greetd/config.toml < "$here/greetd/config.toml"
+        put /etc/greetd/regreet.toml < "$build/regreet/regreet.toml"
+        put /etc/greetd/regreet.css < "$build/regreet/regreet.css"
+        [ -n "$still" ] && put /etc/greetd/background.png < "$still"
+    fi
 
     # unlock the login keyring with the password typed into ReGreet, so apps
     # (browsers, Claude, VS Code) can keep sign-ins and secrets without asking
@@ -444,7 +506,7 @@ if [ "$dry" = 1 ]; then
     say "dry run: nothing was changed"
 elif [ -f "$backup/manifest" ]; then
     say "backed up to $backup (undo with: sudo $0 --undo)"
-    say "reboot to see it: Limine → splash → ReGreet"
+    say "reboot to see it: Limine → splash → the login screen"
 else
     say "already up to date"
 fi

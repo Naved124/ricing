@@ -77,6 +77,11 @@ hl.animation({ leaf = "layers",       enabled = true, speed = 2, bezier = "glide
 hl.window_rule({ name = "goldengate-opaque", match = { tag = "opaque" }, opacity = "1.0 override 1.0 override" })
 hl.window_rule({ name = "goldengate-glassy", match = { tag = "glassy" }, opacity = "1.0 override 1.0 override" })
 hl.window_rule({ name = "goldengate-dialog", match = { tag = "dialog" }, rounding = {{ shape.window }} })
+-- Quick Look (Space in Files: sushi): a large sheet in the middle of the screen
+hl.window_rule({
+    name = "goldengate-quicklook", match = { class = "^org\\.gnome\\.NautilusPreviewer$" },
+    float = true, center = true, size = { "monitor_w*0.62", "monitor_h*0.72" },
+})
 hl.window_rule({ name = "goldengate-pip", match = { tag = "pip" }, border_size = 0 })
 hl.window_rule({ name = "goldengate-fullscreen", match = { fullscreen = true }, border_size = 0, rounding = 0 })
 hl.window_rule({

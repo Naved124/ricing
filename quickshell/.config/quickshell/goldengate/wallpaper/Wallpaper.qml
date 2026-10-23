@@ -32,6 +32,16 @@ PanelWindow {
         opacity: Theme.k
     }
 
+    // a right-click on the desktop: its menu (Change Wallpaper…, the widgets)
+    MouseArea {
+        anchors.fill: parent
+        acceptedButtons: Qt.RightButton
+        onClicked: m => {
+            Shell.desktopMenuAt = Qt.point(m.x, m.y);
+            if (Shell.open !== "desktopmenu") Shell.toggle("desktopmenu");
+        }
+    }
+
     component Picture: Image {
         asynchronous: true
         cache: false
