@@ -35,7 +35,11 @@ IFACE=org.gnome.desktop.interface
 # what `save` keeps of org.gnome.desktop.interface
 KEYS=(gtk-theme icon-theme cursor-theme cursor-size color-scheme accent-color
       font-name document-font-name monospace-font-name)
-CURSOR=macOS               # apple_cursor; the same by day and by night
+# the shared cursors: Bibata Modern Classic by day, Ice at night
+cursor() { [[ "$1" == dark ]] && echo Bibata-Modern-Ice || echo Bibata-Modern-Classic; }
+# Qt's fonts in QFont's string form, as rice-render writes them
+QT_UI='"SF Pro Text,14,-1,5,400,0,0,0,0,0,0,0,0,0,0,1"'
+QT_MONO='"SF Mono,15,-1,5,400,0,0,0,0,0,0,0,0,0,0,1"'
 
 log() { printf '\033[2mgg-theme:\033[0m %s\n' "$*" >&2; }
 die() { printf '\033[31mgg-theme:\033[0m %s\n' "$*" >&2; exit 1; }
@@ -177,10 +181,13 @@ save() {
         --arg qt_style "$(ini_get "$QT6CT" Appearance style)" \
         --arg qt_palette "$(ini_get "$QT6CT" Appearance custom_palette)" \
         --arg qt_icons "$(ini_get "$QT6CT" Appearance icon_theme)" \
+        --arg qt_general "$(ini_get "$QT6CT" Fonts general)" \
+        --arg qt_fixed "$(ini_get "$QT6CT" Fonts fixed)" \
         --arg kvantum "$(ini_get "$KVANTUM/kvantum.kvconfig" General theme)" \
         --arg default_cursor "$default_cursor" \
         '{gsettings: ($ARGS.named | with_entries(select(.key | startswith("gs_")) | .key |= ltrimstr("gs_"))),
           qt6ct: {style: $qt_style, custom_palette: $qt_palette, icon_theme: $qt_icons},
+          qt6ct_fonts: {general: $qt_general, fixed: $qt_fixed},
           kvantum: $kvantum, default_cursor: $default_cursor}' > "$RESTORE.tmp"
     mv -f "$RESTORE.tmp" "$RESTORE"
     log "saved the theme settings to $RESTORE"
@@ -200,6 +207,10 @@ restore() {
     for k in style custom_palette icon_theme; do
         v="$(jq -r ".qt6ct.$k // empty" "$RESTORE")"
         if [[ -n "$v" ]]; then ini_set "$QT6CT" Appearance "$k" "$v"; else ini_del "$QT6CT" Appearance "$k"; fi
+    done
+    for k in general fixed; do
+        v="$(jq -r ".qt6ct_fonts.$k // empty" "$RESTORE")"
+        if [[ -n "$v" ]]; then ini_set "$QT6CT" Fonts "$k" "$v"; else ini_del "$QT6CT" Fonts "$k"; fi
     done
     v="$(jq -r '.kvantum // empty' "$RESTORE")"
     [[ -n "$v" ]] && ini_set "$KVANTUM/kvantum.kvconfig" General theme "$v"
@@ -238,7 +249,10 @@ apply() {
         gsettings set "$IFACE" icon-theme "$icons" || true
         gsettings set "$IFACE" color-scheme "$([[ "$m" == dark ]] && echo prefer-dark || echo prefer-light)" || true
         gsettings set "$IFACE" accent-color "$gnome" 2>/dev/null || true   # GNOME 47+
-        gsettings set "$IFACE" cursor-theme "$CURSOR" || true
+        gsettings set "$IFACE" cursor-theme "$(cursor "$m")" || true
+        gsettings set "$IFACE" font-name "SF Pro Text 14" || true
+        gsettings set "$IFACE" document-font-name "SF Pro Text 14" || true
+        gsettings set "$IFACE" monospace-font-name "SF Mono 15" || true
     fi
     if kv="$(kvantum_theme "$m" "$hex")"; then
         ini_set "$KVANTUM/kvantum.kvconfig" General theme "$kv"
@@ -247,6 +261,8 @@ apply() {
         ini_set "$QT6CT" Appearance custom_palette false
     fi
     ini_set "$QT6CT" Appearance icon_theme "$icons"
+    ini_set "$QT6CT" Fonts general "$QT_UI"
+    ini_set "$QT6CT" Fonts fixed "$QT_MONO"
     gtk4_link
     log "$m, $a: $gtk, $icons${kv:+, Kvantum $kv}"
 }
@@ -282,7 +298,7 @@ case "${1:-status}" in
         m="${1:-$(mode)}"; a="${2:-$(accent)}"
         read -r gtk icons gnome hex < <(names "$m" "$a")
         jq -n --arg gtk "$gtk" --arg icons "$icons" --arg gnome "$gnome" --arg hex "$hex" \
-            --arg cursor "$CURSOR" '$ARGS.named' ;;
+            --arg cursor "$(cursor "$m")" '$ARGS.named' ;;
     status) status ;;
     -h|--help|help) sed -n '2,24p' "$0" | sed 's/^# \{0,1\}//' ;;
     *) die "usage: gg-theme install|save|apply [MODE] [ACCENT]|restore|names|status" ;;

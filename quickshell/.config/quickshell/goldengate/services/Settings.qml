@@ -115,6 +115,7 @@ Singleton {
                 property bool batteryPercent: false
                 property bool nowPlaying: true
                 property bool autohide: false
+                property bool monoTray: true        // tray icons as symbols in the bar's ink
             }
 
             property JsonObject island: JsonObject {
@@ -128,8 +129,6 @@ Singleton {
                 property bool magnify: true
                 property int magnifySize: 96
                 property string position: "bottom"   // bottom left right
-                property bool autohide: false
-                property int autohideDelay: 0
                 property bool recents: true
                 property bool minimizeIntoApp: false
                 property string minimizeEffect: "genie"   // genie scale
@@ -150,6 +149,8 @@ Singleton {
             property JsonObject sound: JsonObject {
                 property bool uiSounds: true
                 property bool volumeFeedback: true
+                property string notification: "glass"   // a sounds/*.wav, "system" or "none"
+                property real notificationVolume: 0.6
             }
 
             property JsonObject user: JsonObject {

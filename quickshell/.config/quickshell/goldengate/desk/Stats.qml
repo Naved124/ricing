@@ -7,9 +7,11 @@ import Quickshell.Wayland
 import qs.common
 import qs.services
 
-// The system card: a desktop widget (CPU, memory and disk as rings), on
-// the bottom layer, draggable, its place kept as fractions of the screen;
-// it steps aside for a full-screen window.
+// The desktop widgets, as macOS puts them on the desktop: the system card
+// (CPU, memory and disk as rings) and the weather (now, today's high and
+// low, the next hours). Each is turned on in Control Center or System
+// Settings and dragged where it's wanted; its place is kept as fractions of
+// the screen. They're on the bottom layer, under every window.
 PanelWindow {
     id: root
 
@@ -21,19 +23,21 @@ PanelWindow {
     // the screen's name, given once (reading `screen` here loops as the window maps)
     property string at: ""
     // a full-screen window covers the bottom layer anyway
-    visible: Shell.statsShown
-    mask: Region { item: card }
+    visible: Shell.statsShown || Shell.weatherShown
+    mask: Region {
+        Region { x: sys.x; y: sys.y; width: sys.visible ? sys.width : 0; height: sys.visible ? sys.height : 0 }
+        Region { x: weather.x; y: weather.y; width: weather.visible ? weather.width : 0; height: weather.visible ? weather.height : 0 }
+    }
+    Binding { target: Weather; property: "wanted"; value: Shell.weatherShown }
 
-    GlassPane {
-        id: card
+    Widget {
+        id: sys
+        visible: Shell.statsShown
         width: 330; height: 150
-        x: Shell.statsAt.x * (root.width - width)
-        y: Shell.statsAt.y * (root.height - height)
+        at: Shell.statsAt
+        area: root
         screen: root.screen
-        DragHandler {
-            target: card
-            onActiveChanged: if (!active) Shell.moveStats(card.x / Math.max(1, root.width - card.width), card.y / Math.max(1, root.height - card.height))
-        }
+        onMoved: (fx, fy) => Shell.moveStats(fx, fy)
         Row {
             anchors.centerIn: parent
             spacing: 26
@@ -67,6 +71,53 @@ PanelWindow {
                         Label { anchors.centerIn: parent; text: Math.round(ring.v * 100) + "%"; strong: true; font.pixelSize: Theme.smallSize + 1 }
                     }
                     Label { anchors.horizontalCenter: parent.horizontalCenter; text: parent.modelData.name; secondary: true; font.pixelSize: Theme.smallSize }
+                }
+            }
+        }
+    }
+
+    Widget {
+        id: weather
+        visible: Shell.weatherShown
+        width: 330; height: 160
+        at: Shell.weatherAt
+        area: root
+        screen: root.screen
+        onMoved: (fx, fy) => Shell.moveWeather(fx, fy)
+
+        Label {
+            visible: !Weather.ready
+            anchors.centerIn: parent
+            text: qsTr("Looking up the weather…")
+            secondary: true
+        }
+        Item {
+            anchors { fill: parent; margins: 16 }
+            visible: Weather.ready
+            Column {
+                anchors { left: parent.left; top: parent.top }
+                Label { text: Weather.city || qsTr("Here"); strong: true }
+                Label { text: Math.round(Weather.temp) + "°"; font.family: Theme.fontDisplay; font.pixelSize: 40; font.weight: Font.Normal }
+            }
+            Column {
+                anchors { right: parent.right; top: parent.top }
+                spacing: 2
+                Sym { anchors.right: parent.right; name: Weather.symbol(Weather.code, Weather.day); size: 20; color: Weather.code <= 2 && Weather.day ? Theme.yellow : Theme.label }
+                Label { anchors.right: parent.right; text: Weather.text(Weather.code); font.pixelSize: Theme.smallSize; strong: true }
+                Label { anchors.right: parent.right; text: qsTr("H:%1° L:%2°").arg(Math.round(Weather.high)).arg(Math.round(Weather.low)); font.pixelSize: Theme.smallSize; secondary: true }
+            }
+            Row {
+                anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
+                Repeater {
+                    model: Weather.hours
+                    delegate: Column {
+                        required property var modelData
+                        width: (weather.width - 32) / Math.max(1, Weather.hours.length)
+                        spacing: 3
+                        Label { anchors.horizontalCenter: parent.horizontalCenter; text: parent.modelData.label; font.pixelSize: Theme.smallSize - 1; secondary: true }
+                        Sym { anchors.horizontalCenter: parent.horizontalCenter; name: Weather.symbol(parent.modelData.code, parent.modelData.day); size: 16; color: parent.modelData.code <= 2 && parent.modelData.day ? Theme.yellow : Theme.label }
+                        Label { anchors.horizontalCenter: parent.horizontalCenter; text: Math.round(parent.modelData.temp) + "°"; font.pixelSize: Theme.smallSize; strong: true }
+                    }
                 }
             }
         }

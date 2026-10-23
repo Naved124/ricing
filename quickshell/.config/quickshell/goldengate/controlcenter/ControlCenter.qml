@@ -101,6 +101,11 @@ Panel {
             }
             Tile {
                 Layout.fillWidth: true
+                glyph: "☁"; title: qsTr("Weather"); detail: qsTr("On the desktop"); on: Shell.weatherShown
+                onClicked: Shell.setWeatherShown(!Shell.weatherShown)
+            }
+            Tile {
+                Layout.fillWidth: true
                 glyph: "⌗"; title: qsTr("Screenshot"); detail: qsTr("Selection")
                 onClicked: { Shell.closeAll(); Shell.run(["sh", "-c", "sleep 0.35; exec rice-shot region"]); }
                 onMore: { Shell.closeAll(); Shell.run(["rice-shot", "region"]); }

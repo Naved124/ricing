@@ -4,7 +4,9 @@ import Quickshell.Widgets
 import qs.common
 
 // An app's icon by its desktop id, class or icon name, MacTahoe's when it
-// has one; without one, a rounded tile with the app's initial
+// has one (its light set by day, its dark one at night: the shell's icon
+// theme is fixed when it starts, so the path is swapped here); without one,
+// a rounded tile with the app's initial
 Item {
     id: root
     property string app: ""
@@ -17,7 +19,7 @@ Item {
         const tries = [entry && entry.icon, app, app.toLowerCase(), app.split(".").pop().toLowerCase(), app.replace(/-full$/, "")];
         for (const t of tries) {
             const p = t ? Quickshell.iconPath(t, true) : "";
-            if (p) return p;
+            if (p) return p.replace(/\/icons\/MacTahoe[^\/]*\//, Theme.dark ? "/icons/MacTahoe-dark/" : "/icons/MacTahoe-light/");
         }
         return "";
     }

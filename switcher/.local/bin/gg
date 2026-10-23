@@ -16,7 +16,7 @@
 #   gg dock | spotlight | mission | expose | cc | nc | apps | switcher
 #                          open (or close) the shell's surfaces
 #   gg desktop             Show Desktop (and back)
-#   gg win close|quit|minimize|zoom|fill|center|hide|hide-others|show-all|cycle
+#   gg win close|quit|minimize|zoom|fill|center|hide|hide-others|show-all|cycle|quit-app CLASS
 #   gg win tile left|right|up|down | restore ADDRESS | unhide CLASS
 #                          the focused window (what the traffic lights and binds do)
 #   gg settings [PANE]     System Settings, at a pane
@@ -338,7 +338,11 @@ glass_apply() {
 glass() {
     local modes=(liquid frosted solid) cur i v
     case "${1:-status}" in
-        liquid|frosted|solid) set_str glass.mode "$1"; glass_apply; recolour ;;
+        liquid|frosted|solid)
+            set_str glass.mode "$1"
+            # Frosted is Hyprland's blur: back to auto, so a Liquid later picks its best again
+            if [[ "$1" == frosted ]]; then set_str glass.backend auto; fi
+            glass_apply; recolour ;;
         next)
             cur="$(get_str glass.mode)"
             for i in 0 1 2; do [[ "${modes[$i]}" == "$cur" ]] && break; done
@@ -485,7 +489,8 @@ win() {
             case "${2:-}" in left|right|up|down) lua "GG.tile(\"$2\")" ;; *) die "usage: gg win tile left|right|up|down" ;; esac ;;
         restore) [[ -n "${2:-}" ]] || die "usage: gg win restore ADDRESS"; lua "GG.restore(\"0x$(lua_str "${2#0x}")\")" ;;
         unhide) [[ -n "${2:-}" ]] || die "usage: gg win unhide CLASS"; lua "GG.unhide(\"$(lua_str "$2")\")" ;;
-        *) die "usage: gg win close|quit|minimize|zoom|fill|center|hide|hide-others|show-all|cycle|tile DIR|restore ADDRESS|unhide CLASS" ;;
+        quit-app) [[ -n "${2:-}" ]] || die "usage: gg win quit-app CLASS"; lua "GG.quit_app(\"$(lua_str "$2")\")" ;;
+        *) die "usage: gg win close|quit|minimize|zoom|fill|center|hide|hide-others|show-all|cycle|tile DIR|restore ADDRESS|unhide CLASS|quit-app CLASS" ;;
     esac
 }
 

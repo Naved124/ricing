@@ -20,8 +20,7 @@ PanelWindow {
     // the screen's name, given once (reading `screen` here loops as the window maps)
     property string at: ""
     readonly property bool fullscreen: Hypr.fullscreenOn(Hyprland.monitors.values.find(m => m.name === at) ?? null)
-    readonly property bool background: Settings.appearance.menuBarBackground
-    readonly property color ink: background ? Theme.label : Theme.onWallpaper
+    readonly property color ink: Theme.label
 
     anchors { top: true; left: true; right: true }
     implicitHeight: 32
@@ -29,13 +28,6 @@ PanelWindow {
     WlrLayershell.layer: WlrLayer.Top
     WlrLayershell.namespace: "goldengate:menubar"
     color: "transparent"
-
-    Rectangle {
-        anchors.fill: parent
-        visible: root.background
-        color: Theme.glass
-        Rectangle { anchors.bottom: parent.bottom; width: parent.width; height: 1; color: Theme.separator }
-    }
 
     component Item_: MouseArea {
         id: it
@@ -46,22 +38,19 @@ PanelWindow {
         implicitHeight: 24
         hoverEnabled: true
         acceptedButtons: Qt.LeftButton | Qt.RightButton
-        Rectangle { anchors.fill: parent; radius: 6; color: it.containsMouse || it.pressed ? Theme.fillHover : "transparent" }
+        Rectangle { anchors.fill: parent; radius: height / 2; color: it.containsMouse || it.pressed ? Theme.fillHover : "transparent" }
         Label {
             id: lbl
             anchors.centerIn: parent
             visible: !it.sym
             color: root.ink
             strong: it.strong
-            style: root.background ? Text.Normal : Text.Raised
-            styleColor: Theme.onWallpaperShadow
         }
         Sym { anchors.centerIn: parent; visible: it.sym !== ""; name: it.sym; color: root.ink; size: 16 }
     }
 
-    Row {
-        anchors { left: parent.left; leftMargin: 10; verticalCenter: parent.verticalCenter }
-        spacing: 2
+    Pill {
+        anchors { left: parent.left; leftMargin: 6 }
         Item_ { text: ""; onClicked: Shell.toggle("apple") }
         Item_ {
             text: Windows.activeClass ? Windows.appName(Windows.activeClass) : "Finder"
@@ -72,10 +61,8 @@ PanelWindow {
 
     Island { anchors.centerIn: parent }
 
-    Row {
-        anchors { right: parent.right; rightMargin: 10; verticalCenter: parent.verticalCenter }
-        spacing: 2
-        layoutDirection: Qt.LeftToRight
+    Pill {
+        anchors { right: parent.right; rightMargin: 6 }
 
         Repeater {
             model: SystemTray.items
@@ -91,7 +78,7 @@ PanelWindow {
                     else if (modelData.hasMenu) modelData.display(root, tray.mapToItem(null, 0, 0).x, root.implicitHeight);
                     else modelData.secondaryActivate();
                 }
-                IconImage { anchors.centerIn: parent; implicitSize: 16; source: tray.modelData.icon ?? "" }
+                TrayIcon { anchors.centerIn: parent; source: tray.modelData.icon ?? ""; ink: root.ink }
             }
         }
         // recording: a stop button, as macOS shows one

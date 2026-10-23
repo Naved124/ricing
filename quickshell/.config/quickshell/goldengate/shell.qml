@@ -29,6 +29,9 @@ import qs.wallpaper
 ShellRoot {
     id: shell
 
+    // the notification sound listens from the start
+    readonly property var chime: Chime
+
     // per screen: the desktop picture under everything, the menu bar with
     // the island, the Dock, the system card, the corners and every panel
     Variants {
@@ -48,6 +51,7 @@ ShellRoot {
             Mission { screen: perScreen.modelData; at: perScreen.modelData.name }
             AppleMenu { screen: perScreen.modelData; at: perScreen.modelData.name }
             Keys { screen: perScreen.modelData; at: perScreen.modelData.name }
+            IslandCard { screen: perScreen.modelData; at: perScreen.modelData.name }
         }
     }
 
@@ -99,7 +103,7 @@ ShellRoot {
         function toggle(): void { Shell.toggle("mission"); }
         function expose(): void { Shell.toggle("expose"); }
     }
-    IpcHandler { target: "dock"; function toggle(): void { Shell.gg(["set", "dock.autohide", Settings.dock.autohide ? "false" : "true"]); } }
+    IpcHandler { target: "dock"; function toggle(): void { Shell.gg(["set", "dock.magnify", Settings.dock.magnify ? "false" : "true"]); } }
     IpcHandler {
         target: "settings"
         function open(pane: string): void { settingsApp.open(pane); }

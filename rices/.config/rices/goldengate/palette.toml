@@ -22,8 +22,6 @@ notifications = "shell"         # banners top right, Notification Center
 wallpaper     = "shell"         # the shell draws it (the shader glass samples it)
 lock          = "shell"         # WlSessionLock
 overlay       = "goldengate/palette.toml"   # under XDG_STATE_HOME, from gg
-# the Apple cursor by day and by night (Golden Gate's exception to the shared one)
-cursor        = "macOS"
 # `rice mode`: the frozen frame crossfades away over 450 ms
 mode_transition = "crossfade"
 mode_ms         = 450

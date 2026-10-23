@@ -108,10 +108,12 @@ class Theme(unittest.TestCase):
         self.gg("save")
         self.gg("apply", "dark", "purple")
         self.assertEqual((self.gs / "gtk-theme").read_text().strip(), "MacTahoe-Dark-purple")
-        self.assertEqual((self.gs / "cursor-theme").read_text().strip(), "macOS")
+        self.assertEqual((self.gs / "cursor-theme").read_text().strip(), "Bibata-Modern-Ice")
+        self.assertEqual((self.gs / "font-name").read_text().strip(), "SF Pro Text 14")
         self.assertEqual((self.gs / "accent-color").read_text().strip(), "purple")
         qt = (self.conf / "qt6ct/qt6ct.conf").read_text()
         self.assertIn("style=kvantum", qt)
+        self.assertIn('general="SF Pro Text,14', qt)
         self.assertIn("theme=GoldenGateDark", (self.conf / "Kvantum/kvantum.kvconfig").read_text())
         # MacTahoe's blue became the accent in the Kvantum copy
         svg = (self.conf / "Kvantum/GoldenGateDark/GoldenGateDark.svg").read_text()
@@ -206,10 +208,10 @@ class Palette(unittest.TestCase):
             css = rr.render_text(files["gtk/gtk4.css"].read_text(), paper, "gtk4.css")
             self.assertIn("/paper/build/light/gtk/gtk.css", css)
 
-    def test_one_cursor_the_apple_one(self):
+    def test_the_shared_cursors(self):
         ctxs = rr.load_modes(RICE)
-        self.assertEqual(ctxs["light"]["gtk"]["cursor"], "macOS")
-        self.assertEqual(ctxs["dark"]["gtk"]["cursor"], "macOS")
+        self.assertEqual(ctxs["light"]["gtk"]["cursor"], "Bibata-Modern-Classic")
+        self.assertEqual(ctxs["dark"]["gtk"]["cursor"], "Bibata-Modern-Ice")
 
 
 @unittest.skipUnless(shutil.which("jq"), "jq not installed")
@@ -721,9 +723,9 @@ for _, c in ipairs(calls) do print(c[1], dump(c[2]), dump(c[3])) end
         self.assertEqual(names, {f"goldengate:{n}" for n in
                                  ("dock", "controlcenter", "notifications", "widgets", "spotlight", "osd", "keys")})
         self.assertTrue(all("mask_mode=contour" in l for l in layers))
-        # the menu bar only with its background: else the glass would sit on its letters
+        # the menu bar's pills are always Hyprland's frost, never the plugin's
         out = self.run_lua('{ mode = "liquid", backend = "hyprglass", clarity = 0.35, menubar = true }', "hyprglass")
-        self.assertIn("hg.layer\tgoldengate:menubar\t{mask_mode=alpha", out)
+        self.assertNotIn("goldengate:menubar", out)
 
     def test_a_clarity_change_adds_no_rules(self):
         out = self.run_lua('{ mode = "liquid", backend = "hyprglass", clarity = 0.9 }', "hyprglass", live=True)
@@ -735,9 +737,11 @@ for _, c in ipairs(calls) do print(c[1], dump(c[2]), dump(c[3])) end
     def test_frosted_and_solid(self):
         frosted = self.run_lua('{ mode = "frosted", backend = "hyprland", clarity = 0 }')
         self.assertIn("enabled=true", frosted)
-        self.assertIn("size=5", frosted)
-        self.assertIn("size=12", self.run_lua('{ mode = "frosted", backend = "hyprland", clarity = 1 }'))
-        self.assertIn("enabled=false", self.run_lua('{ mode = "solid", backend = "hyprland", clarity = 0.5 }'))
+        self.assertIn("size=10", frosted)
+        self.assertIn("vibrancy=0.32", frosted)
+        self.assertIn("size=14", self.run_lua('{ mode = "frosted", backend = "hyprland", clarity = 1 }'))
+        # the blur stays on under Solid: the menu bar is always frosted (Solid's panels are opaque)
+        self.assertIn("enabled=true", self.run_lua('{ mode = "solid", backend = "hyprland", clarity = 0.5 }'))
         # a plugin that isn't there is never configured
         self.assertNotIn("hg.", self.run_lua('{ mode = "liquid", backend = "hyprglass", clarity = 0.5 }'))
 

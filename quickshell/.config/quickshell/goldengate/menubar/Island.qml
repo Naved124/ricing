@@ -9,7 +9,8 @@ import qs.services
 // The Dynamic Island, in the middle of the menu bar: a black capsule that
 // springs wider for what's going on (a recording, what's playing, a
 // notification for a moment, a test from `gg island test`), and holds the
-// track's controls on hover.
+// track's controls on hover. A click grows it into the media card
+// (IslandCard.qml).
 Rectangle {
     id: root
 
@@ -84,5 +85,6 @@ Rectangle {
             MouseArea { anchors.fill: parent; anchors.margins: -4; onClicked: Media.player.next() }
         }
     }
-    TapHandler { onTapped: Shell.toggle("notifications") }
+    // a click opens the media card while something plays, else Notification Center
+    TapHandler { onTapped: Shell.toggle(Media.player ? "island" : "notifications") }
 }

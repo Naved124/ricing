@@ -1,0 +1,71 @@
+#!/usr/bin/env python3
+"""Golden Gate's notification sounds, synthesised (no Apple sounds are used).
+
+    tools/gg-sounds [OUT_DIR]
+
+Writes glass.wav, crystal.wav, bloom.wav and pop.wav (48 kHz, 16-bit mono)
+into the shell's sounds/ folder. Each is a few struck partials with their
+own decays, a soft attack and a peak at -6 dBFS: bell-like, short, quiet.
+"""
+import math
+import struct
+import sys
+import wave
+from pathlib import Path
+
+RATE = 48000
+OUT = Path(sys.argv[1]) if len(sys.argv) > 1 else \
+    Path(__file__).resolve().parent.parent / "quickshell/.config/quickshell/goldengate/sounds"
+
+
+def strike(buf, start, freq, length, partials, attack=0.004, gain=1.0):
+    """A struck note: (ratio, level, decay seconds) partials from `start` seconds."""
+    s0 = int(start * RATE)
+    for i in range(int(length * RATE)):
+        t = i / RATE
+        env = min(1.0, t / attack) if attack else 1.0
+        v = sum(l * math.exp(-t / d) * math.sin(2 * math.pi * freq * r * t) for r, l, d in partials)
+        if s0 + i < len(buf):
+            buf[s0 + i] += gain * env * v
+
+
+def write(name, buf):
+    peak = max(abs(x) for x in buf) or 1.0
+    k = 0.5 / peak   # -6 dBFS
+    # a 20 ms fade at the end so nothing clicks
+    n = len(buf); fade = int(0.02 * RATE)
+    data = b"".join(struct.pack("<h", int(32767 * k * x * min(1.0, (n - i) / fade))) for i, x in enumerate(buf))
+    OUT.mkdir(parents=True, exist_ok=True)
+    with wave.open(str(OUT / f"{name}.wav"), "wb") as w:
+        w.setnchannels(1); w.setsampwidth(2); w.setframerate(RATE); w.writeframes(data)
+    print(OUT / f"{name}.wav")
+
+
+BELL = [(1, 1.0, 0.55), (2.0, 0.35, 0.30), (2.76, 0.22, 0.18), (5.40, 0.08, 0.08), (8.93, 0.03, 0.04)]
+SOFT = [(1, 1.0, 0.70), (2.0, 0.25, 0.35), (3.0, 0.08, 0.20)]
+
+# Glass: one clear struck tone with a fifth shimmering above it
+b = [0.0] * int(1.1 * RATE)
+strike(b, 0, 1318.5, 1.1, BELL)
+strike(b, 0.0, 1975.5, 1.1, BELL, gain=0.25)
+write("glass", b)
+
+# Crystal: two notes rising, the second ringing longer
+b = [0.0] * int(1.3 * RATE)
+strike(b, 0, 1568.0, 1.2, BELL, gain=0.8)
+strike(b, 0.09, 2349.3, 1.2, BELL)
+write("crystal", b)
+
+# Bloom: a soft major chord opening slowly
+b = [0.0] * int(1.6 * RATE)
+for i, f in enumerate((1046.5, 1318.5, 1568.0, 2093.0)):
+    strike(b, i * 0.035, f, 1.5, SOFT, attack=0.025, gain=1.0 - i * 0.15)
+write("bloom", b)
+
+# Pop: a short round knock, falling in pitch
+b = [0.0] * int(0.18 * RATE)
+for i in range(len(b)):
+    t = i / RATE
+    f = 520 + 380 * math.exp(-t / 0.012)
+    b[i] = math.exp(-t / 0.035) * math.sin(2 * math.pi * f * t) * min(1.0, t / 0.002)
+write("pop", b)

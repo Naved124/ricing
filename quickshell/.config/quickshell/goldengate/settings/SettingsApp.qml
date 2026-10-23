@@ -18,6 +18,7 @@ FloatingWindow {
         { id: "glass", t: qsTr("Liquid Glass"), g: "◇" },
         { id: "desktop", t: qsTr("Desktop & Dock"), g: "▭" },
         { id: "menubar", t: qsTr("Menu Bar"), g: "▔" },
+        { id: "sound", t: qsTr("Sound"), g: "♪" },
         { id: "accessibility", t: qsTr("Accessibility"), g: "♿" },
         { id: "wallpaper", t: qsTr("Wallpaper"), g: "▣" },
         { id: "about", t: qsTr("About"), g: "ⓘ" },
@@ -164,7 +165,9 @@ FloatingWindow {
                 spacing: 14
                 Row_ { label: qsTr("Dock size"); Slider { implicitWidth: 240; value: (Settings.dock.size - 32) / 64; onMoved: v => root.set("dock.size", Math.round(32 + v * 64)) } }
                 Row_ { label: qsTr("Magnification"); Switch_ { on: Settings.dock.magnify; onFlipped: root.set("dock.magnify", !on) } }
-                Row_ { label: qsTr("Hide the Dock automatically"); Switch_ { on: Settings.dock.autohide; onFlipped: root.set("dock.autohide", !on) } }
+                Label { text: qsTr("The Dock slides out of the way of a window that reaches it; touch the bottom edge to bring it back."); secondary: true; wrapMode: Text.Wrap; Layout.fillWidth: true }
+                Row_ { label: qsTr("System widget"); Switch_ { on: Shell.statsShown; onFlipped: Shell.setStatsShown(!on) } }
+                Row_ { label: qsTr("Weather widget"); Switch_ { on: Shell.weatherShown; onFlipped: Shell.setWeatherShown(!on) } }
                 Row_ {
                     label: qsTr("Windows")
                     Choice { text: qsTr("Floating"); on: Settings.windows.layout !== "tiled"; onPicked: root.set("windows.layout", "floating") }
@@ -198,7 +201,7 @@ FloatingWindow {
                 visible: root.pane === "menubar"
                 Layout.fillWidth: true
                 spacing: 14
-                Row_ { label: qsTr("Show the menu bar background"); Switch_ { on: Settings.appearance.menuBarBackground; onFlipped: root.set("appearance.menuBarBackground", !on) } }
+                Row_ { label: qsTr("Tray icons as symbols"); Switch_ { on: Settings.menubar.monoTray; onFlipped: root.set("menubar.monoTray", !on) } }
                 Row_ { label: qsTr("Battery percentage"); Switch_ { on: Settings.menubar.batteryPercent; onFlipped: root.set("menubar.batteryPercent", !on) } }
                 Row_ { label: qsTr("Now playing"); Switch_ { on: Settings.menubar.nowPlaying; onFlipped: root.set("menubar.nowPlaying", !on) } }
                 Row_ {
@@ -206,6 +209,32 @@ FloatingWindow {
                     Repeater {
                         model: ["always", "activities", "off"]
                         Choice { required property string modelData; text: modelData; on: Settings.island.show === modelData; onPicked: root.set("island.show", modelData) }
+                    }
+                }
+            }
+            // Sound
+            ColumnLayout {
+                visible: root.pane === "sound"
+                Layout.fillWidth: true
+                spacing: 14
+                Row_ {
+                    label: qsTr("Notification sound")
+                    Repeater {
+                        model: Chime.choices
+                        Choice {
+                            required property string modelData
+                            text: modelData
+                            on: Settings.sound.notification === modelData
+                            onPicked: { root.set("sound.notification", modelData); Chime.play(modelData); }
+                        }
+                    }
+                }
+                Row_ {
+                    label: qsTr("Alert volume")
+                    Slider {
+                        implicitWidth: 240
+                        value: Settings.sound.notificationVolume
+                        onMoved: v => root.set("sound.notificationVolume", Math.round(v * 100) / 100)
                     }
                 }
             }

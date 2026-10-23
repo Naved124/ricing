@@ -25,15 +25,19 @@ Item {
         layer.enabled: true
     }
     Rectangle {
+        id: ink
         anchors.fill: parent
-        visible: img.source != ""
+        visible: false
         color: root.color
         layer.enabled: true
-        layer.effect: MultiEffect {
-            maskEnabled: true
-            maskSource: img
-            maskThresholdMin: 0.1
-            maskSpreadAtMin: 0.3
-        }
+    }
+    MultiEffect {
+        anchors.fill: parent
+        visible: img.source != ""
+        source: ink
+        maskEnabled: true
+        maskSource: img
+        maskThresholdMin: 0.3
+        maskSpreadAtMin: 0.3
     }
 }

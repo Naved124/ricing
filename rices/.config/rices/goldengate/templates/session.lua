@@ -73,6 +73,11 @@ function GG.quit()
     for _, w in ipairs(app_windows(a.class)) do run(hl.dsp.window.close({ window = sel(w) })) end
 end
 
+-- the Dock's Quit: every window of one app, wherever they are
+function GG.quit_app(class)
+    for _, w in ipairs(app_windows(class)) do run(hl.dsp.window.close({ window = sel(w) })) end
+end
+
 -- ⌘M: into special:minimized (the Dock shows it and brings it back)
 function GG.minimize(address)
     local w = address and hl.get_window("address:" .. address) or hl.get_active_window()

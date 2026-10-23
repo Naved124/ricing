@@ -202,8 +202,8 @@ Shared:
 - `[motion]` bezier `bloom settle sink` and durations `open close move workspace
   scratchpad focus border_loop panel_in panel_out stagger`.
 - `[gtk]` `cursor_size`. The cursor isn't the rice's: it's one for every rice, by the
-  light (the one exception is `[meta] cursor`, a rice's own cursor for both modes:
-  Golden Gate's Apple one; leaving it brings the shared one back). `rice-render` sets
+  light (the one exception is `[meta] cursor`, a rice's own cursor for both modes; no
+  rice uses it now: Golden Gate wears the shared ones too). `rice-render` sets
   `gtk.cursor` to Bibata Modern Classic in light builds and Ice in dark ones (a palette
   that sets `[gtk] cursor` is an error), and `rice` applies Classic
   by day and Ice at night, in a dark-only rice and before any mode is chosen. It does
@@ -495,7 +495,8 @@ doesn't change with the accent.
 
 - **Themes:** MacTahoe GTK (every accent, translucent, built by `gg-theme install` into
   `~/.local/share/themes`), MacTahoe Kvantum (accent copies `GoldenGate[Dark]` in
-  `~/.config/Kvantum`), MacTahoe icons, the `macOS` cursor. Kvantum and qt6ct's `kvantum`
+  `~/.config/Kvantum`), MacTahoe icons, the shared Bibata cursors (Classic by day, Ice at night), SF Pro
+  Text and SF Mono for GTK and Qt (`gg-theme` writes qt6ct's fonts and restores the user's). Kvantum and qt6ct's `kvantum`
   style are Golden Gate's only: `gg-theme save` (the `enter` hook) keeps the user's
   values, `gg-theme restore` (the `leave` hook) puts them back exactly; "Kvantum was
   dropped" still holds for every other rice.
@@ -538,6 +539,13 @@ doesn't change with the accent.
   (one open at a time, `Shell.open`), given its screen's name as `at`; app icons are
   `common/AppIcon.qml`, symbols `common/Sym.qml` (MacTahoe's symbolic icons, recoloured).
   The shared entry points are all there (`launcher` is Spotlight, `center` Control Center).
+  The menu bar's two sides are frosted pills (`menubar/Pill.qml`, Hyprland's blur whatever
+  the glass), tray icons recoloured as symbols (`menubar.monoTray`). The Dock dodges windows
+  (no autohide, no reserved space): it slides away while a window on its workspace reaches
+  it. A click on the island opens `menubar/IslandCard.qml` (cover, controls, Beat's bars,
+  Spotify's synced lyrics from LRCLIB, `services/Lyrics.qml`). The desktop widgets
+  (`desk/Stats.qml`: system and weather, Open-Meteo, `services/Weather.qml`) are toggled
+  and dragged one by one. Notification sounds are `sounds/*.wav`, made by `tools/gg-sounds`.
 - **Wallpaper:** the shell draws it from `~/Pictures/Wallpapers` (shared with Satsuei);
   a `name-light.*` / `name-dark.*` pair is one wallpaper that crossfades with the mode
   (`gg wall set`).

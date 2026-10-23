@@ -1,7 +1,8 @@
 import QtQuick
 import qs.common
 
-// Text as the system sets it: SF Pro at the body size, in the label colour
+// Text as the system sets it: SF Pro Text at the body size, in the label
+// colour (large type sets font.family: Theme.fontDisplay, as Apple does from 20 pt)
 Text {
     property bool strong: false
     property bool secondary: false

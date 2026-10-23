@@ -13,7 +13,7 @@ Singleton {
     id: root
 
     // "" or one of: spotlight clipboard controlcenter notifications apps
-    // mission expose power keys apple
+    // mission expose power keys apple dockmenu island
     property string open: ""
     property string openScreen: ""
     function toggle(name) {
@@ -36,6 +36,8 @@ Singleton {
     property bool nightLight: saved.nightLight
     readonly property bool statsShown: saved.statsShown
     readonly property point statsAt: Qt.point(saved.statsX, saved.statsY)
+    readonly property bool weatherShown: saved.weatherShown
+    readonly property point weatherAt: Qt.point(saved.weatherX, saved.weatherY)
 
     function setDnd(on) { saved.dnd = on; }
     function setNightLight(on) {
@@ -52,6 +54,8 @@ Singleton {
     property string recKind: "screen"
     Timer { id: recLater; interval: 350; onTriggered: root.run(["rice-rec", "toggle", root.recKind]) }
     function moveStats(x, y) { saved.statsX = x; saved.statsY = y; }
+    function setWeatherShown(shown) { saved.weatherShown = shown; }
+    function moveWeather(x, y) { saved.weatherX = x; saved.weatherY = y; }
 
     // a detached command (gg, rice-rec, hyprctl …)
     function run(cmd) { Quickshell.execDetached(cmd); }
@@ -78,6 +82,9 @@ Singleton {
             property bool statsShown: false
             property real statsX: 0.04
             property real statsY: 0.62
+            property bool weatherShown: false
+            property real weatherX: 0.04
+            property real weatherY: 0.3
         }
     }
 }

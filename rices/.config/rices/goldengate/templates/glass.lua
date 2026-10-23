@@ -37,18 +37,23 @@ local glassed = {
     { "goldengate:osd",           "contour" },
     { "goldengate:keys",          "contour" },
 }
-if s.menubar then table.insert(glassed, { "goldengate:menubar", "alpha" }) end
+-- the menu bar's pills are always Frosted (Hyprland's blur), whatever the glass
 
--- Frosted is Hyprland's blur: wider and grainier as the clarity tints it;
--- Liquid keeps a little of it for what the plugin leaves alone (Launchpad,
--- Mission Control); Solid has none
+-- Frosted is Hyprland's blur, the deep milky frost of a premium glass: wide,
+-- many passes, a fine grain, lifted and saturated so the colour behind glows
+-- through. It stays on under Liquid (the menu bar's pills, Launchpad, Mission
+-- Control) and Solid (whose panels are opaque anyway): the menu bar is always frosted.
 hl.config({
     decoration = {
         blur = {
-            enabled = mode ~= "solid",
-            size    = math.floor(lerp(5, 12) + 0.5),
-            passes  = c < 0.3 and 3 or 4,
-            noise   = lerp(0.006, 0.02),
+            enabled           = true,
+            size              = math.floor(lerp(10, 14) + 0.5),
+            passes            = 4,
+            noise             = lerp(0.014, 0.024),
+            contrast          = 0.92,
+            brightness        = 1.0,
+            vibrancy          = 0.32,
+            vibrancy_darkness = 0.25,
         },
     },
 })
