@@ -54,7 +54,9 @@ the decisions already made and what has been verified. Step 0 is finished on the
   - Binds are `bind(key(...), action, "Group · what")` in `base.lua`.
   - Rice-only binds are GlobalShortcuts that only that rice's shell registers (Satsuei's
     `quickshell:satsuei-*`).
-- There is no `docs/goldengate/refs/` folder, so there are no reference screenshots.
+- `docs/goldengate/refs/` has three phone captures of Reddit posts (not committed): KDE Liquid
+  Glass over a wood wallpaper (strong edge refraction, clear centres), KDE MacTahoe light (white,
+  saturated frost, dock with squircle icons) and a frosted Dolphin. They are the look to match.
 - **hyprglass** (hyprnux/hyprglass, BSD-3) has stable `hyprland-X.Y` branches; `main` tracks
   hyprland-git.
   - **Lua:** `hg.config{...}`, `hg.layer("ns", {...})` and `hg.preset(...)`, guarded by
@@ -76,24 +78,35 @@ the decisions already made and what has been verified. Step 0 is finished on the
     There are also `stats` and `items`.
   - Re-check every name against the README of the branch you actually build.
 
-## Verified on the laptop (fill in at step 0)
+## Verified on the laptop (2026-10-23)
+
+`hyprctl version`: Hyprland 0.56.2 (tag v0.56.2). `qs --version`: Quickshell 0.3.2 (Arch `extra`).
+Every name was checked with `yay -Si`; "have" means it's already installed.
 
 | Want | `yay -Si` result / replacement |
 |---|---|
-| hyprland, quickshell (0.3+), xdg-desktop-portal-hyprland, xdg-desktop-portal-gtk | |
-| hypridle, hyprsunset, hyprpicker, qt6-shadertools, qt6-5compat | |
-| hyprliquid (AUR, fallback glass backend) | |
-| mactahoe-gtk-theme, mactahoe-icon-theme (or vinceliuice GitHub, all variants) | |
-| MacTahoe Kvantum, kvantum, qt6ct, apple_cursor | |
-| apple-fonts / otf-apple-sf-pro / otf-apple-sf-mono / otf-apple-ny / apple-sf-fonts | |
-| inter-font, ttf-jetbrains-mono | |
-| networkmanager, bluez, bluez-utils, upower, power-profiles-daemon | |
-| wireplumber, playerctl, brightnessctl, cava | |
-| awww (or what the repo uses), grim, slurp, satty, gpu-screen-recorder / wf-recorder | |
-| wl-clipboard, cliphist, plocate, fd, libqalculate, imagemagick, jq, inotify-tools | |
-| nautilus, sushi; terminal = kitty (the repo's) | |
-| hyprglass `.so` path (hyprpm) | |
-| hyprbars `.so` path (hyprpm) | |
+| hyprland, quickshell (0.3+), xdg-desktop-portal-hyprland, xdg-desktop-portal-gtk | all `extra`, have |
+| hypridle, hyprsunset, hyprpicker, qt6-shadertools, qt6-5compat | all `extra`, have |
+| hyprpm (not in the brief) | `extra` 0.56.2: Arch splits it out of `hyprland`; needed to build the plugins. **To install** |
+| hyprliquid (AUR, fallback glass backend) | `aur` 0.2.1. **To install** |
+| mactahoe-gtk-theme, mactahoe-icon-theme | `mactahoe-gtk-theme` `aur` 2026.09.10. `mactahoe-icon-theme` is gone: **`mactahoe-icon-theme-git`** (`aur`) instead. Every colour variant comes from vinceliuice's `install.sh` (`-c light -c dark -t all -o normal`, plus `-l` for libadwaita), run by `gg-theme install` into `~/.themes`, since the AUR build ships only the default variants |
+| MacTahoe Kvantum, kvantum, qt6ct, apple_cursor | no Kvantum MacTahoe package (`kvantum-theme-mactahoe*` missing): taken from **vinceliuice/MacTahoe-kde**'s `Kvantum/` into `~/.config/Kvantum` by `gg-theme install`. `kvantum` `extra`, **to install**. `qt6ct` have. `apple_cursor` `aur` 2.0.1, **to install** |
+| apple-fonts / otf-apple-sf-pro / otf-apple-sf-mono / otf-apple-ny / apple-sf-fonts | all five exist in `aur`. Picked **`otf-apple-sf-pro`, `otf-apple-sf-mono`, `otf-apple-ny`** (Apple's DMGs, SF Pro includes Rounded). **To install** |
+| inter-font, ttf-jetbrains-mono | `inter-font` `extra`, **to install**; `ttf-jetbrains-mono` have |
+| networkmanager, bluez, bluez-utils, upower, power-profiles-daemon | all `extra`, have |
+| wireplumber, playerctl, brightnessctl, cava | all `extra`, have |
+| awww (or what the repo uses), grim, slurp, satty, gpu-screen-recorder / wf-recorder | `awww` `extra`, have (it replaced `swww`; the shell draws Golden Gate's wallpaper itself, like the other rices). `grim`, `slurp`, `satty`, `wf-recorder` have. `gpu-screen-recorder` `extra`, **to install** |
+| wl-clipboard, cliphist, plocate, fd, libqalculate, imagemagick, jq, inotify-tools | all `extra`; `plocate` **to install**, the rest have |
+| nautilus, sushi; terminal = kitty (the repo's) | `nautilus` have, `sushi` `extra` **to install**, `kitty` have |
+| plugin build deps: cmake meson cpio pkgconf git gcc | all have |
+| hyprglass `.so` path (hyprpm) | branch `hyprland-0.56` (7fc3280) exists. Path filled in after `hyprpm update` |
+| hyprbars `.so` path (hyprpm) | filled in after `hyprpm update` |
+
+Install command (needs sudo, so the user runs it):
+
+    yay -S --needed hyprpm hyprliquid mactahoe-gtk-theme mactahoe-icon-theme-git kvantum \
+        apple_cursor otf-apple-sf-pro otf-apple-sf-mono otf-apple-ny inter-font \
+        gpu-screen-recorder plocate sushi
 
 ## How it fits the repo
 
