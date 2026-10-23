@@ -1,7 +1,7 @@
 import QtQuick
 import qs.common
 
-// a desktop widget: glass, dragged anywhere in `area`, its place (`at`, as
+// a desktop widget: glass (frosting a copy of the wallpaper itself), dragged anywhere in `area`, its place (`at`, as
 // fractions of the room left around it) reported when dropped
 GlassPane {
     id: w
@@ -9,6 +9,7 @@ GlassPane {
     property point at
     signal moved(real fx, real fy)
     radius: 22
+    ownFrost: true
     x: area ? at.x * (area.width - width) : 0
     y: area ? at.y * (area.height - height) : 0
     DragHandler {

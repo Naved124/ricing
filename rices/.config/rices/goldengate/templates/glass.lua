@@ -32,13 +32,13 @@ local glassed = {
     { "goldengate:dock",          "contour" },
     { "goldengate:controlcenter", "contour" },
     { "goldengate:notifications", "contour" },
-    { "goldengate:widgets",       "contour" },
     { "goldengate:spotlight",     "contour" },
     { "goldengate:osd",           "contour" },
     { "goldengate:keys",          "contour" },
     { "goldengate:switcher",      "contour" },
 }
--- the menu bar's pills are always Frosted (Hyprland's blur), whatever the glass
+-- the menu bar's pills are always Frosted (Hyprland's blur), whatever the glass;
+-- the desktop widgets frost themselves (desk/Widget.qml)
 
 -- Frosted is Hyprland's blur, the deep milky frost of a premium glass: wide,
 -- many passes, a fine grain, saturated so the colour behind glows through,

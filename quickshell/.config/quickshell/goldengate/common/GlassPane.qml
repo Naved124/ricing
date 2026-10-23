@@ -20,6 +20,9 @@ Item {
     // the pane's window sits on it
     property var screen: null
     property point windowOrigin: Qt.point(0, 0)
+    // frosts a copy of the wallpaper itself rather than Hyprland's blur or a
+    // plugin (the desktop widgets: nothing but the wallpaper lies under them)
+    property bool ownFrost: false
     // false while the pane is hidden: Accurate takes its still as it opens
     property bool opened: true
     default property alias content: inner.data
@@ -39,13 +42,14 @@ Item {
     Loader {
         id: liquid
         anchors.fill: parent
-        active: Theme.shaderGlass
+        active: Theme.shaderGlass || root.ownFrost
         sourceComponent: LiquidLayer {
             pane: root
             screen: root.screen
             windowOrigin: root.windowOrigin
             radius: root.radius
             opened: root.opened
+            frost: root.ownFrost && !Theme.shaderGlass
         }
     }
 

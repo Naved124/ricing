@@ -341,8 +341,8 @@ function GG.bars()
         enabled                    = true,
         bar_height                 = bar_height,
         bar_part_of_window         = true,
-        -- the bar takes the window's opacity (kitty's glass), so it is frosted
-        -- like the window, not clear over whatever lies behind
+        -- frosted, like the menu bar's pills: Hyprland's blur behind its tint
+        -- (hypr-mode.lua), whatever the glass
         bar_blur                   = true,
         bar_precedence_over_border = true,
         bar_title_enabled          = true,

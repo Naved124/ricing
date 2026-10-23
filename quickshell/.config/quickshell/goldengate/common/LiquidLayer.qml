@@ -21,6 +21,8 @@ Item {
     // Accurate: a still of the screen, taken again each time the pane opens
     property bool accurate: Settings.glass.accurate
     property bool opened: true
+    // plain frost: no bend at the rim, blurred whatever the clarity
+    property bool frost: false
     readonly property real pad: 24
     // while the still is taken: the pane hides so the capture doesn't see it
     readonly property bool capturing: shot.active
@@ -38,6 +40,12 @@ Item {
     onWindowOriginChanged: place()
     onWidthChanged: Qt.callLater(place)
     onHeightChanged: Qt.callLater(place)
+    // a dragged pane (the desktop widgets) takes its picture along
+    Connections {
+        target: root.pane
+        function onXChanged() { root.place() }
+        function onYChanged() { root.place() }
+    }
     // the pane's first frames are nearly transparent: the still is what's behind
     onOpenedChanged: if (opened) { place(); if (accurate) take(); }
     // an open pane would only see itself: the still waits for its next opening
@@ -118,9 +126,9 @@ Item {
         property var soft: soft
         property size size: Qt.size(root.width, root.height)
         property real radius: root.radius
-        property real rim: Math.min(22, Math.min(root.width, root.height) * 0.3)
+        property real rim: root.frost ? 0.5 : Math.min(22, Math.min(root.width, root.height) * 0.3)
         property real pad: root.pad
-        property real clarity: Theme.clarity
+        property real clarity: root.frost ? 1 : Theme.clarity
         property real dark: Theme.k
         fragmentShader: Qt.resolvedUrl("../shaders/liquid.frag.qsb")
     }
