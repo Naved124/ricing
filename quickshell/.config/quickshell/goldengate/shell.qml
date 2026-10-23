@@ -86,8 +86,11 @@ ShellRoot {
     }
 
     // base.lua's shell binds
-    GlobalShortcut { name: "launcher"; description: "Spotlight"; onPressed: Shell.toggle("spotlight") }
-    GlobalShortcut { name: "launcher-tap"; description: "Spotlight (Super on its own)"; onPressed: Shell.toggle("spotlight") }
+    GlobalShortcut { name: "launcher"; description: "Spotlight"; onPressed: { shell.launcherAt = Date.now(); Shell.toggle("spotlight"); } }
+    // keyd's tap of Super arrives as Super+Space and then Super's release:
+    // the release right after the launcher mustn't close it again
+    property real launcherAt: 0
+    GlobalShortcut { name: "launcher-tap"; description: "Spotlight (Super on its own)"; onPressed: if (Date.now() - shell.launcherAt > 400) Shell.toggle("spotlight") }
     GlobalShortcut { name: "clipboard"; description: "Clipboard history"; onPressed: Shell.toggle("clipboard") }
     GlobalShortcut { name: "center"; description: "Control Center"; onPressed: Shell.toggle("controlcenter") }
     GlobalShortcut { name: "keybinds"; description: "The key sheet"; onPressed: Shell.toggle("keys") }
