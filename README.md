@@ -291,7 +291,6 @@ rice logout          end the session and go back to the login screen
 rice system          re-theme the boot menu, splash and login screen: Satsuei, or --rice NAME (sudo)
 rice-shot region     screenshot (also: screen, window, edit)
 rice-rec toggle      record the screen to ~/Videos, again to stop (also: region)
-rice-notion check    is the Notion widget's token good, and what do its databases hold
 ```
 
 ### Keys
@@ -559,49 +558,6 @@ Every changed file is backed up to `/var/backups/rice/<time>/` first. After swit
 `hyprshutdown`, which closes apps gracefully (install it for that), else Hyprland's exit.
 If the session is still up a few seconds later, it ends it with
 `loginctl terminate-session`, so you always land back on the login screen.
-
-## Notion
-
-Every rice has the same Notion widget, from the shared shell: a **card on the desk** (under
-the windows, hidden behind a fullscreen window) and a **panel** over everything. The
-control centre's **Notion** tile shows or hides the card; right-click it to open the panel
-(or `qs -c rice ipc call notion toggle|open`). Both wear the active rice's colours, fonts
-and corners and change with light and dark.
-
-- **The card:** today's date, how many tasks are overdue, due today and open, the next six
-  tasks (tick them off; overdue ones in red), the next thing on the agenda, and a line to
-  add a task. `call mum @tomorrow`, `@fri`, `@+3` or `@2026-11-02` sets its due date.
-  Drag it by its header and it stays there. Right-click puts it away.
-- **The panel** (↗ on the card) has five tabs:
-  - **Tasks:** filter open, today, overdue or no date; tick; click a status to step it on;
-    add with a due date.
-  - **Agenda:** this week, by day.
-  - **Pinned:** a page's to-dos under their headings, with a progress bar.
-  - **Recent:** the pages last edited.
-  - **Capture:** a note for an inbox database (the first line is its title; Ctrl+Return
-    sends it).
-
-  Keys: 1–5 switch tabs, R refreshes, N starts a new task, Esc closes. A click on any
-  title opens it in Notion (in the browser, or the app with `app = true`).
-
-To set it up:
-
-1. Create an internal integration at [notion.so/my-integrations](https://www.notion.so/my-integrations)
-   and copy its secret.
-2. In Notion, open each database and page you want and add the integration under
-   ⋯ → Connections.
-3. Copy `~/.local/share/rice/notion.example.toml` to `~/.config/rice/notion.toml`, paste
-   in the token and the database links, name your properties (title, done as a checkbox
-   or a status, due date, status, priority), and `chmod 600` it.
-4. Run `rice-notion check`. It says whether the token works and whether each property was
-   found.
-
-One process, `rice-notion watch`, does all the talking to Notion. It runs only while the
-card or the panel is up, reads every 90 seconds (`refresh`), and writes ticks and new tasks
-straight away. A tick shows at once and the next read confirms it. Offline, the widget
-keeps the last read (`~/.cache/rice/notion.json`) and shows why it can't reach Notion. It
-backs off when Notion asks it to slow down. The token stays in your config and is never
-in this repo.
 
 ## Adding a rice
 

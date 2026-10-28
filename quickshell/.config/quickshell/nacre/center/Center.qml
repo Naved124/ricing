@@ -3,7 +3,6 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import Quickshell
 import Quickshell.Bluetooth
-import Quickshell.Io
 import Quickshell.Services.UPower
 import Quickshell.Wayland
 import qs
@@ -272,26 +271,6 @@ PanelWindow {
                             detail: on ? "On desktop" : "Hidden"
                             on: Shell.statsShown
                             onToggled: Shell.setStatsShown(!Shell.statsShown)
-                        }
-                        // Notion on the desk (the shared shell's card); right-click opens all of it
-                        Toggle {
-                            id: notionTile
-                            property bool shownNow: false
-                            width: parent.tile
-                            icon: "notion"
-                            name: "Notion"
-                            detail: on ? "On desktop · right: open" : "Hidden · right: open"
-                            on: shownNow
-                            onToggled: { shownNow = !shownNow; Quickshell.execDetached(["qs", "-c", "rice", "ipc", "call", "notion", "toggle"]); }
-                            onSecondary: { Shell.centerOpen = false; Quickshell.execDetached(["qs", "-c", "rice", "ipc", "call", "notion", "open"]); }
-                            // the shared shell keeps whether it shows; this reads it back
-                            FileView {
-                                path: (Quickshell.env("XDG_STATE_HOME") || Quickshell.env("HOME") + "/.local/state") + "/rice/notion.json"
-                                watchChanges: true
-                                printErrors: false
-                                onFileChanged: reload()
-                                onLoaded: { try { notionTile.shownNow = !!JSON.parse(text()).shown; } catch (e) {} }
-                            }
                         }
                     }
 
