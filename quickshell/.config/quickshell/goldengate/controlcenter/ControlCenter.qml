@@ -4,6 +4,7 @@ import QtQuick
 import QtQuick.Layouts
 import Quickshell
 import Quickshell.Bluetooth
+import Quickshell.Io
 import Quickshell.Services.UPower
 import qs.common
 import qs.services
@@ -98,6 +99,22 @@ Panel {
                 Layout.fillWidth: true
                 glyph: "▦"; title: qsTr("System"); detail: qsTr("On the desktop"); on: Shell.statsShown
                 onClicked: Shell.setStatsShown(!Shell.statsShown)
+            }
+            Tile {
+                id: notionTile
+                property bool shownNow: false
+                Layout.fillWidth: true
+                glyph: "N"; title: qsTr("Notion"); detail: shownNow ? qsTr("On the desktop") : qsTr("Right-click: open"); on: shownNow
+                onClicked: { shownNow = !shownNow; Quickshell.execDetached(["qs", "-c", "rice", "ipc", "call", "notion", "toggle"]); }
+                onMore: { Shell.closeAll(); Quickshell.execDetached(["qs", "-c", "rice", "ipc", "call", "notion", "open"]); }
+                // the shared shell keeps whether it shows; this reads it back
+                FileView {
+                    path: (Quickshell.env("XDG_STATE_HOME") || Quickshell.env("HOME") + "/.local/state") + "/rice/notion.json"
+                    watchChanges: true
+                    printErrors: false
+                    onFileChanged: reload()
+                    onLoaded: { try { notionTile.shownNow = !!JSON.parse(text()).shown; } catch (e) {} }
+                }
             }
             Tile {
                 Layout.fillWidth: true

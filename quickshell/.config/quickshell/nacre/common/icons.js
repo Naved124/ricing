@@ -54,7 +54,8 @@ var paths = {
     "keyboard":    '<rect x="2.5" y="6" width="19" height="12" rx="3"/><path d="M6 10h.01M9 10h.01M12 10h.01M15 10h.01M18 10h.01M8 14h8" stroke-width="2"/>',
     "brightness":  '<circle cx="12" cy="12" r="3.5"/><path d="M12 3v2.5M12 18.5V21M3 12h2.5M18.5 12H21M5.6 5.6l1.8 1.8M16.6 16.6l1.8 1.8M5.6 18.4l1.8-1.8M16.6 7.4l1.8-1.8"/>',
     "tray":        '<circle cx="6" cy="12" r="1.4" fill="C"/><circle cx="12" cy="12" r="1.4" fill="C"/><circle cx="18" cy="12" r="1.4" fill="C"/>',
-    "calendar":    '<rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/>'
+    "calendar":    '<rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/>',
+    "notion":      '<rect x="4" y="3.5" width="16" height="17" rx="3"/><path d="M9 16.5V7.5l6 9V7.5"/>'
 };
 
 // color: a QML color; SVG gets rgb() plus opacity (it can't read #aarrggbb)

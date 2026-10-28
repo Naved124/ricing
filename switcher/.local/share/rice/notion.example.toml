@@ -1,0 +1,34 @@
+# The Notion widget (every rice; the control centre's Notion tile shows it).
+# Copy this to ~/.config/rice/notion.toml, fill it in, `chmod 600` it, and run
+# `rice-notion check`. The widget re-reads it when it next starts (toggle it).
+#
+# 1. notion.so/my-integrations → New integration (internal) → copy its secret.
+# 2. In Notion, on each database and page below: ⋯ → Connections → add it.
+# 3. IDs can be pasted as links (Share → Copy link).
+
+token = ""                 # ntn_…  (or token_file = "~/.secrets/notion", or $NOTION_TOKEN)
+refresh = 90               # seconds between reads
+app = false                # true: open pages in the Notion app (notion://) instead of the browser
+
+[tasks]
+database = ""
+title = "Name"             # the title property
+done = "Done"              # a checkbox, or a status/select …
+done_value = "Done"        # … where this option means done
+todo_value = ""            # what unticking sets it back to ("" = the first other option)
+due = "Due"                # a date ("" for none)
+status = ""                # a status/select shown and set from the panel ("" for none)
+priority = ""              # a select ("" for none)
+
+[agenda]
+database = ""              # may be the tasks database
+title = "Name"
+date = "Date"
+days = 7                   # today and this many days on
+
+[inbox]
+database = ""              # quick capture goes here (the tasks database when blank)
+title = "Name"
+
+[pinned]
+page = ""                  # a page whose to-dos the widget shows and ticks

@@ -56,10 +56,12 @@ class SystemInstall(unittest.TestCase):
         shutil.copytree(REPO / "rices/.config/rices", rices,
                         ignore=shutil.ignore_patterns("build", "current"))
         (rices / "current").symlink_to("nacre")
-        subprocess.run([str(REPO / "render/.local/bin/rice-render"), "nacre", "-q"], check=True,
-                       env=dict(os.environ, RICE_DIR=str(rices), HOME=str(self.home),
-                                RICE_TEMPLATES=str(REPO / "render/.local/share/rice/templates"),
-                                RICE_INSTALL_ROOT=str(t / "inst")))
+        # the boot and login screens wear Satsuei whatever is active
+        for rice in ("nacre", "satsuei"):
+            subprocess.run([str(REPO / "render/.local/bin/rice-render"), rice, "-q"], check=True,
+                           env=dict(os.environ, RICE_DIR=str(rices), HOME=str(self.home),
+                                    RICE_TEMPLATES=str(REPO / "render/.local/share/rice/templates"),
+                                    RICE_INSTALL_ROOT=str(t / "inst")))
 
         (self.root / "boot").mkdir(parents=True)
         (self.root / "boot/limine.conf").write_text(LIMINE)

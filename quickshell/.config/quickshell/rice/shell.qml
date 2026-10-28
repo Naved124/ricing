@@ -13,6 +13,10 @@
 //   qs -c rice ipc call network open|close|toggle
 //                                              the network widget (each rice's Wi-Fi tile:
 //                                              right-click or double-click)
+//   qs -c rice ipc call notion show|hide|toggle the Notion card on the desk (each rice's
+//                                              Notion tile; its right-click: open)
+//   qs -c rice ipc call notion open|close|refresh
+//                                              the whole Notion widget; read Notion now
 
 import QtQuick
 import Quickshell
@@ -29,6 +33,8 @@ ShellRoot {
 
     Chooser { id: chooser }
     Network { id: network }
+    NotionCard {}
+    NotionPanel {}
 
     Variants {
         id: frames
@@ -41,6 +47,17 @@ ShellRoot {
         function open(): void { network.open = true; }
         function close(): void { network.open = false; }
         function toggle(): void { network.toggle(); }
+    }
+
+    IpcHandler {
+        target: "notion"
+        function show(): void { Notion.setShown(true); }
+        function hide(): void { Notion.setShown(false); }
+        function toggle(): void { Notion.setShown(!Notion.shown); }
+        function open(): void { Notion.panelOpen = true; }
+        function close(): void { Notion.panelOpen = false; }
+        function refresh(): void { Notion.refresh(); }
+        function shown(): bool { return Notion.shown; }
     }
 
     IpcHandler {

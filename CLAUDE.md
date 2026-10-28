@@ -37,12 +37,13 @@ user-facing guide; this file is the contract every rice has to keep.
 | `render/.local/bin/rice-render` | template engine: palette → `build/light/`, `build/dark/` + app configs |
 | `render/.local/share/rice/templates/` | templates shared by all rices (use `roles.*` only) |
 | `switcher/.local/bin/rice` | `rice <name>`, `rice next`, `rice choose`, `rice lock`, `rice session`, … |
-| `quickshell/.config/quickshell/rice/` | shared shell (`qs -c rice`): chooser + switch freeze/dissolve overlay, survives switches |
+| `quickshell/.config/quickshell/rice/` | shared shell (`qs -c rice`): chooser + switch freeze/dissolve overlay, the network and Notion widgets; survives switches |
 | `quickshell/.config/quickshell/nacre/` | Nacre's own shell: bar, the island (`bar/Island.qml`: time, media, notifications), launcher, centre, OSD, notifs, lock, power, key sheet, wallpaper, the system card (`desk/Stats.qml`) |
 | `quickshell/.config/quickshell/paper/` | Paper's own shell (same entry points); `common/Theme.qml` is generated, `common/Sheet.qml` is the paper every panel is cut from |
 | `quickshell/.config/quickshell/abyss/` | Abyss's own shell (same entry points); `reef/` is the live wallpaper (below), `common/Glass.qml` the glass every panel is |
 | `quickshell/.config/quickshell/satsuei/` | Satsuei's own shell (same entry points; the exceptions are under "Satsuei" below); `common/Theme.qml` reads `theme.json`, `common/Style.qml` is generated |
 | `quickshell/.config/quickshell/goldengate/` | Golden Gate's shell (macOS 27; the exceptions are under "Golden Gate" below); `common/Theme.qml` is generated, `services/Settings.qml` reads `~/.config/goldengate/settings.json` |
+| `switcher/.local/bin/rice-notion` | the Notion widget's one link to Notion (stdlib; `watch` for the shell, `check`, `add`, `capture`); settings and token in `~/.config/rice/notion.toml`, example in `switcher/.local/share/rice/notion.example.toml` |
 | `switcher/.local/bin/gg`, `gg-theme` | Golden Gate's one entry point (`gg appearance`, `gg accent`, `gg glass`, …) and its app themes (MacTahoe GTK and Kvantum, saved and restored) |
 | `switcher/.local/bin/satsuei-wall` | Satsuei's look from a wallpaper: matugen → `~/.local/state/satsuei/theme.json` + the palette overlay, the light source, the blur maps |
 | `fonts/.local/share/fonts/paper/` | Paper's vendored OFL fonts with their licences |
@@ -170,6 +171,14 @@ differ. The pieces are listed in the checklist below.
   (`rice/Network.qml` + `Wifi.qml`, nmcli; `qs -c rice ipc call network open`), dressed
   in the active rice; the trays leave network applets out, so the bar has one network
   mark. `system/install --network` puts NetworkManager on iwd.
+- **Notion**: every control centre has a Notion tile. A click runs `qs -c rice ipc call
+  notion toggle` and a right-click `notion open`. The tile's state comes from
+  `~/.local/state/rice/notion.json`, which the shared shell writes. The widget itself is
+  the shared shell's (`rice/Notion.qml` service, `NotionCard.qml` on the desk's bottom
+  layer, `NotionPanel.qml` over everything, `NotionLook.qml` its dress). It is fed by one
+  `rice-notion watch`, which runs only while the card or panel is up: JSON snapshots on its
+  stdout, JSON commands on its stdin. Ticks are optimistic (`Notion.pending`) until the
+  next snapshot. Never put a token or a database ID in the repo.
 - **Desk**: the system card on the bottom layer, draggable, its place and visibility
   remembered; it hides while that monitor has a fullscreen window.
 - **Mode**: every shell colour crossfades with `Theme.k`; nothing in a shell is fixed

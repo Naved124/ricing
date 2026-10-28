@@ -540,7 +540,7 @@ class Island(unittest.TestCase):
                   "Do Not Disturb": "Shell.setDnd(", "night light": "Shell.setNightLight(", "microphone": "Audio.toggleMic()",
                   "power profile": "PowerProfiles.profile =", "caffeine": "Shell.caffeine = !Shell.caffeine",
                   "screenshot": '"rice-shot", "region"', "recording": 'Shell.toggleRecording("region")',
-                  "system card": "Shell.setStatsShown(", "volume to 150%": "1.5|150"}
+                  "system card": "Shell.setStatsShown(", "Notion": '"notion", "toggle"', "volume to 150%": "1.5|150"}
         for shell in ("nacre", "paper", "abyss", "satsuei", "goldengate"):
             folder = "controlcenter" if shell == "goldengate" else "center"
             center = "".join(f.read_text() for f in (self.SHELLS / shell / folder).glob("*.qml"))
