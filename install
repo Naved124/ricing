@@ -86,7 +86,7 @@ fi
 if [ "$uninstall" = 1 ]; then
     have stow || die "stow is needed to remove the links"
     step "Removing the links"
-    run systemctl --user disable --now rice-mode.timer rice-auto.timer 2>/dev/null || true
+    run systemctl --user disable --now rice-mode.timer rice-auto.timer desk-sync.timer 2>/dev/null || true
     run stow -D -d "$repo" -t "$HOME" "${packages[@]}"
     [ "$(git -C "$repo" config core.hooksPath 2>/dev/null)" = .githooks ] \
         && run git -C "$repo" config --unset core.hooksPath
@@ -630,8 +630,11 @@ if have systemctl && systemctl --user show-environment >/dev/null 2>&1; then
     # it only acts once `rice mode auto` is on
     run systemctl --user enable --now rice-mode.timer
     ok "the auto-mode timer is enabled (turn auto mode on with: rice mode auto)"
+    # Desk: syncs every 5 minutes once its Notion credential is in the keyring
+    run systemctl --user enable --now desk-sync.timer
+    ok "the Desk sync timer is enabled (credential: secret-tool store --label=\"Desk Notion\" service desk-notion)"
 else
-    warn "no systemd user session; skipping the auto-mode timer"
+    warn "no systemd user session; skipping the auto-mode and Desk timers"
 fi
 
 # auto mode's settings: yours to edit, so copied once and never overwritten
