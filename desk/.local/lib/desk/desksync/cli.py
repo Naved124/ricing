@@ -4,6 +4,14 @@
     desk-sync sync                          read every source into the cache
     desk-sync sync --dry-run [--out FILE]   the same from tests/fixtures/desk, no network;
                                             prints the cache unless --out
+    desk-sync toggle PAGE_ID                queue Done flipped on a task from the last sync
+    desk-sync capture -- TEXT               queue a new task (or `idea: …` for the Idea inbox)
+    desk-sync run                           apply the queue, then sync (what the timer runs)
+    desk-sync now                           start a run in the background
+
+toggle and capture refuse anything the allowlist (allow.py) doesn't cover, with
+exit status 3 and the reason on stderr. DESK_DRY_RUN=<fixture folder> makes
+run answer from fixtures and record writes instead of sending them.
 """
 
 from __future__ import annotations
@@ -11,10 +19,12 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import subprocess
+import sys
 from datetime import datetime
 from pathlib import Path
 
-from . import config, fixtures, secret, sync
+from . import allow, config, fixtures, queue, secret, store, sync
 from .config import Config
 from .log import log
 from .notion import Client, http_transport
@@ -38,6 +48,12 @@ def parser() -> argparse.ArgumentParser:
     s.add_argument("--dry-run", action="store_true", help="answer from fixture JSON, no network")
     s.add_argument("--fixtures", type=Path, default=FIXTURES, help="the fixture folder (--dry-run)")
     s.add_argument("--out", type=Path, help="write the cache here instead (--dry-run prints it otherwise)")
+    t = sub.add_parser("toggle", help="queue Done flipped on a Today task")
+    t.add_argument("page")
+    c = sub.add_parser("capture", help="queue a new Today task, or an idea with `idea:`")
+    c.add_argument("text", nargs="+")
+    sub.add_parser("run", help="apply the queue, then sync")
+    sub.add_parser("now", help="start a run in the background")
     return p
 
 
@@ -82,6 +98,69 @@ def do_sync(cfg: Config, args) -> int:
     return sync.run(cfg, client, now(), log)
 
 
+def kick() -> None:
+    """Start a run without waiting: the hardened service if there is one, else ourselves."""
+    if os.environ.get("DESK_NO_KICK"):
+        return
+    try:
+        r = subprocess.run(["systemctl", "--user", "start", "--no-block", "desk-sync.service"],
+                           capture_output=True, timeout=10)
+        if r.returncode == 0:
+            return
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        pass
+    subprocess.Popen([sys.executable, os.path.realpath(sys.argv[0]), "run"], start_new_session=True,
+                     stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+
+def run_client(cfg: Config) -> Client:
+    """The live client, or with DESK_DRY_RUN a fixture one whose writes go to writes.json."""
+    if os.environ.get("DESK_DRY_RUN"):
+        writes: list = []
+        client = Client(fixtures.transport(cfg, Path(os.environ["DESK_DRY_RUN"]), writes), rate=1000,
+                        retries=0, log=log)
+        client.writes = writes
+        return client
+    return client_for(cfg, secret.read())
+
+
+def do_run(cfg: Config) -> int:
+    with queue.locked(cfg, "run.lock", block=False) as got:
+        if not got:
+            log("a run is already going")
+            return 0
+        try:
+            client = run_client(cfg)
+        except secret.SecretError as e:
+            return sync.run(cfg, None, now(), log, failure=e)
+        code = 0
+        for _ in range(3):
+            items = queue.take(cfg)
+            old = store.read(cfg.cache_file) or sync.empty()
+            retry, errors = queue.apply(cfg, allow.Writer(cfg, client), old, items, now(), log)
+            queue.put_back(cfg, retry)
+            code = sync.run(cfg, client, now(), log, errors=queue.keep(old.get("errors", []), errors))
+            if retry or not store.read(cfg.queue_file, []):
+                break
+        if getattr(client, "writes", None):
+            store.write(cfg.state_dir / "writes.json", [{"method": m, "path": p, "body": b}
+                                                        for m, p, b in client.writes])
+        return code
+
+
+def enqueue(cfg: Config, args) -> int:
+    try:
+        if args.cmd == "toggle":
+            print(queue.toggle(cfg, store.read(cfg.cache_file), args.page, now()))
+        else:
+            print(queue.capture(cfg, " ".join(args.text), now()))
+    except allow.Refused as e:
+        log(f"refused: {e}")
+        return 3
+    kick()
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     args = parser().parse_args(argv)
     try:
@@ -93,4 +172,10 @@ def main(argv: list[str] | None = None) -> int:
         return check(cfg)
     if args.cmd == "sync":
         return do_sync(cfg, args)
+    if args.cmd in ("toggle", "capture"):
+        return enqueue(cfg, args)
+    if args.cmd == "run":
+        return do_run(cfg)
+    if args.cmd == "now":
+        kick()
     return 0
