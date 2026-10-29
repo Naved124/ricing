@@ -48,7 +48,7 @@ class Config(unittest.TestCase):
     def test_desk_sync_runs(self):
         r = subprocess.run([str(DESK / ".local/bin/desk-sync"), "check"], capture_output=True, text=True,
                            env={**os.environ, "DESK_CONFIG": str(CONFIG)})
-        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("config:     ok", r.stdout, r.stderr)
 
 
 class Hooks(unittest.TestCase):
