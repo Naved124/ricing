@@ -1,0 +1,51 @@
+[Unit]
+Description=Desk: apply the queue and sync the Notion Desk page for the shells
+After=graphical-session.target
+PartOf=graphical-session.target
+
+[Service]
+Type=oneshot
+ExecStart=%h/.local/bin/desk-sync run
+TimeoutStartSec=120
+Environment=PYTHONDONTWRITEBYTECODE=1
+UMask=0077
+
+# The two folders it writes: ~/.cache/desk (the cache) and ~/.local/state/desk
+# (the queue). systemd creates them 0700 and leaves only them writable.
+CacheDirectory=desk
+CacheDirectoryMode=0700
+StateDirectory=desk
+StateDirectoryMode=0700
+ReadWritePaths=%C/desk %S/desk
+
+# Hardening. PrivateUsers is a user namespace in which only this user exists
+# (the mount options imply it in a user unit anyway); the session bus still
+# answers, so secret-tool reaches the keyring over AF_UNIX at /run/user/UID/bus.
+# KeyringMode is the kernel's keyring, not gnome-keyring. Left out, because a
+# user unit can't have them: IPAddressDeny (needs BPF as root), ProtectProc and
+# ProcSubset (system services only). PrivateNetwork would cut Notion off.
+PrivateUsers=yes
+KeyringMode=private
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=read-only
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+RemoveIPC=yes
+CapabilityBoundingSet=
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged @resources
+SystemCallErrorNumber=EPERM

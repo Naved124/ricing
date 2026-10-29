@@ -1,0 +1,11 @@
+[Unit]
+Description=Desk: sync the Notion Desk page every 5 minutes
+PartOf=graphical-session.target
+
+[Timer]
+OnActiveSec=20s
+OnUnitActiveSec=5min
+AccuracySec=30s
+
+[Install]
+WantedBy=timers.target
