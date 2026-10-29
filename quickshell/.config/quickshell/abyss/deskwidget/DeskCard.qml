@@ -196,11 +196,17 @@ PanelWindow {
         }
     }
 
-    // the rest of the screen, while resizing: a click there ends it
+    // the rest of the screen, while resizing: a click there ends it. A press
+    // on the card or its dots is left alone, or this would take it from the
+    // card's drag and the card couldn't be moved while resizing.
     MouseArea {
         id: cover
         anchors.fill: parent
         enabled: win.resizing
+        onPressed: mouse => {
+            const p = mapToItem(card, mouse.x, mouse.y);
+            mouse.accepted = p.x < -14 || p.y < -14 || p.x > card.width + 14 || p.y > card.height + 14;
+        }
         onClicked: DeskState.cardResizing = false
     }
 
