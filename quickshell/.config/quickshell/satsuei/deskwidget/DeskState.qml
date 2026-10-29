@@ -15,7 +15,7 @@ import Quickshell.Io
 //
 // An edit shows at once, laid over the cache, and is taken back if desk-sync
 // refuses it, the cache reports it failed, or two syncs go by without it.
-// Where the card sits, whether it shows, and the full view's database are in
+// Where the card sits, its size, whether it shows, and the full view's database are in
 // ~/.local/state/desk/ui.json, so every rice opens the Desk as the last left it.
 //
 // The same file in every shell (tests/test_desk_widget.py); a shell's look
@@ -71,8 +71,11 @@ Singleton {
     property string error: ""
     property bool syncing: false
 
-    // the card on the desktop (where it sits, 0..1 of the free space)
+    // the card on the desktop: where it sits (0..1 of the free space) and its
+    // size (a height of 0 follows what it holds, until it's first resized)
     property bool cardShown: true
+    property size cardSize: Qt.size(360, 0)
+    property bool cardResizing: false          // held: the outline and its dots are up
     property point cardAt: Qt.point(0.97, 0.62)       // clear of every rice's own desktop things
 
     // the full view, on one screen at a time (its name), and the capture line
@@ -104,6 +107,10 @@ Singleton {
     }
     function setHideFinished(on) { hideFinished = on; saveUi(); }
     function setCardShown(on) { cardShown = on; saveUi(); }
+    function setCardSize(w, h) {
+        cardSize = Qt.size(Math.max(0, Math.round(w)), Math.max(0, Math.round(h)));
+        saveUi();
+    }
     function setCardAt(x, y) {
         cardAt = Qt.point(Math.max(0, Math.min(1, x)), Math.max(0, Math.min(1, y)));
         saveUi();
@@ -114,7 +121,8 @@ Singleton {
         captureOpen = true;
     }
     function saveUi() {
-        ui.setText(JSON.stringify({ cardShown: cardShown, cardX: cardAt.x, cardY: cardAt.y, source: source,
+        ui.setText(JSON.stringify({ cardShown: cardShown, cardX: cardAt.x, cardY: cardAt.y,
+                                    cardW: cardSize.width, cardH: cardSize.height, source: source,
                                     hideFinished: hideFinished }) + "\n");
     }
 
@@ -386,6 +394,8 @@ Singleton {
                 if (typeof u.cardShown === "boolean") root.cardShown = u.cardShown;
                 if (typeof u.cardX === "number" && typeof u.cardY === "number")
                     root.cardAt = Qt.point(Math.max(0, Math.min(1, u.cardX)), Math.max(0, Math.min(1, u.cardY)));
+                if (typeof u.cardW === "number" && typeof u.cardH === "number" && u.cardW > 0)
+                    root.cardSize = Qt.size(u.cardW, Math.max(0, u.cardH));
                 if (typeof u.source === "string") root.source = u.source;
                 if (typeof u.hideFinished === "boolean") root.hideFinished = u.hideFinished;
             } catch (e) {}

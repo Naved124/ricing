@@ -11,7 +11,9 @@ Item {
     readonly property var steps: [
         () => console.warn("POKE:" + JSON.stringify({ tag: "found", source: DeskState.source, loaded: DeskState.loaded,
                                                        open: DeskState.open, synced: DeskState.doc.synced_at,
-                                                       card: DeskState.cardShown, x: DeskState.cardAt.x })),
+                                                       card: DeskState.cardShown, x: DeskState.cardAt.x,
+                                                       w: DeskState.cardSize.width, h: DeskState.cardSize.height })),
+        () => { DeskState.cardResizing = true; DeskState.setCardSize(520, 300); DeskState.cardResizing = false; },
         () => DeskState.openView("DP-1", "reading"),
         () => IpcRegistry.call("mode", "jump", "dark"),
         () => console.warn("POKE:" + JSON.stringify({ tag: "left", source: DeskState.source, view: DeskState.viewOpen,

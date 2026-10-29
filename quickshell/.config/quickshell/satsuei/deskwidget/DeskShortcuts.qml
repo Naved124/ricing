@@ -4,7 +4,7 @@ import Quickshell.Hyprland
 import Quickshell.Io
 
 // Desk's ways in, once per shell: Super+Shift+N (base.lua's
-// quickshell:desk-capture) and `qs -c <shell> ipc call desk view|card|capture|sync`.
+// quickshell:desk-capture) and `qs -c <shell> ipc call desk view|card|resize|capture|sync`.
 Item {
     id: root
 
@@ -23,6 +23,7 @@ Item {
         target: "desk"
         function view(): void { DeskState.toggleView(root.focused()); }
         function card(): void { DeskState.setCardShown(!DeskState.cardShown); }
+        function resize(): void { DeskState.cardResizing = !DeskState.cardResizing; }
         function capture(): void { DeskState.openCapture(root.focused()); }
         function sync(): void { DeskState.syncNow(); }
     }

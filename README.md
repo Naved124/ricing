@@ -434,8 +434,10 @@ and `/proc/meminfo` every 2 s and `df /` every 30 s (`services/Sys.qml`).
 Every rice also has a **Desk card** on the desktop: Notion's Desk page, mirrored. It shows
 Today's open tasks (tick the box to mark one done in Notion), what's counting down, and
 the start of the daily brief. Drag it anywhere, right-click to put it away; the control
-centre's Desk tile brings it back (right-click the tile to open everything). Its place
-is the same in every rice.
+centre's Desk tile brings it back (right-click the tile to open everything). **Hold it**
+for half a second to resize it, as on Android: drag the dot on any edge, click outside
+when done. It shows more as it grows, and from 620 px wide Today sits beside the rest.
+Its place and size are the same in every rice.
 
 **Click the card** for the full view: every database on the Desk page down the left
 (Today, Countdowns, Job hunt, Learning log, Habit tracker, Reading list, Fulgurite board,

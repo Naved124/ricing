@@ -169,6 +169,13 @@ class Capture(unittest.TestCase):
             self.assertEqual(text.count("DeskShortcuts"), 1, f"{shell}: one GlobalShortcut, not one per screen")
         self.assertIn('name: "desk-capture"', (SHELLS / WIRED[0] / "deskwidget/DeskShortcuts.qml").read_text())
 
+    def test_the_card_resizes_like_a_phone_widget(self):
+        card = (SHELLS / WIRED[0] / "deskwidget/DeskCard.qml").read_text()
+        for needle in ("onLongPressed: DeskState.cardResizing = true", "Handle { dx: -1 }", "Handle { dx: 1 }",
+                       "Handle { dy: -1 }", "Handle { dy: 1 }", "DeskState.setCardSize(", "mask: Region { item: win.resizing ? cover : card }"):
+            self.assertIn(needle, card)
+        self.assertIn("function resize(): void", (SHELLS / WIRED[0] / "deskwidget/DeskShortcuts.qml").read_text())
+
     def test_the_line_is_capped(self):
         text = (SHELLS / WIRED[0] / "deskwidget/DeskCapture.qml").read_text()
         self.assertIn("maximumLength: 200", text)
@@ -246,13 +253,16 @@ class Live(unittest.TestCase):
                 STUB_UI.unlink(missing_ok=True)
                 p = self.poke(a, "desk-switch.qml", 4.5)
                 self.assertEqual(p["found"]["source"], "today")
+                self.assertEqual((p["found"]["w"], p["found"]["h"]), (360, 0))      # its height follows what it holds
                 # the mode changed under the open view: same database, still open, same data
                 self.assertEqual((p["left"]["source"], p["left"]["view"], p["left"]["synced"]), ("reading", True, synced))
                 # what the real FileView would have written (the stand-in keeps writes in memory)
-                STUB_UI.write_text(json.dumps({"source": "reading", "cardShown": False, "cardX": 0.4, "cardY": 0.5}) + "\n")
+                STUB_UI.write_text(json.dumps({"source": "reading", "cardShown": False, "cardX": 0.4, "cardY": 0.5,
+                                               "cardW": 520, "cardH": 300}) + "\n")
                 found = self.poke(b, "desk-switch.qml", 3)["found"]
                 self.assertEqual((found["source"], found["loaded"], found["open"], found["synced"], found["card"], found["x"]),
                                  ("reading", True, 5, synced, False, 0.4))
+                self.assertEqual((found["w"], found["h"]), (520, 300))
 
     def test_offline_shows_the_badge_and_keeps_the_data(self):
         # the last good sync was 40 minutes ago; the latest attempt found no network
