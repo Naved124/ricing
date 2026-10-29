@@ -114,11 +114,12 @@ class Keyring(unittest.TestCase):
     def test_it_is_never_passed_on_a_command_line(self):
         self.assertNotIn(FAKE, " ".join(secret.LOOKUP))
         src = "".join(p.read_text() for p in (DESK / ".local/lib/desk/desksync").glob("*.py"))
-        self.assertNotIn("environ[", src.replace('environ["DESK_CONFIG"]', ""))
+        # desk-sync never sets an environment variable (children would inherit it)
+        self.assertNotRegex(src, r"environ\[[^\]]+\]\s*=[^=]|putenv|environ\.(update|setdefault)|env=")
 
 
 class Sync(unittest.TestCase):
-    def test_a_sync_writes_no_secret_into_the_cache_or_the_log(self):
+    def test_a_sync_writes_no_secret_into_the_cache_the_queue_or_the_log(self):
         from desksync import cli, fixtures
         from desksync.notion import Client
         seen = []
@@ -129,13 +130,15 @@ class Sync(unittest.TestCase):
                           log=lambda m: log(m, err))
         with tempfile.TemporaryDirectory() as t:
             err = io.StringIO()
-            env = {"DESK_CONFIG": str(CONFIG), "XDG_CACHE_HOME": f"{t}/c", "XDG_STATE_HOME": f"{t}/s"}
+            env = {"DESK_CONFIG": str(CONFIG), "XDG_CACHE_HOME": f"{t}/c", "XDG_STATE_HOME": f"{t}/s",
+                   "DESK_NO_KICK": "1"}
             saved = {k: os.environ.get(k) for k in env}
             os.environ.update(env)
             orig = (cli.secret.read, cli.client_for, cli.log)
             cli.secret.read, cli.client_for, cli.log = (lambda: FAKE), client_for, (lambda m: log(m, err))
             try:
                 self.assertEqual(cli.main(["sync"]), 0)
+                self.assertEqual(cli.main(["capture", "--", "a task"]), 0)
             finally:
                 cli.secret.read, cli.client_for, cli.log = orig
                 for k, v in saved.items():
@@ -143,6 +146,7 @@ class Sync(unittest.TestCase):
             self.assertEqual(seen, [FAKE])
             text = err.getvalue() + "".join(p.read_text() for p in Path(t).rglob("*") if p.is_file())
             self.assertIn("synced:", text)
+            self.assertIn("a task", text, "the queue was written and read")
             self.assertEqual(leaks(text), [])
 
 
