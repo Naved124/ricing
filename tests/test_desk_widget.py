@@ -23,7 +23,7 @@ sys.path.insert(0, str(REPO / "tests"))
 # the shells the widget is wired into
 WIRED = ["nacre"]
 SHARED = ["DeskState.qml", "DeskStyle.qml", "DeskText.qml", "DeskGlyph.qml", "DeskCheck.qml", "DeskButton.qml",
-          "DeskPill.qml", "DeskPanel.qml", "DeskToday.qml", "DeskBrief.qml", "DeskCountdowns.qml", "DeskJobs.qml"]
+          "DeskPill.qml", "DeskPanel.qml", "DeskCapture.qml", "DeskShortcuts.qml", "DeskToday.qml", "DeskBrief.qml", "DeskCountdowns.qml", "DeskJobs.qml"]
 STUB_CACHE = Path("/tmp/qsstub-home/.cache/desk/state.json")
 
 
@@ -107,6 +107,25 @@ class Untrusted(unittest.TestCase):
         self.assertIn('["desk-sync", "capture", "--", t]', state)
 
 
+class Capture(unittest.TestCase):
+    def test_the_bind(self):
+        base = (REPO / "hypr/.config/hypr/base.lua").read_text()
+        self.assertIn('bind(key("SHIFT + N"), hl.dsp.global("quickshell:desk-capture")', base)
+        # nothing else, shared or a rice's own, takes Super+Shift+N
+        lua = base + "".join(p.read_text() for p in (REPO / "rices/.config/rices").glob("*/templates/*.lua"))
+        self.assertEqual(len(re.findall(r'key\("SHIFT \+ N"\)|SUPER \+ SHIFT \+ N"', lua)), 1)
+        for shell in WIRED:
+            text = (SHELLS / shell / "shell.qml").read_text()
+            self.assertIn("DeskShortcuts {}", text, shell)
+            self.assertEqual(text.count("DeskShortcuts"), 1, f"{shell}: one GlobalShortcut, not one per screen")
+        self.assertIn('name: "desk-capture"', (SHELLS / WIRED[0] / "deskwidget/DeskShortcuts.qml").read_text())
+
+    def test_the_line_is_capped(self):
+        text = (SHELLS / WIRED[0] / "deskwidget/DeskCapture.qml").read_text()
+        self.assertIn("maximumLength: 200", text)
+        self.assertIn("Keys.onEscapePressed: DeskState.captureOpen = false", text)
+
+
 @unittest.skipUnless(has_pyside(), "needs PySide6")
 class Live(unittest.TestCase):
     """The shell under the stand-ins, reading a fixture cache from ~/.cache/desk."""
@@ -143,6 +162,18 @@ class Live(unittest.TestCase):
                 self.assertEqual(p["rolled"]["done"], False)
                 self.assertIn("refused", p["rolled"]["error"])
                 self.assertEqual((p["links"]["js"], p["links"]["http"], p["links"]["https"]), (False, False, True))
+
+    def test_capture_opens_on_the_focused_screen(self):
+        import qs_smoke
+        self.write_cache(datetime.now(timezone.utc).astimezone())
+        for shell in WIRED:
+            with self.subTest(shell):
+                errors, pokes = qs_smoke.smoke(SHELLS / shell, seconds=4, poke=REPO / "tests/pokes/desk-capture.qml")
+                self.assertEqual(errors, [])
+                p = {x["tag"]: x for x in pokes}
+                self.assertEqual((p["open"]["open"], p["open"]["screen"], p["open"]["panel"]), (True, "DP-1", False))
+                self.assertEqual((p["blank"]["sent"], p["real"]["sent"]), (False, True))
+                self.assertEqual((p["panel"]["panel"], p["panel"]["capture"]), (True, False))
 
     def test_offline_shows_the_badge_and_keeps_the_data(self):
         # the last good sync was 40 minutes ago; the latest attempt found no network

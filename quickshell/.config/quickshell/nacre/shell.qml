@@ -43,6 +43,11 @@ ShellRoot {
         model: Quickshell.screens
         DeskPanel {}
     }
+    Variants {
+        model: Quickshell.screens
+        DeskCapture {}
+    }
+    DeskShortcuts {}
 
     // follow the focused monitor
     Osd {}

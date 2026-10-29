@@ -84,6 +84,7 @@ reads them from `hyprctl binds -j`):
 | Super (tap) / Super+Space | launcher (`quickshell:launcher-tap` / `launcher`) |
 | Super+V | clipboard history (`quickshell:clipboard`) |
 | Super+N | control centre (`quickshell:center`) |
+| Super+Shift+N | quick capture to Notion's Desk (`quickshell:desk-capture`) |
 | Super+/ | key sheet (`quickshell:keybinds`) |
 | Super+Escape | power menu (`quickshell:power`) |
 | Super+L | lock (`rice lock`) |
