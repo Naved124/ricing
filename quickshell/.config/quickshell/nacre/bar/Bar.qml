@@ -4,6 +4,7 @@ import Quickshell
 import Quickshell.Wayland
 import qs
 import qs.common
+import qs.deskwidget
 import qs.services
 
 // The bar: a floating pill across the top, 38 tall, 12 px down, its ends
@@ -80,6 +81,12 @@ PanelWindow {
             // the island sits over the middle of the pill
             Item {
                 Layout.fillWidth: true
+            }
+
+            // Notion's Desk: open to-dos and the next countdown
+            DeskPill {
+                screenName: win.screen ? win.screen.name : ""
+                Layout.alignment: Qt.AlignVCenter
             }
 
             NetSpeed {
