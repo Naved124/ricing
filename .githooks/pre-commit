@@ -1,0 +1,11 @@
+#!/bin/sh
+# before a commit: gitleaks looks for credentials in what's staged
+if ! command -v gitleaks >/dev/null 2>&1; then
+    echo "pre-commit: gitleaks isn't installed (pacman -S gitleaks); committing unscanned" >&2
+    exit 0
+fi
+# gitleaks 8.19 moved `protect --staged` to `git --pre-commit --staged`
+if gitleaks git --help >/dev/null 2>&1; then
+    exec gitleaks git --pre-commit --staged --redact --no-banner .
+fi
+exec gitleaks protect --staged --redact --no-banner

@@ -30,7 +30,7 @@
 set -euo pipefail
 
 repo=$(cd "$(dirname "$0")" && pwd)
-packages=(switcher render rices hypr quickshell systemd fonts zsh audio)
+packages=(switcher render rices hypr quickshell systemd fonts zsh audio desk)
 backup="${XDG_STATE_HOME:-$HOME/.local/state}/rice/backup/$(date +%Y%m%d-%H%M%S)"
 fontdir="${XDG_DATA_HOME:-$HOME/.local/share}/fonts/rice"
 fonts_url="https://raw.githubusercontent.com/google/fonts/main/ofl"
@@ -124,11 +124,15 @@ optional=(
     sushi:sushi kvantummanager:kvantum sassc:sassc
     # Golden Gate: its notification sounds (PipeWire's player)
     pw-play:pipewire
+    # Desk: desk-sync reads its Notion credential from the keyring; the
+    # pre-commit hook scans for credentials
+    secret-tool:libsecret gitleaks:gitleaks
 )
 # Python modules, checked by import: Pillow regenerates Paper's paper textures
-# and wallpaper (rices/paper/assets/gen.py)
+# and wallpaper (rices/paper/assets/gen.py); httpx is desk-sync's HTTP client
 pymods=(
     "PIL|python-pillow"
+    "httpx|python-httpx"        # desk-sync talks to Notion with it
 )
 # themes the palettes name (checked by folder, since they aren't commands)
 themes=(
