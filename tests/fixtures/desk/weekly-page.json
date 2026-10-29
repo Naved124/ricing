@@ -1,0 +1,26 @@
+{
+ "object": "page",
+ "id": "408f77e4-2ad7-8136-b7c5-cea0fa47f693",
+ "parent": {
+  "type": "page_id",
+  "page_id": "408f77e4-2ad7-8183-8d0f-ef148f38e6f9"
+ },
+ "last_edited_time": "2026-10-26T00:00:00.000Z",
+ "url": "https://www.notion.so/408f77e42ad78136b7c5cea0fa47f693",
+ "properties": {
+  "title": {
+   "id": "title",
+   "type": "title",
+   "title": [
+    {
+     "type": "text",
+     "text": {
+      "content": "Weekly reviews"
+     },
+     "plain_text": "Weekly reviews",
+     "href": null
+    }
+   ]
+  }
+ }
+}

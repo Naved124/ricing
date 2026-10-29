@@ -6,10 +6,13 @@
                                             prints the cache unless --out
     desk-sync toggle PAGE_ID                queue Done flipped on a task from the last sync
     desk-sync capture -- TEXT               queue a new task (or `idea: …` for the Idea inbox)
+    desk-sync set SOURCE PAGE_ID PROP JSON  queue one property of a row (the full view's edits)
+    desk-sync new SOURCE JSON               queue a new row: {"Property": value, ...}
+    desk-sync trash SOURCE PAGE_ID          queue a row to Notion's trash
     desk-sync run                           apply the queue, then sync (what the timer runs)
     desk-sync now                           start a run in the background
 
-toggle and capture refuse anything the allowlist (allow.py) doesn't cover, with
+toggle, capture, set, new and trash refuse anything the allowlist (allow.py) doesn't cover, with
 exit status 3 and the reason on stderr. DESK_DRY_RUN=<fixture folder> makes
 run answer from fixtures and record writes instead of sending them.
 """
@@ -52,6 +55,17 @@ def parser() -> argparse.ArgumentParser:
     t.add_argument("page")
     c = sub.add_parser("capture", help="queue a new Today task, or an idea with `idea:`")
     c.add_argument("text", nargs="+")
+    e = sub.add_parser("set", help="queue one property of a row in a Desk database")
+    e.add_argument("source")
+    e.add_argument("page")
+    e.add_argument("prop")
+    e.add_argument("value", help="JSON: a string, number, true/false, null, a list of options or a date")
+    n = sub.add_parser("new", help="queue a new row in a Desk database")
+    n.add_argument("source")
+    n.add_argument("values", help='JSON: {"Property": value, ...}, the title among them')
+    d = sub.add_parser("trash", help="queue a row to Notion's trash")
+    d.add_argument("source")
+    d.add_argument("page")
     sub.add_parser("run", help="apply the queue, then sync")
     sub.add_parser("now", help="start a run in the background")
     return p
@@ -148,10 +162,24 @@ def do_run(cfg: Config) -> int:
         return code
 
 
+def json_arg(raw: str):
+    try:
+        return json.loads(raw)
+    except ValueError:
+        raise allow.Refused("that value isn't JSON") from None
+
+
 def enqueue(cfg: Config, args) -> int:
+    cache = store.read(cfg.cache_file)
     try:
         if args.cmd == "toggle":
-            print(queue.toggle(cfg, store.read(cfg.cache_file), args.page, now()))
+            print(queue.toggle(cfg, cache, args.page, now()))
+        elif args.cmd == "set":
+            print(queue.set_(cfg, cache, args.source, args.page, args.prop, json_arg(args.value), now()))
+        elif args.cmd == "new":
+            print(queue.new(cfg, cache, args.source, json_arg(args.values), now()))
+        elif args.cmd == "trash":
+            print(queue.trash(cfg, cache, args.source, args.page, now()))
         else:
             print(queue.capture(cfg, " ".join(args.text), now()))
     except allow.Refused as e:
@@ -172,7 +200,7 @@ def main(argv: list[str] | None = None) -> int:
         return check(cfg)
     if args.cmd == "sync":
         return do_sync(cfg, args)
-    if args.cmd in ("toggle", "capture"):
+    if args.cmd in ("toggle", "capture", "set", "new", "trash"):
         return enqueue(cfg, args)
     if args.cmd == "run":
         return do_run(cfg)

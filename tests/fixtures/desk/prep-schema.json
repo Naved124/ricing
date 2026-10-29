@@ -1,0 +1,125 @@
+{
+ "object": "data_source",
+ "id": "b5bde2aa-8633-4797-8805-71b76f0dac41",
+ "title": [
+  {
+   "type": "text",
+   "text": {
+    "content": "Interview prep bank"
+   },
+   "plain_text": "Interview prep bank",
+   "href": null
+  }
+ ],
+ "description": [],
+ "properties": {
+  "Question": {
+   "id": "p51",
+   "name": "Question",
+   "type": "title",
+   "title": {}
+  },
+  "Topic": {
+   "id": "p52",
+   "name": "Topic",
+   "type": "select",
+   "select": {
+    "options": [
+     {
+      "id": "o52-0",
+      "name": "Linux",
+      "color": "default"
+     },
+     {
+      "id": "o52-1",
+      "name": "Networking",
+      "color": "default"
+     },
+     {
+      "id": "o52-2",
+      "name": "AWS",
+      "color": "default"
+     },
+     {
+      "id": "o52-3",
+      "name": "Docker / K8s",
+      "color": "default"
+     },
+     {
+      "id": "o52-4",
+      "name": "Terraform",
+      "color": "default"
+     },
+     {
+      "id": "o52-5",
+      "name": "Security",
+      "color": "default"
+     },
+     {
+      "id": "o52-6",
+      "name": "RE / C / asm",
+      "color": "default"
+     },
+     {
+      "id": "o52-7",
+      "name": "DSA",
+      "color": "default"
+     },
+     {
+      "id": "o52-8",
+      "name": "Behavioral",
+      "color": "default"
+     }
+    ]
+   }
+  },
+  "Confidence": {
+   "id": "p53",
+   "name": "Confidence",
+   "type": "select",
+   "select": {
+    "options": [
+     {
+      "id": "o53-0",
+      "name": "Shaky",
+      "color": "default"
+     },
+     {
+      "id": "o53-1",
+      "name": "Okay",
+      "color": "default"
+     },
+     {
+      "id": "o53-2",
+      "name": "Solid",
+      "color": "default"
+     }
+    ]
+   }
+  },
+  "Answer": {
+   "id": "p54",
+   "name": "Answer",
+   "type": "rich_text",
+   "rich_text": {}
+  },
+  "Times asked": {
+   "id": "p55",
+   "name": "Times asked",
+   "type": "number",
+   "number": {}
+  },
+  "Last reviewed": {
+   "id": "p56",
+   "name": "Last reviewed",
+   "type": "date",
+   "date": {}
+  },
+  "From log": {
+   "id": "p57",
+   "name": "From log",
+   "type": "checkbox",
+   "checkbox": {}
+  }
+ }
+}

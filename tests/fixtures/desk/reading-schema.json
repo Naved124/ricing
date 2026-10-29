@@ -1,0 +1,166 @@
+{
+ "object": "data_source",
+ "id": "3d0fb9df-0045-4989-8789-a2582ec8efc1",
+ "title": [
+  {
+   "type": "text",
+   "text": {
+    "content": "Reading list"
+   },
+   "plain_text": "Reading list",
+   "href": null
+  }
+ ],
+ "description": [],
+ "properties": {
+  "Title": {
+   "id": "p38",
+   "name": "Title",
+   "type": "title",
+   "title": {}
+  },
+  "Type": {
+   "id": "p39",
+   "name": "Type",
+   "type": "select",
+   "select": {
+    "options": [
+     {
+      "id": "o39-0",
+      "name": "Webtoon",
+      "color": "default"
+     },
+     {
+      "id": "o39-1",
+      "name": "Paper",
+      "color": "default"
+     },
+     {
+      "id": "o39-2",
+      "name": "Book",
+      "color": "default"
+     },
+     {
+      "id": "o39-3",
+      "name": "Article",
+      "color": "default"
+     }
+    ]
+   }
+  },
+  "Status": {
+   "id": "p40",
+   "name": "Status",
+   "type": "status",
+   "status": {
+    "options": [
+     {
+      "id": "s40-0",
+      "name": "Want to read",
+      "color": "default"
+     },
+     {
+      "id": "s40-1",
+      "name": "Reading",
+      "color": "default"
+     },
+     {
+      "id": "s40-2",
+      "name": "Paused",
+      "color": "default"
+     },
+     {
+      "id": "s40-3",
+      "name": "Finished",
+      "color": "default"
+     },
+     {
+      "id": "s40-4",
+      "name": "Dropped",
+      "color": "default"
+     }
+    ],
+    "groups": [
+     {
+      "id": "g40-to_do",
+      "name": "To-do",
+      "color": "gray",
+      "option_ids": [
+       "s40-0"
+      ]
+     },
+     {
+      "id": "g40-in_progress",
+      "name": "In progress",
+      "color": "gray",
+      "option_ids": [
+       "s40-1",
+       "s40-2"
+      ]
+     },
+     {
+      "id": "g40-complete",
+      "name": "Complete",
+      "color": "gray",
+      "option_ids": [
+       "s40-3",
+       "s40-4"
+      ]
+     }
+    ]
+   }
+  },
+  "Rating": {
+   "id": "p41",
+   "name": "Rating",
+   "type": "select",
+   "select": {
+    "options": [
+     {
+      "id": "o41-0",
+      "name": "★",
+      "color": "default"
+     },
+     {
+      "id": "o41-1",
+      "name": "★★",
+      "color": "default"
+     },
+     {
+      "id": "o41-2",
+      "name": "★★★",
+      "color": "default"
+     },
+     {
+      "id": "o41-3",
+      "name": "★★★★",
+      "color": "default"
+     },
+     {
+      "id": "o41-4",
+      "name": "★★★★★",
+      "color": "default"
+     }
+    ]
+   }
+  },
+  "Last read": {
+   "id": "p42",
+   "name": "Last read",
+   "type": "date",
+   "date": {}
+  },
+  "Link": {
+   "id": "p43",
+   "name": "Link",
+   "type": "url",
+   "url": {}
+  },
+  "Where I stopped": {
+   "id": "p44",
+   "name": "Where I stopped",
+   "type": "rich_text",
+   "rich_text": {}
+  }
+ }
+}

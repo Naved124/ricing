@@ -1,0 +1,145 @@
+{
+ "object": "data_source",
+ "id": "18c68b50-45bc-4173-9cb4-b469aa3f6ac0",
+ "title": [
+  {
+   "type": "text",
+   "text": {
+    "content": "Job hunt"
+   },
+   "plain_text": "Job hunt",
+   "href": null
+  }
+ ],
+ "description": [],
+ "properties": {
+  "Role": {
+   "id": "p13",
+   "name": "Role",
+   "type": "title",
+   "title": {}
+  },
+  "Company": {
+   "id": "p14",
+   "name": "Company",
+   "type": "rich_text",
+   "rich_text": {}
+  },
+  "Status": {
+   "id": "p15",
+   "name": "Status",
+   "type": "status",
+   "status": {
+    "options": [
+     {
+      "id": "s15-0",
+      "name": "To apply",
+      "color": "default"
+     },
+     {
+      "id": "s15-1",
+      "name": "Applied",
+      "color": "default"
+     },
+     {
+      "id": "s15-2",
+      "name": "Interview",
+      "color": "default"
+     },
+     {
+      "id": "s15-3",
+      "name": "Offer",
+      "color": "default"
+     },
+     {
+      "id": "s15-4",
+      "name": "Rejected",
+      "color": "default"
+     }
+    ],
+    "groups": [
+     {
+      "id": "g15-to_do",
+      "name": "To-do",
+      "color": "gray",
+      "option_ids": [
+       "s15-0"
+      ]
+     },
+     {
+      "id": "g15-in_progress",
+      "name": "In progress",
+      "color": "gray",
+      "option_ids": [
+       "s15-1",
+       "s15-2"
+      ]
+     },
+     {
+      "id": "g15-complete",
+      "name": "Complete",
+      "color": "gray",
+      "option_ids": [
+       "s15-3",
+       "s15-4"
+      ]
+     }
+    ]
+   }
+  },
+  "Track": {
+   "id": "p16",
+   "name": "Track",
+   "type": "select",
+   "select": {
+    "options": [
+     {
+      "id": "o16-0",
+      "name": "DevOps",
+      "color": "default"
+     },
+     {
+      "id": "o16-1",
+      "name": "Security",
+      "color": "default"
+     },
+     {
+      "id": "o16-2",
+      "name": "Systems",
+      "color": "default"
+     }
+    ]
+   }
+  },
+  "Applied on": {
+   "id": "p17",
+   "name": "Applied on",
+   "type": "date",
+   "date": {}
+  },
+  "Location": {
+   "id": "p18",
+   "name": "Location",
+   "type": "rich_text",
+   "rich_text": {}
+  },
+  "Link": {
+   "id": "p19",
+   "name": "Link",
+   "type": "url",
+   "url": {}
+  },
+  "Referral": {
+   "id": "p20",
+   "name": "Referral",
+   "type": "checkbox",
+   "checkbox": {}
+  },
+  "Next step": {
+   "id": "p21",
+   "name": "Next step",
+   "type": "rich_text",
+   "rich_text": {}
+  }
+ }
+}

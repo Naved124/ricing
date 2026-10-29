@@ -1,0 +1,104 @@
+{
+ "object": "data_source",
+ "id": "1dfb4083-c9f8-4999-a1ff-7b9544a41f1d",
+ "title": [
+  {
+   "type": "text",
+   "text": {
+    "content": "Today"
+   },
+   "plain_text": "Today",
+   "href": null
+  }
+ ],
+ "description": [],
+ "properties": {
+  "Task": {
+   "id": "p1",
+   "name": "Task",
+   "type": "title",
+   "title": {}
+  },
+  "Done": {
+   "id": "p2",
+   "name": "Done",
+   "type": "checkbox",
+   "checkbox": {}
+  },
+  "Due": {
+   "id": "p3",
+   "name": "Due",
+   "type": "date",
+   "date": {}
+  },
+  "Area": {
+   "id": "p4",
+   "name": "Area",
+   "type": "select",
+   "select": {
+    "options": [
+     {
+      "id": "o4-0",
+      "name": "RE",
+      "color": "default"
+     },
+     {
+      "id": "o4-1",
+      "name": "Fulgurite",
+      "color": "default"
+     },
+     {
+      "id": "o4-2",
+      "name": "Job hunt",
+      "color": "default"
+     },
+     {
+      "id": "o4-3",
+      "name": "College",
+      "color": "default"
+     },
+     {
+      "id": "o4-4",
+      "name": "Personal",
+      "color": "default"
+     },
+     {
+      "id": "o4-5",
+      "name": "Cyber",
+      "color": "default"
+     }
+    ]
+   }
+  },
+  "Priority": {
+   "id": "p5",
+   "name": "Priority",
+   "type": "select",
+   "select": {
+    "options": [
+     {
+      "id": "o5-0",
+      "name": "High",
+      "color": "default"
+     },
+     {
+      "id": "o5-1",
+      "name": "Normal",
+      "color": "default"
+     },
+     {
+      "id": "o5-2",
+      "name": "Low",
+      "color": "default"
+     }
+    ]
+   }
+  },
+  "Notes": {
+   "id": "p6",
+   "name": "Notes",
+   "type": "rich_text",
+   "rich_text": {}
+  }
+ }
+}

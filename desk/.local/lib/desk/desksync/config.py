@@ -59,13 +59,28 @@ class Config:
     def brief(self) -> str:
         return self.raw["desk"]["brief"]
 
+    @property
+    def weekly(self) -> str:
+        return self.raw["desk"]["weekly"]
+
+    @property
+    def sources(self) -> dict:
+        """name -> data source ID, every database on the Desk page."""
+        return self.raw["sources"]
+
+    @property
+    def view(self) -> dict:
+        return self.raw["view"]
+
 
 REQUIRED = {
     "notion": ("api", "version", "requests_per_second", "timeout_seconds", "max_retries"),
-    "desk": ("page", "brief"),
+    "desk": ("page", "brief", "weekly"),
     "sources": ("today", "jobs", "countdowns", "ideas"),
-    "sync": ("max_pages", "stale_minutes", "capture_max", "priority_default"),
+    "sync": ("max_pages", "stale_minutes", "capture_max", "text_max", "priority_default"),
+    "view": ("order", "weekly_pages"),
 }
+PAGES = ("brief", "weekly")
 
 
 def load(path: Path | None = None) -> Config:
@@ -83,6 +98,9 @@ def load(path: Path | None = None) -> Config:
     for name in ("today", "jobs", "countdowns", "ideas"):
         if name not in raw.get("fields", {}):
             raise ConfigError(f"{path}: [fields.{name}] is missing")
+    for name in raw["view"]["order"]:
+        if name not in raw["sources"] and name not in PAGES:
+            raise ConfigError(f"{path}: [view] order names {name!r}, which is neither a source nor a page")
     return Config(raw,
                   _xdg("XDG_CACHE_HOME", ".cache") / "desk",
                   _xdg("XDG_STATE_HOME", ".local/state") / "desk")

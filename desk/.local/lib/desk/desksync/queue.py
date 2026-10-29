@@ -1,6 +1,7 @@
 """The write queue, ~/.local/state/desk/queue.json, behind a lock.
 
-The shells add to it (desk-sync toggle / capture); a run takes it whole,
+The shells add to it (desk-sync toggle / capture / set / new / trash), each
+checked against the allowlist as it is added; a run takes it whole,
 applies it through allow.Writer, puts back what failed for a reason worth
 retrying, and records the rest as errors in the cache for the shell to roll
 back.
@@ -66,6 +67,36 @@ def capture(cfg: Config, raw: str, now: datetime) -> str:
     return f"queued to {target}"
 
 
+def _add(cfg: Config, item: dict, now: datetime, replaces=None) -> None:
+    with locked(cfg):
+        items = [i for i in _read(cfg) if not (replaces and replaces(i))]
+        items.append({"qid": uuid.uuid4().hex, **item, "at": now.isoformat(timespec="seconds"), "tries": 0})
+        store.write(cfg.queue_file, items)
+
+
+def set_(cfg: Config, cache: dict | None, name: str, raw: str, prop: str, value, now: datetime) -> str:
+    """One property of a row; a later edit of the same property before the run replaces it."""
+    src, row = allow.known_row(cfg, cache, name, raw)
+    allow.set_body(cfg, src, prop, value)
+    _add(cfg, {"op": "set", "source": name, "page": row["id"], "prop": prop, "value": value}, now,
+         lambda i: i.get("op") == "set" and i.get("page") == row["id"] and i.get("prop") == prop)
+    return "queued"
+
+
+def new(cfg: Config, cache: dict | None, name: str, values, now: datetime) -> str:
+    src = allow.known_source(cfg, cache, name)
+    allow.new_body(cfg, name, src, values)
+    _add(cfg, {"op": "new", "source": name, "values": values}, now)
+    return f"queued a new row in {name}"
+
+
+def trash(cfg: Config, cache: dict | None, name: str, raw: str, now: datetime) -> str:
+    _, row = allow.known_row(cfg, cache, name, raw)
+    _add(cfg, {"op": "trash", "source": name, "page": row["id"]}, now,
+         lambda i: i.get("page") == row["id"])
+    return "queued for the trash"
+
+
 def take(cfg: Config) -> list:
     with locked(cfg):
         items = _read(cfg)
@@ -91,6 +122,12 @@ def apply(cfg: Config, writer: allow.Writer, cache: dict | None, items: list, no
                 writer.set_done(cache, item.get("page", ""), item.get("done"))
             elif op == "capture":
                 writer.create(item.get("target", ""), item.get("title", ""))
+            elif op == "set":
+                writer.set(cache, item.get("source"), item.get("page", ""), item.get("prop"), item.get("value"))
+            elif op == "new":
+                writer.new(cache, item.get("source"), item.get("values"))
+            elif op == "trash":
+                writer.trash(cache, item.get("source"), item.get("page", ""))
             else:
                 raise allow.Refused("not an allowed write")
             log(f"{op}: ok")
@@ -105,8 +142,8 @@ def apply(cfg: Config, writer: allow.Writer, cache: dict | None, items: list, no
                 continue
             message = f"Notion said no ({e})" if isinstance(e, NotionError) else "couldn't reach Notion"
         log(f"{op}: {message}")
-        errors.append({"qid": item.get("qid"), "op": op, "page": item.get("page"),
-                       "message": message, "at": now.isoformat(timespec="seconds")})
+        errors.append({"qid": item.get("qid"), "op": op, "page": item.get("page"), "source": item.get("source"),
+                       "prop": item.get("prop"), "message": message, "at": now.isoformat(timespec="seconds")})
     return retry, errors
 
 

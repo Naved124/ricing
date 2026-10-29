@@ -1,0 +1,131 @@
+{
+ "object": "data_source",
+ "id": "423b6415-9d7c-4816-bf70-317a60560b9d",
+ "title": [
+  {
+   "type": "text",
+   "text": {
+    "content": "Learning log"
+   },
+   "plain_text": "Learning log",
+   "href": null
+  }
+ ],
+ "description": [],
+ "properties": {
+  "Topic": {
+   "id": "p22",
+   "name": "Topic",
+   "type": "title",
+   "title": {}
+  },
+  "Date": {
+   "id": "p23",
+   "name": "Date",
+   "type": "date",
+   "date": {}
+  },
+  "Track": {
+   "id": "p24",
+   "name": "Track",
+   "type": "select",
+   "select": {
+    "options": [
+     {
+      "id": "o24-0",
+      "name": "RE",
+      "color": "default"
+     },
+     {
+      "id": "o24-1",
+      "name": "pwn.college",
+      "color": "default"
+     },
+     {
+      "id": "o24-2",
+      "name": "C / asm",
+      "color": "default"
+     },
+     {
+      "id": "o24-3",
+      "name": "Linux",
+      "color": "default"
+     },
+     {
+      "id": "o24-4",
+      "name": "DevOps",
+      "color": "default"
+     },
+     {
+      "id": "o24-5",
+      "name": "DSA",
+      "color": "default"
+     },
+     {
+      "id": "o24-6",
+      "name": "Other",
+      "color": "default"
+     },
+     {
+      "id": "o24-7",
+      "name": "Web/API sec",
+      "color": "default"
+     },
+     {
+      "id": "o24-8",
+      "name": "Cloud sec",
+      "color": "default"
+     }
+    ]
+   }
+  },
+  "Confidence": {
+   "id": "p25",
+   "name": "Confidence",
+   "type": "select",
+   "select": {
+    "options": [
+     {
+      "id": "o25-0",
+      "name": "Shaky",
+      "color": "default"
+     },
+     {
+      "id": "o25-1",
+      "name": "Okay",
+      "color": "default"
+     },
+     {
+      "id": "o25-2",
+      "name": "Solid",
+      "color": "default"
+     }
+    ]
+   }
+  },
+  "Revisit": {
+   "id": "p26",
+   "name": "Revisit",
+   "type": "checkbox",
+   "checkbox": {}
+  },
+  "Source": {
+   "id": "p27",
+   "name": "Source",
+   "type": "url",
+   "url": {}
+  },
+  "What clicked": {
+   "id": "p28",
+   "name": "What clicked",
+   "type": "rich_text",
+   "rich_text": {}
+  },
+  "Stuck on": {
+   "id": "p29",
+   "name": "Stuck on",
+   "type": "rich_text",
+   "rich_text": {}
+  }
+ }
+}

@@ -1,0 +1,130 @@
+{
+ "object": "data_source",
+ "id": "fe4d63e3-abb2-46c3-b92f-1d7b1c31bf1d",
+ "title": [
+  {
+   "type": "text",
+   "text": {
+    "content": "Idea inbox"
+   },
+   "plain_text": "Idea inbox",
+   "href": null
+  }
+ ],
+ "description": [],
+ "properties": {
+  "Idea": {
+   "id": "p58",
+   "name": "Idea",
+   "type": "title",
+   "title": {}
+  },
+  "Kind": {
+   "id": "p59",
+   "name": "Kind",
+   "type": "select",
+   "select": {
+    "options": [
+     {
+      "id": "o59-0",
+      "name": "Project",
+      "color": "default"
+     },
+     {
+      "id": "o59-1",
+      "name": "Rice",
+      "color": "default"
+     },
+     {
+      "id": "o59-2",
+      "name": "Tool",
+      "color": "default"
+     },
+     {
+      "id": "o59-3",
+      "name": "Fulgurite feature",
+      "color": "default"
+     },
+     {
+      "id": "o59-4",
+      "name": "Learning",
+      "color": "default"
+     },
+     {
+      "id": "o59-5",
+      "name": "Other",
+      "color": "default"
+     }
+    ]
+   }
+  },
+  "Status": {
+   "id": "p60",
+   "name": "Status",
+   "type": "status",
+   "status": {
+    "options": [
+     {
+      "id": "s60-0",
+      "name": "Inbox",
+      "color": "default"
+     },
+     {
+      "id": "s60-1",
+      "name": "Later",
+      "color": "default"
+     },
+     {
+      "id": "s60-2",
+      "name": "Do",
+      "color": "default"
+     },
+     {
+      "id": "s60-3",
+      "name": "Never",
+      "color": "default"
+     }
+    ],
+    "groups": [
+     {
+      "id": "g60-to_do",
+      "name": "To-do",
+      "color": "gray",
+      "option_ids": [
+       "s60-0",
+       "s60-1"
+      ]
+     },
+     {
+      "id": "g60-in_progress",
+      "name": "In progress",
+      "color": "gray",
+      "option_ids": [
+       "s60-2"
+      ]
+     },
+     {
+      "id": "g60-complete",
+      "name": "Complete",
+      "color": "gray",
+      "option_ids": [
+       "s60-3"
+      ]
+     }
+    ]
+   }
+  },
+  "Why": {
+   "id": "p61",
+   "name": "Why",
+   "type": "rich_text",
+   "rich_text": {}
+  },
+  "Captured": {
+   "id": "p62",
+   "name": "Captured",
+   "type": "created_time",
+   "created_time": {}
+  }
+ }
+}

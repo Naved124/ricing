@@ -1,0 +1,136 @@
+{
+ "object": "list",
+ "results": [
+  {
+   "object": "page",
+   "id": "00000045-0000-4000-8000-000000000001",
+   "created_time": "2026-10-20T09:00:00.000Z",
+   "last_edited_time": "2026-10-20T09:00:00.000Z",
+   "in_trash": false,
+   "parent": {
+    "type": "data_source_id",
+    "data_source_id": "3d0fb9df-0045-4989-8789-a2582ec8efc1",
+    "database_id": "99999999999999999999999999999999"
+   },
+   "properties": {
+    "Title": {
+     "type": "title",
+     "title": [
+      {
+       "type": "text",
+       "text": {
+        "content": "A test book"
+       },
+       "plain_text": "A test book",
+       "href": null
+      }
+     ]
+    },
+    "Type": {
+     "type": "select",
+     "select": {
+      "name": "Book"
+     }
+    },
+    "Status": {
+     "type": "status",
+     "status": {
+      "name": "Reading"
+     }
+    },
+    "Rating": {
+     "type": "select",
+     "select": null
+    },
+    "Last read": {
+     "type": "date",
+     "date": {
+      "start": "2026-10-26",
+      "end": null
+     }
+    },
+    "Link": {
+     "type": "url",
+     "url": null
+    },
+    "Where I stopped": {
+     "type": "rich_text",
+     "rich_text": [
+      {
+       "type": "text",
+       "text": {
+        "content": "Chapter 4"
+       },
+       "plain_text": "Chapter 4",
+       "href": null
+      }
+     ]
+    }
+   },
+   "url": "https://www.notion.so/00000045000040008000000000000001"
+  },
+  {
+   "object": "page",
+   "id": "00000045-0000-4000-8000-000000000002",
+   "created_time": "2026-10-01T09:00:00.000Z",
+   "last_edited_time": "2026-10-01T09:00:00.000Z",
+   "in_trash": false,
+   "parent": {
+    "type": "data_source_id",
+    "data_source_id": "3d0fb9df-0045-4989-8789-a2582ec8efc1",
+    "database_id": "99999999999999999999999999999999"
+   },
+   "properties": {
+    "Title": {
+     "type": "title",
+     "title": [
+      {
+       "type": "text",
+       "text": {
+        "content": "A finished paper"
+       },
+       "plain_text": "A finished paper",
+       "href": null
+      }
+     ]
+    },
+    "Type": {
+     "type": "select",
+     "select": {
+      "name": "Paper"
+     }
+    },
+    "Status": {
+     "type": "status",
+     "status": {
+      "name": "Finished"
+     }
+    },
+    "Rating": {
+     "type": "select",
+     "select": {
+      "name": "★★★★"
+     }
+    },
+    "Last read": {
+     "type": "date",
+     "date": {
+      "start": "2026-10-10",
+      "end": null
+     }
+    },
+    "Link": {
+     "type": "url",
+     "url": "https://example.org/paper"
+    },
+    "Where I stopped": {
+     "type": "rich_text",
+     "rich_text": []
+    }
+   },
+   "url": "https://www.notion.so/00000045000040008000000000000002"
+  }
+ ],
+ "has_more": false,
+ "next_cursor": null
+}

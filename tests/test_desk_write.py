@@ -113,9 +113,9 @@ class Refusals(Base):
         self.assertTrue(all(e["message"].startswith("refused") for e in errors))
         self.assertEqual(self.writes, [])
 
-    def test_the_writer_has_two_calls(self):
+    def test_the_writer_has_only_these_calls(self):
         public = sorted(n for n in vars(allow.Writer) if not n.startswith("_"))
-        self.assertEqual(public, ["create", "set_done"])
+        self.assertEqual(public, ["create", "new", "set", "set_done", "trash"])
 
     def test_cli_refusals_exit_3(self):
         for args in (["toggle", "nope"], ["toggle", UNKNOWN], ["capture", "--", "   "], ["capture", "--", "idea:"]):

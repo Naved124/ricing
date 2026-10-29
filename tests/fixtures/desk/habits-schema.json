@@ -1,0 +1,67 @@
+{
+ "object": "data_source",
+ "id": "210e5694-b4ac-42d7-bcbd-27e1e3c9e4ae",
+ "title": [
+  {
+   "type": "text",
+   "text": {
+    "content": "Habit tracker"
+   },
+   "plain_text": "Habit tracker",
+   "href": null
+  }
+ ],
+ "description": [],
+ "properties": {
+  "Day": {
+   "id": "p30",
+   "name": "Day",
+   "type": "title",
+   "title": {}
+  },
+  "Date": {
+   "id": "p31",
+   "name": "Date",
+   "type": "date",
+   "date": {}
+  },
+  "Exercise": {
+   "id": "p32",
+   "name": "Exercise",
+   "type": "checkbox",
+   "checkbox": {}
+  },
+  "Reading": {
+   "id": "p33",
+   "name": "Reading",
+   "type": "checkbox",
+   "checkbox": {}
+  },
+  "Study": {
+   "id": "p34",
+   "name": "Study",
+   "type": "checkbox",
+   "checkbox": {}
+  },
+  "Sleep before 12": {
+   "id": "p35",
+   "name": "Sleep before 12",
+   "type": "checkbox",
+   "checkbox": {}
+  },
+  "Note": {
+   "id": "p36",
+   "name": "Note",
+   "type": "rich_text",
+   "rich_text": {}
+  },
+  "Score": {
+   "id": "p37",
+   "name": "Score",
+   "type": "formula",
+   "formula": {
+    "expression": "x"
+   }
+  }
+ }
+}

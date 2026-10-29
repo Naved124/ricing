@@ -1,0 +1,159 @@
+{
+ "object": "data_source",
+ "id": "f16e3723-344b-4079-98a9-2c6968c7dff1",
+ "title": [
+  {
+   "type": "text",
+   "text": {
+    "content": "Fulgurite board"
+   },
+   "plain_text": "Fulgurite board",
+   "href": null
+  }
+ ],
+ "description": [],
+ "properties": {
+  "Item": {
+   "id": "p45",
+   "name": "Item",
+   "type": "title",
+   "title": {}
+  },
+  "Status": {
+   "id": "p46",
+   "name": "Status",
+   "type": "status",
+   "status": {
+    "options": [
+     {
+      "id": "s46-0",
+      "name": "Backlog",
+      "color": "default"
+     },
+     {
+      "id": "s46-1",
+      "name": "In progress",
+      "color": "default"
+     },
+     {
+      "id": "s46-2",
+      "name": "Blocked",
+      "color": "default"
+     },
+     {
+      "id": "s46-3",
+      "name": "Done",
+      "color": "default"
+     }
+    ],
+    "groups": [
+     {
+      "id": "g46-to_do",
+      "name": "To-do",
+      "color": "gray",
+      "option_ids": [
+       "s46-0"
+      ]
+     },
+     {
+      "id": "g46-in_progress",
+      "name": "In progress",
+      "color": "gray",
+      "option_ids": [
+       "s46-1",
+       "s46-2"
+      ]
+     },
+     {
+      "id": "g46-complete",
+      "name": "Complete",
+      "color": "gray",
+      "option_ids": [
+       "s46-3"
+      ]
+     }
+    ]
+   }
+  },
+  "Milestone": {
+   "id": "p47",
+   "name": "Milestone",
+   "type": "select",
+   "select": {
+    "options": [
+     {
+      "id": "o47-0",
+      "name": "M0",
+      "color": "default"
+     },
+     {
+      "id": "o47-1",
+      "name": "M1",
+      "color": "default"
+     },
+     {
+      "id": "o47-2",
+      "name": "M2",
+      "color": "default"
+     },
+     {
+      "id": "o47-3",
+      "name": "M3",
+      "color": "default"
+     },
+     {
+      "id": "o47-4",
+      "name": "Post-1.0",
+      "color": "default"
+     }
+    ]
+   }
+  },
+  "Area": {
+   "id": "p48",
+   "name": "Area",
+   "type": "multi_select",
+   "multi_select": {
+    "options": [
+     {
+      "id": "o48-0",
+      "name": "Disassembly",
+      "color": "default"
+     },
+     {
+      "id": "o48-1",
+      "name": "CFG recovery",
+      "color": "default"
+     },
+     {
+      "id": "o48-2",
+      "name": "Confidence scoring",
+      "color": "default"
+     },
+     {
+      "id": "o48-3",
+      "name": "Formats",
+      "color": "default"
+     },
+     {
+      "id": "o48-4",
+      "name": "Testing",
+      "color": "default"
+     }
+    ]
+   }
+  },
+  "Notes": {
+   "id": "p49",
+   "name": "Notes",
+   "type": "rich_text",
+   "rich_text": {}
+  },
+  "Updated": {
+   "id": "p50",
+   "name": "Updated",
+   "type": "last_edited_time",
+   "last_edited_time": {}
+  }
+ }
+}

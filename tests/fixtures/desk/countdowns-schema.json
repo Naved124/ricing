@@ -1,0 +1,83 @@
+{
+ "object": "data_source",
+ "id": "a0f711f7-e11d-42bd-b536-6fbdbe4e1790",
+ "title": [
+  {
+   "type": "text",
+   "text": {
+    "content": "Countdowns"
+   },
+   "plain_text": "Countdowns",
+   "href": null
+  }
+ ],
+ "description": [],
+ "properties": {
+  "Event": {
+   "id": "p7",
+   "name": "Event",
+   "type": "title",
+   "title": {}
+  },
+  "Date": {
+   "id": "p8",
+   "name": "Date",
+   "type": "date",
+   "date": {}
+  },
+  "Type": {
+   "id": "p9",
+   "name": "Type",
+   "type": "select",
+   "select": {
+    "options": [
+     {
+      "id": "o9-0",
+      "name": "Exam",
+      "color": "default"
+     },
+     {
+      "id": "o9-1",
+      "name": "Placement",
+      "color": "default"
+     },
+     {
+      "id": "o9-2",
+      "name": "Interview",
+      "color": "default"
+     },
+     {
+      "id": "o9-3",
+      "name": "Deadline",
+      "color": "default"
+     },
+     {
+      "id": "o9-4",
+      "name": "Personal",
+      "color": "default"
+     }
+    ]
+   }
+  },
+  "Done": {
+   "id": "p10",
+   "name": "Done",
+   "type": "checkbox",
+   "checkbox": {}
+  },
+  "Prep note": {
+   "id": "p11",
+   "name": "Prep note",
+   "type": "rich_text",
+   "rich_text": {}
+  },
+  "Days left": {
+   "id": "p12",
+   "name": "Days left",
+   "type": "formula",
+   "formula": {
+    "expression": "x"
+   }
+  }
+ }
+}

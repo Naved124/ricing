@@ -1,4 +1,4 @@
-# Desk: the Notion page desk-sync mirrors into every rice's bar.
+# Desk: the Notion page desk-sync mirrors onto every rice's desktop.
 # IDs only; the integration's credential lives in the keyring, never here
 # (secret-tool store --label="Desk Notion" service desk-notion).
 
@@ -15,13 +15,44 @@ max_retries = 4
 [desk]
 page = "408f77e42ad781838d0fef148f38e6f9"
 brief = "408f77e42ad7811e9e80f9ab65d5ea49"
+weekly = "408f77e42ad78136b7c5cea0fa47f693"
 
-# data source (collection) IDs
+# data source (collection) IDs: every database on the Desk page. Each is
+# mirrored whole (schema and rows) for the full view, and only these can be
+# written to.
 [sources]
 today = "1dfb4083-c9f8-4999-a1ff-7b9544a41f1d"
-jobs = "18c68b50-45bc-4173-9cb4-b469aa3f6ac0"
 countdowns = "a0f711f7-e11d-42bd-b536-6fbdbe4e1790"
+jobs = "18c68b50-45bc-4173-9cb4-b469aa3f6ac0"
+learning = "423b6415-9d7c-4816-bf70-317a60560b9d"
+habits = "210e5694-b4ac-42d7-bcbd-27e1e3c9e4ae"
+reading = "3d0fb9df-0045-4989-8789-a2582ec8efc1"
+fulgurite = "f16e3723-344b-4079-98a9-2c6968c7dff1"
+prep = "b5bde2aa-8633-4797-8805-71b76f0dac41"
 ideas = "fe4d63e3-abb2-46c3-b92f-1d7b1c31bf1d"
+boxes = "3c8a7d15-db03-45aa-bf42-733e1e653dcb"
+
+# The full view: its order (sources above, and the pages "brief" and
+# "weekly", which are read-only), how each list is sorted (a property, "-"
+# first for newest first; the rest newest created first), and the checkbox
+# that marks a row finished (a status in its "complete" group does too).
+[view]
+order = ["today", "countdowns", "jobs", "learning", "habits", "reading", "fulgurite", "prep",
+         "ideas", "boxes", "brief", "weekly"]
+weekly_pages = 12
+
+[view.sort]
+today = "Due"
+countdowns = "Date"
+learning = "-Date"
+habits = "-Date"
+reading = "-Last read"
+prep = "-Last reviewed"
+boxes = "-Date"
+
+[view.done]
+today = "Done"
+countdowns = "Done"
 
 # property names, as they are in Notion
 [fields.today]
@@ -60,4 +91,6 @@ max_pages = 5
 # the panel calls a sync older than this stale
 stale_minutes = 15
 capture_max = 200
+# a text field, as Notion allows it (title: one line)
+text_max = 10000
 priority_default = "Normal"

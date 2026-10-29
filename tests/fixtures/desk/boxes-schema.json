@@ -1,0 +1,144 @@
+{
+ "object": "data_source",
+ "id": "3c8a7d15-db03-45aa-bf42-733e1e653dcb",
+ "title": [
+  {
+   "type": "text",
+   "text": {
+    "content": "Boxes"
+   },
+   "plain_text": "Boxes",
+   "href": null
+  }
+ ],
+ "description": [],
+ "properties": {
+  "Box": {
+   "id": "p63",
+   "name": "Box",
+   "type": "title",
+   "title": {}
+  },
+  "Platform": {
+   "id": "p64",
+   "name": "Platform",
+   "type": "select",
+   "select": {
+    "options": [
+     {
+      "id": "o64-0",
+      "name": "HTB",
+      "color": "default"
+     },
+     {
+      "id": "o64-1",
+      "name": "THM",
+      "color": "default"
+     }
+    ]
+   }
+  },
+  "OS": {
+   "id": "p65",
+   "name": "OS",
+   "type": "select",
+   "select": {
+    "options": [
+     {
+      "id": "o65-0",
+      "name": "Linux",
+      "color": "default"
+     },
+     {
+      "id": "o65-1",
+      "name": "Windows",
+      "color": "default"
+     }
+    ]
+   }
+  },
+  "Difficulty": {
+   "id": "p66",
+   "name": "Difficulty",
+   "type": "select",
+   "select": {
+    "options": [
+     {
+      "id": "o66-0",
+      "name": "Easy",
+      "color": "default"
+     },
+     {
+      "id": "o66-1",
+      "name": "Medium",
+      "color": "default"
+     },
+     {
+      "id": "o66-2",
+      "name": "Hard",
+      "color": "default"
+     }
+    ]
+   }
+  },
+  "Result": {
+   "id": "p67",
+   "name": "Result",
+   "type": "select",
+   "select": {
+    "options": [
+     {
+      "id": "o67-0",
+      "name": "In progress",
+      "color": "default"
+     },
+     {
+      "id": "o67-1",
+      "name": "Solo",
+      "color": "default"
+     },
+     {
+      "id": "o67-2",
+      "name": "Partial help",
+      "color": "default"
+     },
+     {
+      "id": "o67-3",
+      "name": "Writeup-assisted",
+      "color": "default"
+     }
+    ]
+   }
+  },
+  "Date": {
+   "id": "p68",
+   "name": "Date",
+   "type": "date",
+   "date": {}
+  },
+  "Stuck at": {
+   "id": "p69",
+   "name": "Stuck at",
+   "type": "rich_text",
+   "rich_text": {}
+  },
+  "Writeup": {
+   "id": "p70",
+   "name": "Writeup",
+   "type": "url",
+   "url": {}
+  },
+  "Retired": {
+   "id": "p71",
+   "name": "Retired",
+   "type": "checkbox",
+   "checkbox": {}
+  },
+  "Blind redo done": {
+   "id": "p72",
+   "name": "Blind redo done",
+   "type": "checkbox",
+   "checkbox": {}
+  }
+ }
+}

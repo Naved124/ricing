@@ -1,10 +1,11 @@
 """A small Notion client: spaced requests, timeouts, backoff on 429 and 5xx.
 
 Endpoints (from makenotion/notion-sdk-js, API version in config.toml):
+  GET   data_sources/{id}                a data source: its title and properties
   POST  data_sources/{id}/query          rows of a data source
   GET   blocks/{id}/children             a page's blocks
   GET   pages/{id}                       a page (its parent says which data source)
-  PATCH pages/{id}                       set properties
+  PATCH pages/{id}                       set properties, or {"in_trash": true}
   POST  pages                            a new page, parent {"data_source_id": …}
 
 The transport is a function (method, path, body, params) -> Response, so tests
@@ -155,3 +156,6 @@ class Client:
 
     def page(self, page: str) -> dict:
         return self.request("GET", f"pages/{page}")
+
+    def source(self, source: str) -> dict:
+        return self.request("GET", f"data_sources/{source}")
