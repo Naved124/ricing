@@ -302,6 +302,7 @@ rice-rec toggle      record the screen to ~/Videos, again to stop (also: region)
 | Super+T or Super+Return, Super+W, Super+E | terminal, browser (your default), files |
 | Super+V | clipboard history (the launcher in `!` mode) |
 | Super+N | control centre |
+| Super+Shift+N | quick capture to Notion's Desk (`idea:` for the Idea inbox) |
 | Super+Escape | power menu |
 | Super+L | lock |
 | Super+Shift+T / Super+Ctrl+T | rice chooser / next rice |
@@ -427,6 +428,38 @@ disk pink) lit down their length as far as each value goes. Drag it anywhere; it
 shell's state folder). Right-click puts it away, and the control centre's "system card"
 brings it back. It hides while a window is fullscreen. One reader samples `/proc/stat`
 and `/proc/meminfo` every 2 s and `df /` every 30 s (`services/Sys.qml`).
+
+### Notion's Desk
+
+Every rice also has a **Desk card** on the desktop: Notion's Desk page, mirrored. It shows
+Today's open tasks (tick the box to mark one done in Notion), what's counting down, and
+the start of the daily brief. Drag it anywhere, right-click to put it away; the control
+centre's Desk tile brings it back (right-click the tile to open everything). Its place
+is the same in every rice.
+
+**Click the card** for the full view: every database on the Desk page down the left
+(Today, Countdowns, Job hunt, Learning log, Habit tracker, Reading list, Fulgurite board,
+Interview prep bank, Idea inbox, Boxes), plus the daily brief and the weekly reviews.
+Pick a row to see and edit all of it: text, dates (Today / Tomorrow / Next week), every
+option, checkboxes and links. **+ New** adds a row, **Move to trash** sends one to
+Notion's trash, where it can be restored. Search the list, show or hide finished rows,
+Esc to close. A property you add in Notion shows up after the next sync. Formulas and
+other values Notion works out are shown, not edited. So are the brief and the weekly
+reviews, because your scheduled agents write them. Super+Shift+N is a quick capture line
+into Today (`idea: …` goes to the Idea inbox).
+
+`desk-sync` does all the talking to Notion; the shells only read its cache
+(`~/.cache/desk/state.json`) and hand it edits. It syncs every 5 minutes
+(`desk-sync.timer`) and right after an edit. An edit shows at once; if Notion refuses it
+(say, an option that doesn't exist, since adding one would change your schema), the card
+or view puts it back and says why. Setting it up once:
+
+```sh
+# a Notion integration's secret (notion.so/my-integrations), in the keyring only
+secret-tool store --label="Desk Notion" service desk-notion
+# then in Notion: the Desk page → ··· → Connections → add the integration
+desk-sync check && desk-sync run
+```
 
 What follows the change, and when:
 

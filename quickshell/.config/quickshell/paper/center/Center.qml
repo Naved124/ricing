@@ -6,6 +6,7 @@ import Quickshell.Bluetooth
 import Quickshell.Services.UPower
 import Quickshell.Wayland
 import qs.common
+import qs.deskwidget
 import qs.services
 
 // The control centre (Super+N, or the bar's battery and speaker): a page
@@ -234,6 +235,15 @@ PanelWindow {
                         detail: on ? "on the desk" : "put away"
                         on: Shell.statsShown
                         onToggled: Shell.setStatsShown(!Shell.statsShown)
+                    }
+                    // Notion's Desk card on the desk; right-click opens all of it
+                    Check {
+                        width: parent.width
+                        label: "desk card"
+                        detail: on ? "on the desk · right: open" : "put away · right: open"
+                        on: DeskState.cardShown
+                        onToggled: DeskState.setCardShown(!DeskState.cardShown)
+                        onSecondary: { Shell.centerOpen = false; DeskState.openView(Hypr.focusedScreen?.name ?? ""); }
                     }
                     // power-profiles-daemon: performance or balanced; right-click for the saver
                     Check {

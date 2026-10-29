@@ -84,6 +84,7 @@ reads them from `hyprctl binds -j`):
 | Super (tap) / Super+Space | launcher (`quickshell:launcher-tap` / `launcher`) |
 | Super+V | clipboard history (`quickshell:clipboard`) |
 | Super+N | control centre (`quickshell:center`) |
+| Super+Shift+N | quick capture to Notion's Desk (`quickshell:desk-capture`) |
 | Super+/ | key sheet (`quickshell:keybinds`) |
 | Super+Escape | power menu (`quickshell:power`) |
 | Super+L | lock (`rice lock`) |
@@ -172,6 +173,15 @@ differ. The pieces are listed in the checklist below.
   mark. `system/install --network` puts NetworkManager on iwd.
 - **Desk**: the system card on the bottom layer, draggable, its place and visibility
   remembered; it hides while that monitor has a fullscreen window.
+- **Notion's Desk** (`deskwidget/`, the same files in every shell; a test keeps them
+  identical, and each rice's look is its `DeskTheme`): the card on the bottom layer
+  (`DeskCard`: Today, Countdowns, the brief's first lines), the full view (`DeskView`:
+  every Desk database and page, each row edited by its schema through `DeskField`), and
+  quick capture (Super+Shift+N). They read `desk-sync`'s cache and never reach Notion
+  themselves; every write is `desk-sync set|new|trash|capture`, checked again against the
+  synced schema in `allow.py`. The card's place, visibility and the view's database are
+  in `~/.local/state/desk/ui.json`, shared by every rice. Each control centre has a Desk
+  tile.
 - **Mode**: every shell colour crossfades with `Theme.k`; nothing in a shell is fixed
   to light or dark (see Light and dark).
 

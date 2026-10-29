@@ -7,6 +7,7 @@ import Quickshell.Services.UPower
 import Quickshell.Wayland
 import qs
 import qs.common
+import qs.deskwidget
 import qs.services
 
 // The control centre (Super+N): a 380 px pane of glass down the right side.
@@ -263,6 +264,16 @@ PanelWindow {
                             detail: on ? "On the desktop" : "Hidden"
                             on: Shell.statsShown
                             onToggled: Shell.setStatsShown(!Shell.statsShown)
+                        }
+                        // Notion's Desk card on the desktop; right-click opens all of it
+                        Toggle {
+                            width: parent.tile
+                            icon: "notion"
+                            name: "Desk"
+                            detail: on ? "On the desktop" : "Hidden"
+                            on: DeskState.cardShown
+                            onToggled: DeskState.setCardShown(!DeskState.cardShown)
+                            onSecondary: { Shell.centerOpen = false; DeskState.openView(Hypr.focusedScreen?.name ?? ""); }
                         }
                         Toggle {
                             width: parent.tile

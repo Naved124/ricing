@@ -10,6 +10,7 @@ import Quickshell.Hyprland
 import qs.bar
 import qs.center
 import qs.desk
+import qs.deskwidget
 import qs.keys
 import qs.launcher
 import qs.lock
@@ -26,6 +27,11 @@ ShellRoot {
 
     // the system card: cpu, memory and disk on a pane of glass, draggable
     Stats {}
+    // Notion's Desk on the desktop; a click opens all of it
+    DeskCard {
+        id: deskCard
+        hidden: Hypr.fullscreenOn(Hypr.monitorFor(deskCard.screen))
+    }
 
     Variants {
         model: Quickshell.screens
@@ -46,6 +52,17 @@ ShellRoot {
     Power {}
     KeySheet {}
     Lock {}
+
+    // the Desk's full view and quick capture (Super+Shift+N), on the screen asked for
+    Variants {
+        model: Quickshell.screens
+        DeskView {}
+    }
+    Variants {
+        model: Quickshell.screens
+        DeskCapture {}
+    }
+    DeskShortcuts {}
 
     // Hyprland binds: hl.dsp.global("quickshell:<name>")
     GlobalShortcut {

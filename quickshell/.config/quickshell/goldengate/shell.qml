@@ -13,6 +13,7 @@ import qs.apps
 import qs.common
 import qs.controlcenter
 import qs.desk
+import qs.deskwidget
 import qs.dock
 import qs.hotcorners
 import qs.keys
@@ -186,4 +187,19 @@ ShellRoot {
         // Spotlight with text already typed, e.g. "12*7" or "firefox"
         function search(text: string): void { Shell.searchText = text; Shell.open = "spotlight"; }
     }
+
+    // Notion's Desk on the desktop; a click opens all of it
+    // (a full-screen window covers the bottom layer anyway)
+    DeskCard {}
+
+    // the Desk's full view and quick capture (Super+Shift+N), on the screen asked for
+    Variants {
+        model: Quickshell.screens
+        DeskView {}
+    }
+    Variants {
+        model: Quickshell.screens
+        DeskCapture {}
+    }
+    DeskShortcuts {}
 }

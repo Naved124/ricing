@@ -3,6 +3,7 @@
 // and a few of the reef's own. Icon.qml colours them at runtime.
 
 var paths = {
+    "notion":      '<rect x="4" y="3.5" width="16" height="17" rx="3"/><path d="M9 16.5V7.5l6 9V7.5"/>',
     "wifi":        '<path d="M2.5 9a14 14 0 0 1 19 0"/><path d="M5.5 12.3a9.5 9.5 0 0 1 13 0"/><path d="M8.6 15.5a5 5 0 0 1 6.8 0"/><circle cx="12" cy="19" r="1.1" fill="C"/>',
     "wifi-low":    '<path d="M8.6 15.5a5 5 0 0 1 6.8 0"/><circle cx="12" cy="19" r="1.1" fill="C"/><path opacity=".3" d="M2.5 9a14 14 0 0 1 19 0"/><path opacity=".3" d="M5.5 12.3a9.5 9.5 0 0 1 13 0"/>',
     "wifi-off":    '<path d="M2.5 9a14 14 0 0 1 5-3.2"/><path d="M12 5a14 14 0 0 1 9.5 4"/><path d="M8.6 15.5a5 5 0 0 1 6.8 0"/><path d="M3 3l18 18"/>',

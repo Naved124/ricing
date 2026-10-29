@@ -4,8 +4,10 @@ import QtQuick
 import QtQuick.Layouts
 import Quickshell
 import Quickshell.Bluetooth
+import Quickshell.Hyprland
 import Quickshell.Services.UPower
 import qs.common
+import qs.deskwidget
 import qs.services
 
 // Control Center, under the menu bar at the right: the modules on a grid
@@ -98,6 +100,17 @@ Panel {
                 Layout.fillWidth: true
                 glyph: "▦"; title: qsTr("System"); detail: qsTr("On the desktop"); on: Shell.statsShown
                 onClicked: Shell.setStatsShown(!Shell.statsShown)
+            }
+            // Notion's Desk card; a click on the card opens all of it
+            Tile {
+                Layout.fillWidth: true
+                glyph: "▤"; title: qsTr("Desk"); detail: qsTr("Notion, on the desktop"); on: DeskState.cardShown
+                onClicked: DeskState.setCardShown(!DeskState.cardShown)
+            }
+            Tile {
+                Layout.fillWidth: true
+                glyph: "⤢"; title: qsTr("Open Desk"); detail: qsTr("All of Notion's Desk")
+                onClicked: { Shell.closeAll(); DeskState.openView(Hyprland.focusedMonitor?.name ?? ""); }
             }
             Tile {
                 Layout.fillWidth: true

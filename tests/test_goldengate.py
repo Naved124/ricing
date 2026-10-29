@@ -724,7 +724,7 @@ for _, c in ipairs(calls) do print(c[1], dump(c[2]), dump(c[3])) end
         layers = [l for l in out.splitlines() if l.startswith("hg.layer")]
         names = {l.split()[1] for l in layers}
         self.assertEqual(names, {f"goldengate:{n}" for n in
-                                 ("dock", "controlcenter", "notifications", "spotlight", "osd", "keys", "switcher")})
+                                 ("dock", "controlcenter", "notifications", "spotlight", "osd", "keys", "switcher", "deskpanel")})
         self.assertTrue(all("mask_mode=contour" in l for l in layers))
         # the menu bar's pills are always Hyprland's frost, never the plugin's
         out = self.run_lua('{ mode = "liquid", backend = "hyprglass", clarity = 0.35, menubar = true }', "hyprglass")
@@ -751,7 +751,7 @@ for _, c in ipairs(calls) do print(c[1], dump(c[2]), dump(c[3])) end
     def test_hyprliquid_rules_every_panel(self):
         out = self.run_lua('{ mode = "liquid", backend = "hyprliquid", clarity = 0.35 }', "hyprliquid")
         rules = [l for l in out.splitlines() if l.startswith("layer_rule")]
-        self.assertEqual(len(rules), 7)
+        self.assertEqual(len(rules), 8)
         self.assertTrue(all("hyprliquid:effect=liquid_glass" in r for r in rules))
 
 

@@ -12,6 +12,7 @@ import Quickshell.Hyprland
 import qs.bar
 import qs.center
 import qs.desk
+import qs.deskwidget
 import qs.keys
 import qs.launcher
 import qs.lock
@@ -122,4 +123,21 @@ ShellRoot {
             Shell.launcherOpen = true;
         }
     }
+
+    // Notion's Desk on the desktop; a click opens all of it
+    DeskCard {
+        id: deskCard
+        hidden: Hypr.fullscreenOn(Hypr.monitorFor(deskCard.screen))
+    }
+
+    // the Desk's full view and quick capture (Super+Shift+N), on the screen asked for
+    Variants {
+        model: Quickshell.screens
+        DeskView {}
+    }
+    Variants {
+        model: Quickshell.screens
+        DeskCapture {}
+    }
+    DeskShortcuts {}
 }

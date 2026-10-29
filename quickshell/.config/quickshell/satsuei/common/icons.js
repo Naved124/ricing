@@ -3,6 +3,7 @@
 // and a few of the studio's own. Icon.qml colours them at runtime.
 
 var paths = {
+    "notion":      '<rect x="4" y="3.5" width="16" height="17" rx="3"/><path d="M9 16.5V7.5l6 9V7.5"/>',
     "sliders":     '<path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/>',
     "sparkle":     '<path d="M12 3l2.2 5.8L20 11l-5.8 2.2L12 19l-2.2-5.8L4 11l5.8-2.2z"/>',
     "person":      '<circle cx="12" cy="10" r="6"/><path d="M6 21c1-3 3.5-4.5 6-4.5s5 1.5 6 4.5"/>',

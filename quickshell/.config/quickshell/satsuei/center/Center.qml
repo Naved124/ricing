@@ -8,6 +8,7 @@ import Quickshell.Services.UPower
 import Quickshell.Wayland
 import qs.chars
 import qs.common
+import qs.deskwidget
 import qs.services
 
 // The control centre (Super+N, or the bar's sliders button): a 372 px drawer
@@ -315,6 +316,16 @@ PanelWindow {
                             sub: Shell.statsShown ? "On the desk" : "Put away"
                             on: Shell.statsShown
                             onToggled: Shell.setStatsShown(!Shell.statsShown)
+                        }
+                        // Notion's Desk card on the desk; right-click opens all of it
+                        Tile {
+                            width: tiles.tileW
+                            icon: "notion"
+                            title: "Desk"
+                            sub: DeskState.cardShown ? "On the desk" : "Put away"
+                            on: DeskState.cardShown
+                            onToggled: DeskState.setCardShown(!DeskState.cardShown)
+                            onSecondary: { Shell.centerOpen = false; DeskState.openView(Hypr.focusedScreen?.name ?? ""); }
                         }
                     }
 

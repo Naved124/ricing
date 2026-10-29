@@ -103,7 +103,7 @@ hl.window_rule({
 -- Quickshell surfaces: the glass blurs the reef behind it
 ---------------------------------------------------------------------------
 hl.layer_rule({
-    name = "abyss-glass", match = { namespace = "^abyss-(bar|launcher|island|center|osd|power|toast|keys|stats)$" },
+    name = "abyss-glass", match = { namespace = "^abyss-(bar|launcher|island|center|osd|power|toast|keys|stats|deskcard|deskpanel)$" },
     blur = true, ignore_alpha = 0.2, no_anim = true,
 })
 hl.layer_rule({ name = "abyss-wallpaper", match = { namespace = "^abyss-wallpaper$" }, no_anim = true })
