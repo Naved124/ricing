@@ -1,0 +1,344 @@
+{
+ "object": "list",
+ "results": [
+  {
+   "object": "page",
+   "id": "22222222-0000-4000-8000-000000000001",
+   "created_time": "2026-10-01T10:00:00.000Z",
+   "last_edited_time": "2026-10-28T10:00:00.000Z",
+   "in_trash": false,
+   "parent": {
+    "type": "data_source_id",
+    "data_source_id": "a0f711f7-e11d-42bd-b536-6fbdbe4e1790",
+    "database_id": "99999999999999999999999999999999"
+   },
+   "properties": {
+    "Event": {
+     "id": "title",
+     "type": "title",
+     "title": [
+      {
+       "type": "text",
+       "text": {
+        "content": "Placement drive"
+       },
+       "plain_text": "Placement drive",
+       "href": null
+      }
+     ]
+    },
+    "Date": {
+     "id": "x",
+     "type": "date",
+     "date": {
+      "start": "2026-11-02",
+      "end": null
+     }
+    },
+    "Type": {
+     "id": "x",
+     "type": "select",
+     "select": {
+      "name": "Placement"
+     }
+    },
+    "Prep note": {
+     "id": "x",
+     "type": "rich_text",
+     "rich_text": [
+      {
+       "type": "text",
+       "text": {
+        "content": "Aptitude sets 3-5, see https://example.org/prep"
+       },
+       "plain_text": "Aptitude sets 3-5, see https://example.org/prep",
+       "href": null
+      }
+     ]
+    },
+    "Done": {
+     "id": "x",
+     "type": "checkbox",
+     "checkbox": false
+    },
+    "Days left": {
+     "id": "x",
+     "type": "formula",
+     "formula": {
+      "type": "number",
+      "number": 4
+     }
+    }
+   },
+   "url": "https://www.notion.so/x"
+  },
+  {
+   "object": "page",
+   "id": "22222222-0000-4000-8000-000000000002",
+   "created_time": "2026-10-01T10:00:00.000Z",
+   "last_edited_time": "2026-10-28T10:00:00.000Z",
+   "in_trash": false,
+   "parent": {
+    "type": "data_source_id",
+    "data_source_id": "a0f711f7-e11d-42bd-b536-6fbdbe4e1790",
+    "database_id": "99999999999999999999999999999999"
+   },
+   "properties": {
+    "Event": {
+     "id": "title",
+     "type": "title",
+     "title": [
+      {
+       "type": "text",
+       "text": {
+        "content": "OS end-sem"
+       },
+       "plain_text": "OS end-sem",
+       "href": null
+      }
+     ]
+    },
+    "Date": {
+     "id": "x",
+     "type": "date",
+     "date": {
+      "start": "2026-11-18",
+      "end": null
+     }
+    },
+    "Type": {
+     "id": "x",
+     "type": "select",
+     "select": {
+      "name": "Exam"
+     }
+    },
+    "Prep note": {
+     "id": "x",
+     "type": "rich_text",
+     "rich_text": [
+      {
+       "type": "text",
+       "text": {
+        "content": "Units 3 and 4"
+       },
+       "plain_text": "Units 3 and 4",
+       "href": null
+      }
+     ]
+    },
+    "Done": {
+     "id": "x",
+     "type": "checkbox",
+     "checkbox": false
+    },
+    "Days left": {
+     "id": "x",
+     "type": "formula",
+     "formula": {
+      "type": "number",
+      "number": null
+     }
+    }
+   },
+   "url": "https://www.notion.so/x"
+  },
+  {
+   "object": "page",
+   "id": "22222222-0000-4000-8000-000000000003",
+   "created_time": "2026-10-01T10:00:00.000Z",
+   "last_edited_time": "2026-10-28T10:00:00.000Z",
+   "in_trash": false,
+   "parent": {
+    "type": "data_source_id",
+    "data_source_id": "a0f711f7-e11d-42bd-b536-6fbdbe4e1790",
+    "database_id": "99999999999999999999999999999999"
+   },
+   "properties": {
+    "Event": {
+     "id": "title",
+     "type": "title",
+     "title": [
+      {
+       "type": "text",
+       "text": {
+        "content": "AWS SAA exam"
+       },
+       "plain_text": "AWS SAA exam",
+       "href": null
+      }
+     ]
+    },
+    "Date": {
+     "id": "x",
+     "type": "date",
+     "date": {
+      "start": "2026-12-12",
+      "end": null
+     }
+    },
+    "Type": {
+     "id": "x",
+     "type": "select",
+     "select": {
+      "name": "Cert"
+     }
+    },
+    "Prep note": {
+     "id": "x",
+     "type": "rich_text",
+     "rich_text": [
+      {
+       "type": "text",
+       "text": {
+        "content": "Practice tests"
+       },
+       "plain_text": "Practice tests",
+       "href": "https://aws.amazon.com/certification/"
+      }
+     ]
+    },
+    "Done": {
+     "id": "x",
+     "type": "checkbox",
+     "checkbox": false
+    },
+    "Days left": {
+     "id": "x",
+     "type": "formula",
+     "formula": {
+      "type": "number",
+      "number": 44
+     }
+    }
+   },
+   "url": "https://www.notion.so/x"
+  },
+  {
+   "object": "page",
+   "id": "22222222-0000-4000-8000-000000000004",
+   "created_time": "2026-10-01T10:00:00.000Z",
+   "last_edited_time": "2026-10-28T10:00:00.000Z",
+   "in_trash": false,
+   "parent": {
+    "type": "data_source_id",
+    "data_source_id": "a0f711f7-e11d-42bd-b536-6fbdbe4e1790",
+    "database_id": "99999999999999999999999999999999"
+   },
+   "properties": {
+    "Event": {
+     "id": "title",
+     "type": "title",
+     "title": [
+      {
+       "type": "text",
+       "text": {
+        "content": "Hackathon (past)"
+       },
+       "plain_text": "Hackathon (past)",
+       "href": null
+      }
+     ]
+    },
+    "Date": {
+     "id": "x",
+     "type": "date",
+     "date": {
+      "start": "2026-10-20",
+      "end": null
+     }
+    },
+    "Type": {
+     "id": "x",
+     "type": "select",
+     "select": {
+      "name": "Event"
+     }
+    },
+    "Prep note": {
+     "id": "x",
+     "type": "rich_text",
+     "rich_text": []
+    },
+    "Done": {
+     "id": "x",
+     "type": "checkbox",
+     "checkbox": false
+    },
+    "Days left": {
+     "id": "x",
+     "type": "formula",
+     "formula": {
+      "type": "number",
+      "number": -9
+     }
+    }
+   },
+   "url": "https://www.notion.so/x"
+  },
+  {
+   "object": "page",
+   "id": "22222222-0000-4000-8000-000000000005",
+   "created_time": "2026-10-01T10:00:00.000Z",
+   "last_edited_time": "2026-10-28T10:00:00.000Z",
+   "in_trash": false,
+   "parent": {
+    "type": "data_source_id",
+    "data_source_id": "a0f711f7-e11d-42bd-b536-6fbdbe4e1790",
+    "database_id": "99999999999999999999999999999999"
+   },
+   "properties": {
+    "Event": {
+     "id": "title",
+     "type": "title",
+     "title": [
+      {
+       "type": "text",
+       "text": {
+        "content": "Done one"
+       },
+       "plain_text": "Done one",
+       "href": null
+      }
+     ]
+    },
+    "Date": {
+     "id": "x",
+     "type": "date",
+     "date": {
+      "start": "2026-11-05",
+      "end": null
+     }
+    },
+    "Type": {
+     "id": "x",
+     "type": "select",
+     "select": {
+      "name": "Event"
+     }
+    },
+    "Prep note": {
+     "id": "x",
+     "type": "rich_text",
+     "rich_text": []
+    },
+    "Done": {
+     "id": "x",
+     "type": "checkbox",
+     "checkbox": true
+    },
+    "Days left": {
+     "id": "x",
+     "type": "formula",
+     "formula": {
+      "type": "number",
+      "number": 7
+     }
+    }
+   },
+   "url": "https://www.notion.so/x"
+  }
+ ],
+ "next_cursor": null,
+ "has_more": false
+}

@@ -117,6 +117,35 @@ class Keyring(unittest.TestCase):
         self.assertNotIn("environ[", src.replace('environ["DESK_CONFIG"]', ""))
 
 
+class Sync(unittest.TestCase):
+    def test_a_sync_writes_no_secret_into_the_cache_or_the_log(self):
+        from desksync import cli, fixtures
+        from desksync.notion import Client
+        seen = []
+
+        def client_for(cfg, credential):
+            seen.append(credential)
+            return Client(fixtures.transport(cfg, REPO / "tests/fixtures/desk"), rate=1000, retries=0,
+                          log=lambda m: log(m, err))
+        with tempfile.TemporaryDirectory() as t:
+            err = io.StringIO()
+            env = {"DESK_CONFIG": str(CONFIG), "XDG_CACHE_HOME": f"{t}/c", "XDG_STATE_HOME": f"{t}/s"}
+            saved = {k: os.environ.get(k) for k in env}
+            os.environ.update(env)
+            orig = (cli.secret.read, cli.client_for, cli.log)
+            cli.secret.read, cli.client_for, cli.log = (lambda: FAKE), client_for, (lambda m: log(m, err))
+            try:
+                self.assertEqual(cli.main(["sync"]), 0)
+            finally:
+                cli.secret.read, cli.client_for, cli.log = orig
+                for k, v in saved.items():
+                    os.environ.pop(k, None) if v is None else os.environ.__setitem__(k, v)
+            self.assertEqual(seen, [FAKE])
+            text = err.getvalue() + "".join(p.read_text() for p in Path(t).rglob("*") if p.is_file())
+            self.assertIn("synced:", text)
+            self.assertEqual(leaks(text), [])
+
+
 class Log(unittest.TestCase):
     def test_the_log_masks_anything_secret_shaped(self):
         out = io.StringIO()
