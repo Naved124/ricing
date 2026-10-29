@@ -132,7 +132,7 @@ class Apps(unittest.TestCase):
         hypr, mode = self.out["hypr.lua"], self.out["hypr-mode.lua"]
         for want in ("rounding         = 12", "gaps_in     = 8", "gaps_out    = 18", "border_size = 1",
                      "size              = 8", "passes            = 3", 'style = "popin 96%"',
-                     '"^abyss-(bar|launcher|island|center|osd|power|toast|keys|stats)$"'):
+                     '"^abyss-(bar|launcher|island|center|osd|power|toast|keys|stats|deskpanel)$"'):
             self.assertIn(want, hypr)
         self.assertNotIn("screen_shader", hypr)
         for want in ('"rgba(62f2e2aa)", "rgba(b98cffaa)"', "angle  = 45", '"rgba(78e8f026)"',

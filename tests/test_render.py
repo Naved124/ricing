@@ -493,7 +493,7 @@ class SystemCard(unittest.TestCase):
                 for needle in ("property bool statsShown: true", "property real statsX", "property real statsY"):
                     self.assertIn(needle, saved)
         # Nacre's card is glass: Hyprland blurs its layer
-        self.assertIn("|stats)$", (RICES / "nacre/templates/hypr.lua").read_text())
+        self.assertIn("|stats|deskpanel)$", (RICES / "nacre/templates/hypr.lua").read_text())
 
 
 class Island(unittest.TestCase):

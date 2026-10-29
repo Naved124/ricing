@@ -5,6 +5,7 @@ import QtQuick.Layouts
 import Quickshell
 import Quickshell.Wayland
 import qs.common
+import qs.deskwidget
 import qs.services
 
 // The bar: a strip of ruled card taped across the top of each monitor. The
@@ -99,6 +100,12 @@ PanelWindow {
             // the island sits over the middle of the strip
             Item {
                 Layout.fillWidth: true
+            }
+
+            // Notion's Desk: open to-dos and the next countdown
+            DeskPill {
+                screenName: win.screen ? win.screen.name : ""
+                Layout.alignment: Qt.AlignVCenter
             }
 
             NetSpeed {

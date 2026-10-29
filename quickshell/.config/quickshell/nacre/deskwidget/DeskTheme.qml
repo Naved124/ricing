@@ -38,7 +38,7 @@ DeskStyle {
             fill: Theme.glassStrong
         }
     }
-    namespace: "nacre-desk"
+    namespace: "nacre-deskpanel"
 
     durIn: Theme.durPanelIn
     durOut: Theme.durPanelOut

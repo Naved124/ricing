@@ -21,10 +21,13 @@ DESK = REPO / "desk"
 sys.path.insert(0, str(REPO / "tests"))
 
 # the shells the widget is wired into
-WIRED = ["nacre"]
+WIRED = ["nacre", "paper", "abyss", "satsuei", "goldengate"]
+BARS = {"nacre": "bar/Bar.qml", "paper": "bar/Bar.qml", "abyss": "bar/Bar.qml", "satsuei": "bar/Bar.qml",
+        "goldengate": "menubar/MenuBar.qml"}
 SHARED = ["DeskState.qml", "DeskStyle.qml", "DeskText.qml", "DeskGlyph.qml", "DeskCheck.qml", "DeskButton.qml",
           "DeskPill.qml", "DeskPanel.qml", "DeskCapture.qml", "DeskShortcuts.qml", "DeskToday.qml", "DeskBrief.qml", "DeskCountdowns.qml", "DeskJobs.qml"]
 STUB_CACHE = Path("/tmp/qsstub-home/.cache/desk/state.json")
+STUB_UI = Path("/tmp/qsstub-home/.local/state/desk/ui.json")
 
 
 def has_pyside() -> bool:
@@ -72,6 +75,27 @@ class Files(unittest.TestCase):
             with self.subTest(name):
                 self.assertNotRegex(text, r"\bimport qs\s*$|\bTheme\.", "the look comes from DeskTheme only")
                 self.assertNotRegex(text, r"font\.family:\s*\"", "fonts come from DeskTheme")
+
+
+class Wiring(unittest.TestCase):
+    def test_every_bar_has_the_pill_and_every_shell_the_panel(self):
+        for shell in WIRED:
+            with self.subTest(shell):
+                self.assertIn("DeskPill {", (SHELLS / shell / BARS[shell]).read_text())
+                text = (SHELLS / shell / "shell.qml").read_text()
+                for needle in ("import qs.deskwidget", "DeskPanel {}", "DeskCapture {}", "DeskShortcuts {}"):
+                    self.assertIn(needle, text)
+
+    def test_the_glass_rices_blur_behind_it(self):
+        rices = REPO / "rices/.config/rices"
+        for rice in ("nacre", "abyss", "satsuei", "goldengate"):
+            with self.subTest(rice):
+                ns = re.search(r'namespace:\s*"([^"]+)"', (SHELLS / rice / "deskwidget/DeskTheme.qml").read_text())[1]
+                rules = (rices / rice / "templates/hypr.lua").read_text()
+                blurred = [m for m in re.findall(r'namespace = "(\^[^"]+\$)"', rules)
+                           if re.match(m.replace("\\\\", "\\"), ns)]
+                self.assertTrue(blurred, f"{ns} is in none of {rice}'s layer rules")
+        self.assertIn('"goldengate:deskpanel"', (rices / "goldengate/templates/glass.lua").read_text())
 
 
 class Untrusted(unittest.TestCase):
@@ -174,6 +198,31 @@ class Live(unittest.TestCase):
                 self.assertEqual((p["open"]["open"], p["open"]["screen"], p["open"]["panel"]), (True, "DP-1", False))
                 self.assertEqual((p["blank"]["sent"], p["real"]["sent"]), (False, True))
                 self.assertEqual((p["panel"]["panel"], p["panel"]["capture"]), (True, False))
+
+    def test_a_rice_switch_keeps_the_tab_and_fetches_nothing(self):
+        import qs_smoke
+        self.write_cache(datetime.now(timezone.utc).astimezone())
+        synced = json.loads(STUB_CACHE.read_text())["synced_at"]
+        STUB_UI.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            for a, b in zip(WIRED, WIRED[1:] + WIRED[:1]):
+                with self.subTest(f"{a} -> {b}"):
+                    STUB_UI.unlink(missing_ok=True)
+                    errors, pokes = qs_smoke.smoke(SHELLS / a, seconds=4.5, poke=REPO / "tests/pokes/desk-switch.qml")
+                    self.assertEqual(errors, [])
+                    p = {x["tag"]: x for x in pokes}
+                    self.assertEqual(p["found"]["tab"], "today")
+                    # the mode changed under the open panel: same tab, still open, same data
+                    self.assertEqual((p["left"]["tab"], p["left"]["panel"], p["left"]["synced"]), ("jobs", True, synced))
+                    # what the real FileView would have written (the stand-in keeps writes in memory)
+                    STUB_UI.write_text(json.dumps({"tab": "jobs"}) + "\n")
+                    errors, pokes = qs_smoke.smoke(SHELLS / b, seconds=3, poke=REPO / "tests/pokes/desk-switch.qml")
+                    self.assertEqual(errors, [])
+                    found = {x["tag"]: x for x in pokes}["found"]
+                    self.assertEqual((found["tab"], found["loaded"], found["open"], found["synced"]),
+                                     ("jobs", True, 5, synced))
+        finally:
+            STUB_UI.unlink(missing_ok=True)
 
     def test_offline_shows_the_badge_and_keeps_the_data(self):
         # the last good sync was 40 minutes ago; the latest attempt found no network

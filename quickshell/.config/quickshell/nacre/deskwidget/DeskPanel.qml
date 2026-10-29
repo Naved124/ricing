@@ -68,6 +68,12 @@ PanelWindow {
         Loader {
             anchors.fill: parent
             sourceComponent: DeskTheme.backdrop ?? solid
+            // a pane that bends what's behind it (Golden Gate's) wants to know where it is
+            onLoaded: {
+                if ("screen" in item) item.screen = Qt.binding(() => win.screen);
+                if ("windowOrigin" in item) item.windowOrigin = Qt.binding(() => Qt.point(panel.x, panel.y));
+                if ("opened" in item) item.opened = Qt.binding(() => win.open);
+            }
         }
         Component {
             id: solid
