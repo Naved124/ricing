@@ -16,7 +16,6 @@ import qs.center
 import qs.chars
 import qs.common
 import qs.desk
-import qs.deskwidget
 import qs.keys
 import qs.launcher
 import qs.lock
@@ -49,18 +48,6 @@ ShellRoot {
     Center {}
     Stats {}
     Subtitles {}
-    // Notion's Desk, from desk-sync's cache: the panel under each bar's pill,
-    // the capture line (Super+Shift+N)
-    Variants {
-        model: Quickshell.screens
-        DeskPanel {}
-    }
-    Variants {
-        model: Quickshell.screens
-        DeskCapture {}
-    }
-    DeskShortcuts {}
-
     Osd {}
     Toast {}
     Launcher {}

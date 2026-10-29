@@ -10,7 +10,6 @@ import Quickshell.Hyprland
 import qs.bar
 import qs.center
 import qs.desk
-import qs.deskwidget
 import qs.keys
 import qs.launcher
 import qs.lock
@@ -37,17 +36,6 @@ ShellRoot {
         model: Quickshell.screens
         Island {}
     }
-
-    // Notion's Desk, from desk-sync's cache: the panel under each bar's pill
-    Variants {
-        model: Quickshell.screens
-        DeskPanel {}
-    }
-    Variants {
-        model: Quickshell.screens
-        DeskCapture {}
-    }
-    DeskShortcuts {}
 
     // follow the focused monitor
     Osd {}

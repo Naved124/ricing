@@ -13,7 +13,6 @@ import qs.apps
 import qs.common
 import qs.controlcenter
 import qs.desk
-import qs.deskwidget
 import qs.dock
 import qs.hotcorners
 import qs.keys
@@ -93,18 +92,6 @@ ShellRoot {
     }
     Osd { screen: Quickshell.screens[0] }
     Lock {}
-
-    // Notion's Desk, from desk-sync's cache: the panel under the menu bar's
-    // Desk extra, the capture line (Super+Shift+N)
-    Variants {
-        model: Quickshell.screens
-        DeskPanel {}
-    }
-    Variants {
-        model: Quickshell.screens
-        DeskCapture {}
-    }
-    DeskShortcuts {}
     SettingsApp { id: settingsApp }
 
     Connections {

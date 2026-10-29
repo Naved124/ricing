@@ -1,6 +1,6 @@
 // A stand-in for Quickshell's own type, so tests/test_shells_smoke.py can run
 // the shells under PySide6. Only what the shells use; nothing really happens,
-// except for Satsuei's and Desk's files (a path with /satsuei/ or /desk/ in it): those are read
+// except for Satsuei's files (a path with /satsuei/ in it): those are read
 // from disk (qs_smoke allows XHR file reads), watched by polling, and written
 // in memory, so a test can drive the shell through its theme.json.
 
@@ -22,7 +22,7 @@ QtObject {
     signal saveFailed(int error)
     signal loaded()
     property string _text: ""
-    property bool _real: path.indexOf("/satsuei/") >= 0 || path.indexOf("/desk/") >= 0
+    property bool _real: path.indexOf("/satsuei/") >= 0
     function _read() {
         const x = new XMLHttpRequest();
         try {

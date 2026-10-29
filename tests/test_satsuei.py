@@ -402,7 +402,7 @@ class Glass(unittest.TestCase):
         for needle in ("size              = 8", "passes            = 3", "new_optimizations = true",
                        "rounding         = 16", 'leaf = "workspaces",   enabled = true, speed = 6,',
                        'style = "slide"', "blur = true, ignore_alpha = 0.3",
-                       '"^satsuei-(bar|center|studio|subs|walls|cast|launcher|osd|power|toast|keys|stats|deskpanel)$"'):
+                       '"^satsuei-(bar|center|studio|subs|walls|cast|launcher|osd|power|toast|keys|stats)$"'):
             self.assertIn(needle, hypr)
         self.assertIn("vibrancy   = 0.2", mode)
         # nothing goes see-through for losing focus; glassy windows are frosted, terminals whole

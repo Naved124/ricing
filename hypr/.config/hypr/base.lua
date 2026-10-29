@@ -112,7 +112,6 @@ bind(key("N"),      hl.dsp.global("quickshell:center"),    "Shell · Control cen
 bind(key("slash"),  hl.dsp.global("quickshell:keybinds"),  "Shell · This key sheet")
 bind(key("Escape"), hl.dsp.global("quickshell:power"),     "Shell · Power menu")
 bind(key("L"),      hl.dsp.exec_cmd("rice lock"),         "Shell · Lock")
-bind(key("SHIFT + N"), hl.dsp.global("quickshell:desk-capture"), "Shell · Quick capture to Desk (Notion)")
 
 -- windows
 bind(key("Q"),         hl.dsp.window.close(),                         "Windows · Close")

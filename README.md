@@ -302,7 +302,6 @@ rice-rec toggle      record the screen to ~/Videos, again to stop (also: region)
 | Super+T or Super+Return, Super+W, Super+E | terminal, browser (your default), files |
 | Super+V | clipboard history (the launcher in `!` mode) |
 | Super+N | control centre |
-| Super+Shift+N | quick capture to Notion's Desk (`idea:` for the Idea inbox) |
 | Super+Escape | power menu |
 | Super+L | lock |
 | Super+Shift+T / Super+Ctrl+T | rice chooser / next rice |

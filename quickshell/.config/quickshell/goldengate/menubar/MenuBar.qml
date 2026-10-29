@@ -8,7 +8,6 @@ import Quickshell.Wayland
 import Quickshell.Services.SystemTray
 import Quickshell.Widgets
 import qs.common
-import qs.deskwidget
 import qs.services
 
 // The menu bar: the Apple menu and the app in front on the left, the
@@ -72,13 +71,6 @@ PanelWindow {
 
     Pill {
         anchors { right: parent.right; rightMargin: 6 }
-
-        // Notion's Desk, the first of the menu extras
-        DeskPill {
-            screenName: root.at
-            height: 24
-            anchors.verticalCenter: parent.verticalCenter
-        }
 
         Repeater {
             model: SystemTray.items

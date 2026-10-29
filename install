@@ -30,7 +30,7 @@
 set -euo pipefail
 
 repo=$(cd "$(dirname "$0")" && pwd)
-packages=(switcher render rices hypr quickshell systemd fonts zsh audio desk)
+packages=(switcher render rices hypr quickshell systemd fonts zsh audio)
 backup="${XDG_STATE_HOME:-$HOME/.local/state}/rice/backup/$(date +%Y%m%d-%H%M%S)"
 fontdir="${XDG_DATA_HOME:-$HOME/.local/share}/fonts/rice"
 fonts_url="https://raw.githubusercontent.com/google/fonts/main/ofl"
@@ -86,7 +86,7 @@ fi
 if [ "$uninstall" = 1 ]; then
     have stow || die "stow is needed to remove the links"
     step "Removing the links"
-    run systemctl --user disable --now rice-mode.timer rice-auto.timer desk-sync.timer 2>/dev/null || true
+    run systemctl --user disable --now rice-mode.timer rice-auto.timer 2>/dev/null || true
     run stow -D -d "$repo" -t "$HOME" "${packages[@]}"
     [ "$(git -C "$repo" config core.hooksPath 2>/dev/null)" = .githooks ] \
         && run git -C "$repo" config --unset core.hooksPath
@@ -124,15 +124,11 @@ optional=(
     sushi:sushi kvantummanager:kvantum sassc:sassc
     # Golden Gate: its notification sounds (PipeWire's player)
     pw-play:pipewire
-    # Desk: desk-sync reads its Notion credential from the keyring; the
-    # pre-commit hook scans for credentials
-    secret-tool:libsecret gitleaks:gitleaks
 )
 # Python modules, checked by import: Pillow regenerates Paper's paper textures
-# and wallpaper (rices/paper/assets/gen.py); httpx is desk-sync's HTTP client
+# and wallpaper (rices/paper/assets/gen.py)
 pymods=(
     "PIL|python-pillow"
-    "httpx|python-httpx"        # desk-sync talks to Notion with it
 )
 # themes the palettes name (checked by folder, since they aren't commands)
 themes=(
@@ -630,11 +626,8 @@ if have systemctl && systemctl --user show-environment >/dev/null 2>&1; then
     # it only acts once `rice mode auto` is on
     run systemctl --user enable --now rice-mode.timer
     ok "the auto-mode timer is enabled (turn auto mode on with: rice mode auto)"
-    # Desk: syncs every 5 minutes once its Notion credential is in the keyring
-    run systemctl --user enable --now desk-sync.timer
-    ok "the Desk sync timer is enabled (credential: secret-tool store --label=\"Desk Notion\" service desk-notion)"
 else
-    warn "no systemd user session; skipping the auto-mode and Desk timers"
+    warn "no systemd user session; skipping the auto-mode timer"
 fi
 
 # auto mode's settings: yours to edit, so copied once and never overwritten

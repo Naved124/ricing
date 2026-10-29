@@ -2,7 +2,6 @@ import QtQuick
 import Quickshell
 import Quickshell.Wayland
 import qs.common
-import qs.deskwidget
 import qs.services
 
 // The bar: a floating glass pill, 46 tall, 10 from the edges, 16 round, laid
@@ -101,18 +100,8 @@ PanelWindow {
             }
         }
 
-        // Notion's Desk, just left of the status: open to-dos, the next countdown
-        DeskPill {
-            screenName: win.screen ? win.screen.name : ""
-            showNext: win.width >= 1600
-            anchors.right: status.left
-            anchors.rightMargin: 6
-            anchors.verticalCenter: parent.verticalCenter
-        }
-
         // right: what's playing and the status
         Status {
-            id: status
             bar: win
             anchors.right: parent.right
             anchors.rightMargin: 8

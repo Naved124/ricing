@@ -4,7 +4,6 @@ import Quickshell
 import Quickshell.Wayland
 import qs
 import qs.common
-import qs.deskwidget
 import qs.services
 
 // The bar: a pill of glass floating in the water, Nacre's size but 2 px thicker:
@@ -88,11 +87,6 @@ PanelWindow {
                     pill.width / 2 - win.islandHalf - workspaces.x - workspaces.width - 12)))
             }
             Item { Layout.fillWidth: true }
-            // Notion's Desk: open to-dos and the next countdown
-            DeskPill {
-                screenName: win.screen ? win.screen.name : ""
-                Layout.alignment: Qt.AlignVCenter
-            }
             Status {
                 bar: win
                 Layout.alignment: Qt.AlignVCenter

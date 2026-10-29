@@ -3,9 +3,3 @@ rices/.config/rices/.current.tmp
 rices/.config/rices/*/build/
 __pycache__/
 .qmlls.ini
-# Desk: desk-sync keeps its cache and queue in ~/.cache/desk and ~/.local/state/desk;
-# never commit a copy of either
-state.json
-queue.json
-queue.lock
-*.desk-tmp
